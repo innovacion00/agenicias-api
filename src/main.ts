@@ -5,12 +5,16 @@ import { envs } from './config/envs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('v1');
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
   );
+
   await app.listen(envs.port);
 }
 bootstrap();
