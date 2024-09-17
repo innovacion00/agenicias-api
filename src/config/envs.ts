@@ -3,13 +3,13 @@ import * as joi from 'joi';
 
 interface EnvVars {
   PORT: number;
-  MONGO_URL_USERS: string;
+  MONGO_URL: string;
 }
 
 const envSchema = joi
   .object({
     PORT: joi.number().required(),
-    MONGO_URL_USERS: joi.string().required(),
+    MONGO_URL: joi.string().required(),
   })
   .unknown(true);
 
@@ -23,5 +23,5 @@ const envVars: EnvVars = value;
 
 export const envs = {
   port: envVars.PORT,
-  mongoUrlUsers: envVars.MONGO_URL_USERS,
+  mongoUrl: envVars.MONGO_URL,
 };
