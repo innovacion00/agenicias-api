@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { envs } from './config/envs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Main');
 
-  app.setGlobalPrefix('v1');
+  app.setGlobalPrefix('agencias/v1/');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -16,5 +17,6 @@ async function bootstrap() {
   );
 
   await app.listen(envs.port);
+  logger.log(`Escuchando pueto ${envs.port}`);
 }
 bootstrap();
