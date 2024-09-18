@@ -21,6 +21,32 @@ export class User extends Document {
     required: true,
     type: String,
   })
+  telefono: string;
+
+  @Prop({
+    required: true,
+    type: {
+      palabra: { type: String, required: true },
+      pista: { type: String, required: true },
+    },
+  })
+  validacion: {
+    palabra: string;
+    pista: string;
+  };
+
+  @Prop({
+    unique: true,
+    required: true,
+    type: String,
+    index: true,
+  })
+  slug: string;
+
+  @Prop({
+    required: true,
+    type: String,
+  })
   password: string;
 
   @Prop({
@@ -38,6 +64,7 @@ export class User extends Document {
 
   @Prop({
     type: Boolean,
+    default: false,
   })
   firstLog: boolean;
 
@@ -45,6 +72,7 @@ export class User extends Document {
     type: [String],
     required: true,
     enum: ['admin', 'user'],
+    default: ['user'],
   })
   role: string[];
 }
