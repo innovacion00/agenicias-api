@@ -46,6 +46,7 @@ export class User extends Document {
   @Prop({
     required: true,
     type: String,
+    select: false,
   })
   password: string;
 

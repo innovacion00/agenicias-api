@@ -4,12 +4,14 @@ import * as joi from 'joi';
 interface EnvVars {
   PORT: number;
   MONGO_URL: string;
+  JWT_SECRET: string;
 }
 
 const envSchema = joi
   .object({
     PORT: joi.number().required(),
     MONGO_URL: joi.string().required(),
+    JWT_SECRET: joi.string().required(),
   })
   .unknown(true);
 
@@ -24,4 +26,5 @@ const envVars: EnvVars = value;
 export const envs = {
   port: envVars.PORT,
   mongoUrl: envVars.MONGO_URL,
+  jwtSecret: envVars.JWT_SECRET,
 };

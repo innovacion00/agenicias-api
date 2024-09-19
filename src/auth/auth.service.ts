@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
@@ -34,19 +35,19 @@ export class AuthService {
     }
   }
 
-  private async findOneByTerm(term: string) {
+  private async findOneByTerm(term: string, select: string) {
     let user: User;
 
     if (!user && isValidObjectId(term)) {
-      user = await this.userModel.findById(term);
+      user = await this.userModel.findById(term).select(select);
     }
 
     if (!user && isEmail(term)) {
-      user = await this.userModel.findOne({ email: term });
+      user = await this.userModel.findOne({ email: term }).select(select);
     }
 
     if (!user) {
-      user = await this.userModel.findOne({ slug: term });
+      user = await this.userModel.findOne({ slug: term }).select(select);
     }
 
     if (!user) {
@@ -63,11 +64,12 @@ export class AuthService {
 
       let slug = slugify(createUserDto.fullName);
       let counter = 1;
-      let slugValidation = await this.findOneByTerm(slug);
+      let slugValidation = await this.findOneByTerm(slug, 'slug');
+      console.log(slugValidation);
 
       while (slugValidation) {
         slug = `${slugify(createUserDto.fullName, { lower: true })}-${counter}`;
-        slugValidation = await this.findOneByTerm(slug);
+        slugValidation = await this.findOneByTerm(slug, 'slug');
         counter++;
       }
 
@@ -87,10 +89,17 @@ export class AuthService {
   }
 
   async signIn(signInDto: SignInDto) {
-try {
-  
-} catch (error) {
-  
-}
+    const { email, password } = signInDto;
+    const user = await this.findOneByTerm(email, 'email password');
+
+    if (!user) {
+      throw new UnauthorizedException('Non valid credential');
+    }
+
+    if (!bcrypt.compareSync(password, user.password)) {
+      throw new UnauthorizedException('Non valid credential');
+    }
+
+    return user;
   }
 }
