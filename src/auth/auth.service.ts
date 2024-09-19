@@ -5,12 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+
 import { isValidObjectId, Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { CreateUSerDto } from './dto/create-user.dto';
-import { User } from './entities/user.entity';
 import { isEmail } from 'class-validator';
 import slugify from 'slugify';
+
+import { User } from './entities/user.entity';
+import { CreateUSerDto, SignInDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -71,16 +73,24 @@ export class AuthService {
 
       const user = await this.userModel.create({
         ...userData,
-        slug,
         validacion: {
           palabra: validacion.palabra.toLowerCase(),
           ...validacion,
         },
         password: bcrypt.hashSync(password, 10),
+        slug,
       });
       return user;
     } catch (error) {
       this.handleError(error);
     }
+  }
+
+  async signIn(signInDto: SignInDto) {
+try {
+  
+} catch (error) {
+  
+}
   }
 }

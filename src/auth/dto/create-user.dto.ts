@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsString,
   Matches,
@@ -13,12 +14,27 @@ class ValidacionDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  @Matches(/^\S*$/, { message: 'La palabra no puede contener espacios.' })
+  @Matches(/^\S*$/, { message: 'palabra no puede contener espacios.' })
   palabra: string;
 
   @IsString()
   @MinLength(3)
   pista: string;
+}
+
+class DocumentDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(['CC', 'NIT', 'CA', 'PA'])
+  tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+
+  @IsString()
+  @MinLength(6)
+  @Matches(/^[^\s._]+$/, {
+    message:
+      'document no puede contener espacios, puntos o guiones bajos.',
+  })
+  document: string;
 }
 
 export class CreateUSerDto {
@@ -47,6 +63,14 @@ export class CreateUSerDto {
   validacion: {
     palabra: string;
     pista: string;
+  };
+
+  @ValidateNested()
+  @IsNotEmpty()
+  @Type(() => DocumentDto)
+  documentInfo: {
+    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+    document: string;
   };
 
   @IsString()
