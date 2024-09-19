@@ -11,9 +11,13 @@ import {
 
 class ValidacionDto {
   @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @Matches(/^\S*$/, { message: 'La palabra no puede contener espacios.' })
   palabra: string;
 
   @IsString()
+  @MinLength(3)
   pista: string;
 }
 
@@ -31,7 +35,10 @@ export class CreateUSerDto {
   @IsNotEmpty()
   @MinLength(7)
   @MaxLength(15)
-  @Matches(/^\+?[0-9\s\-]+$/)
+  @Matches(/^\+?[0-9]+$/, {
+    message:
+      'El teléfono solo puede contener dígitos y opcionalmente un + al inicio.',
+  })
   telefono: string;
 
   @ValidateNested()

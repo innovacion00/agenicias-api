@@ -57,7 +57,8 @@ export class AuthService {
   async create(createUserDto: CreateUSerDto) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
     try {
-      const { password, ...userData } = createUserDto;
+      const { password, validacion, ...userData } = createUserDto;
+
       let slug = slugify(createUserDto.fullName);
       let counter = 1;
       let slugValidation = await this.findOneByTerm(slug);
@@ -71,6 +72,10 @@ export class AuthService {
       const user = await this.userModel.create({
         ...userData,
         slug,
+        validacion: {
+          palabra: validacion.palabra.toLowerCase(),
+          ...validacion,
+        },
         password: bcrypt.hashSync(password, 10),
       });
       return user;
