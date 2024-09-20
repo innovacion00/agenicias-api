@@ -6,10 +6,11 @@ import { User, UserSchema } from './entities/user.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
   imports: [
     MongooseModule.forFeature([
       {
@@ -31,5 +32,6 @@ import { envs } from 'src/config/envs';
       },
     }),
   ],
+  exports: [JwtStrategy, PassportModule, JwtModule],
 })
 export class AuthModule {}

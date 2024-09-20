@@ -5,6 +5,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { isValidObjectId, Model } from 'mongoose';
@@ -14,6 +15,7 @@ import slugify from 'slugify';
 
 import { User } from './entities/user.entity';
 import { CreateUSerDto, SignInDto } from './dto';
+import { JwtPayload } from './interfaces';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,8 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+
+    private readonly jwtService: JwtService,
   ) {}
 
   private handleError(error: any): never {
@@ -33,6 +37,11 @@ export class AuthService {
       this.logger.log(error);
       throw new InternalServerErrorException('Revisar logs');
     }
+  }
+
+  private generateJwt(payload: JwtPayload) {
+    const token = this.jwtService.sign(payload);
+    return token;
   }
 
   private async findOneByTerm(term: string, select: string) {
@@ -82,7 +91,11 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
         slug,
       });
-      return user;
+      const { password: hashedPassword, ...userObje } = user.toObject();
+      return {
+        ...userObje,
+        token: this.generateJwt({ email: user.email }),
+      };
     } catch (error) {
       this.handleError(error);
     }
@@ -90,7 +103,13 @@ export class AuthService {
 
   async signIn(signInDto: SignInDto) {
     const { email, password } = signInDto;
-    const user = await this.findOneByTerm(email, 'email password');
+    // const user = await this.findOneByTerm(email, 'email password');
+    const user = await this.userModel
+      .findOne({ email })
+      .lean()
+      .select(
+        'email password fullName telefono validacion slug password isActive changePassword firstLog role',
+      );
 
     if (!user) {
       throw new UnauthorizedException('Non valid credential');
@@ -100,6 +119,11 @@ export class AuthService {
       throw new UnauthorizedException('Non valid credential');
     }
 
-    return user;
+    const { password: hashedPassword, ...userData } = user;
+
+    return {
+      ...userData,
+      token: this.generateJwt({ email: user.email }),
+    };
   }
 }
