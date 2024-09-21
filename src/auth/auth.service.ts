@@ -74,7 +74,6 @@ export class AuthService {
       let slug = slugify(createUserDto.fullName);
       let counter = 1;
       let slugValidation = await this.findOneByTerm(slug, 'slug');
-      console.log(slugValidation);
 
       while (slugValidation) {
         slug = `${slugify(createUserDto.fullName, { lower: true })}-${counter}`;
@@ -91,10 +90,10 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
         slug,
       });
-      const { password: hashedPassword, ...userObje } = user.toObject();
+      const { password: hashedPassword, ...userDbData } = user.toObject();
       return {
-        ...userObje,
-        token: this.generateJwt({ email: user.email }),
+        ...userDbData,
+        token: this.generateJwt({ _id: userDbData._id as string }),
       };
     } catch (error) {
       this.handleError(error);
@@ -120,10 +119,9 @@ export class AuthService {
     }
 
     const { password: hashedPassword, ...userData } = user;
-
     return {
       ...userData,
-      token: this.generateJwt({ email: user.email }),
+      token: this.generateJwt({ _id: userData._id as string }),
     };
   }
 }
