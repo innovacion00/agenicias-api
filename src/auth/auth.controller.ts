@@ -4,16 +4,16 @@ import {
   Post,
   Body,
   UseGuards,
-  Req,
   SetMetadata,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { AuthService } from './auth.service';
 import { CreateUSerDto, SignInDto } from './dto';
-import { GetUser } from './decorators';
+import { Auth, GetUser, RoleProtected } from './decorators';
 import { User } from './entities/user.entity';
-import { RawHeaders } from 'src/common/decorators';
+import { UserRoleGuard } from './guards/user-role.guard';
+import { ValidRoles } from './interfaces';
 
 @Controller('auth')
 export class AuthController {
@@ -30,8 +30,7 @@ export class AuthController {
   }
 
   @Get('private')
-  @SetMetadata('roles', ['admin'])
-  @UseGuards(AuthGuard())
+  @Auth(ValidRoles.admin)
   private(@GetUser() user: User) {
     return {
       mag: 'priva',
