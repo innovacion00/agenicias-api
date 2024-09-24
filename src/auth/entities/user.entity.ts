@@ -27,7 +27,7 @@ export class User extends Document {
   @Prop({
     required: true,
     type: {
-      palabra: { type: String, required: true, lowercase: true },
+      palabra: { type: String, required: true, },
       pista: { type: String, required: true },
     },
   })

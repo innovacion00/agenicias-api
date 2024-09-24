@@ -15,6 +15,7 @@ class ValidacionDto {
   @IsNotEmpty()
   @MinLength(3)
   @Matches(/^\S*$/, { message: 'palabra no puede contener espacios.' })
+  @MaxLength(10)
   palabra: string;
 
   @IsString()
