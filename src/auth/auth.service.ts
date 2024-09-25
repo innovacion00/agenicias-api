@@ -156,6 +156,12 @@ export class AuthService {
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     try {
       const { _id } = refreshTokenDto;
+      const user = await this.findOneByTerm(_id, '');
+      if (!user.isActive) {
+        throw new UnauthorizedException(
+          'Usuario inactivo, comunicarse con un asesor',
+        );
+      }
 
       return {
         token: this.generateJwt({ _id }),
@@ -182,15 +188,33 @@ export class AuthService {
     try {
       const user = await this.userModel
         .findById(id)
-        .lean()
-        .select('validacion');
+        .select('validacion changePasswordTries');
+
+      if (user.changePasswordTries === 3) {
+        throw new UnauthorizedException(
+          'Numero de intentos al limite, comunicarse con un asesor',
+        );
+      }
 
       if (!user) {
         throw new NotFoundException('Not found user');
       }
+
+      const tries = user.changePasswordTries + 1;
       if (!bcrypt.compareSync(palabra, user.validacion.palabra)) {
+        
+        await user.updateOne({ ...user.toJSON(), changePasswordTries: tries });
+
+        if (tries === 3) {
+          throw new UnauthorizedException(
+            'Numero de intentos al limite, comunicarse con un asesor',
+          );
+        }
+
         throw new UnauthorizedException('Credencial invalida');
       }
+
+      await user.updateOne({ ...user.toJSON(), changePassword: true });
 
       return {
         valid: true,
@@ -217,7 +241,12 @@ export class AuthService {
       }
       const hashPassword = bcrypt.hashSync(newPasswordDto.password, 10);
 
-      await user.updateOne({ ...user.toJSON(), password: hashPassword });
+      await user.updateOne({
+        ...user.toJSON(),
+        password: hashPassword,
+        changePassword: false,
+        changePasswordTries: 0,
+      });
       return { ok: true };
     } catch (error) {
       this.handleError(error);

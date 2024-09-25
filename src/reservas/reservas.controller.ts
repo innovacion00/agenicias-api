@@ -21,25 +21,4 @@ export class ReservasController {
   create(@Body() createReservaDto: CreateReservaDto) {
     return this.reservasService.create(createReservaDto);
   }
-
-  @Get()
-  @Auth(ValidRoles.admin)
-  findAll() {
-    return this.reservasService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reservasService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReservaDto: UpdateReservaDto) {
-    return this.reservasService.update(+id, updateReservaDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reservasService.remove(+id);
-  }
 }
