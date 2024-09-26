@@ -3,15 +3,27 @@ import * as joi from 'joi';
 
 interface EnvVars {
   PORT: number;
+
   MONGO_URL: string;
+
   JWT_SECRET: string;
+
+  COBRE_API_URL: string;
+  COBRE_AUTH_STRING: string;
+  COBRE_API_KEY: string;
 }
 
 const envSchema = joi
   .object({
     PORT: joi.number().required(),
+
     MONGO_URL: joi.string().required(),
+
     JWT_SECRET: joi.string().required(),
+
+    COBRE_API_URL: joi.string().required(),
+    COBRE_AUTH_STRING: joi.string().required(),
+    COBRE_API_KEY: joi.string().required(),
   })
   .unknown(true);
 
@@ -25,6 +37,12 @@ const envVars: EnvVars = value;
 
 export const envs = {
   port: envVars.PORT,
+
   mongoUrl: envVars.MONGO_URL,
+
   jwtSecret: envVars.JWT_SECRET,
+
+  cobreApiUrl: envVars.COBRE_API_URL,
+  cobreAuthString: envVars.COBRE_AUTH_STRING,
+  cobreApiKey: envVars.COBRE_API_KEY,
 };

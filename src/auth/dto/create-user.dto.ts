@@ -33,7 +33,7 @@ class DocumentDto {
   @MinLength(6)
   @Matches(/^[^\s._]+$/, {
     message:
-      'document no puede contener espacios, puntos o guiones bajos.',
+      'document no puede contener espacios guiones bajos.',
   })
   document: string;
 }
@@ -52,9 +52,9 @@ export class CreateUSerDto {
   @IsNotEmpty()
   @MinLength(7)
   @MaxLength(15)
-  @Matches(/^\+?[0-9]+$/, {
+  @Matches(/^\+[0-9]+$/, {
     message:
-      'El teléfono solo puede contener dígitos y opcionalmente un + al inicio.',
+      'El teléfono solo puede contener dígitos y debe de tener un + al inicio.',
   })
   telefono: string;
 

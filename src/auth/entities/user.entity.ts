@@ -38,6 +38,18 @@ export class User extends Document {
   };
 
   @Prop({
+    required: true,
+    type: {
+      tipo: { type: String, required: true },
+      document: { type: String, required: true },
+    },
+  })
+  documentInfo: {
+    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+    document: string;
+  };
+
+  @Prop({
     unique: true,
     required: true,
     type: String,

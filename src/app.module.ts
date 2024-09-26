@@ -1,18 +1,21 @@
 import { Module } from '@nestjs/common';
-
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { AuthModule } from './auth/auth.module';
-import { ReservasModule } from './reservas/reservas.module';
-import { CommonModule } from './common/common.module';
+import { envs } from './config/envs'; 
 
-import { envs } from './config/envs';
+import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
+import { CommonModule } from './common/common.module';
+import { PaymentsModule } from './payments/payments.module';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(envs.mongoUrl),
+    AdminModule,
     AuthModule,
     CommonModule,
+    MongooseModule.forRoot(envs.mongoUrl),
+    PaymentsModule,
     ReservasModule,
   ],
   controllers: [],
