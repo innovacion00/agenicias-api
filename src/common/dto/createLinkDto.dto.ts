@@ -1,5 +1,6 @@
 import {
   ArrayNotEmpty,
+  IsMongoId,
   IsNotEmpty,
   IsString,
   IsUrl,
@@ -9,6 +10,11 @@ import {
 } from 'class-validator';
 
 export class CreateLinkDto {
+
+  @IsMongoId()
+  @IsNotEmpty()
+  reservaId: string;
+
   @IsNotEmpty()
   @IsString()
   @MaxLength(15)

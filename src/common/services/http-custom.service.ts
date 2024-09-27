@@ -8,8 +8,6 @@ import { v4 as uuid } from 'uuid';
 
 import { envs } from 'src/config/envs';
 import { ICobreLinkAPIResponse, IgenerateLink } from '../interface';
-import { HttpService } from '@nestjs/axios';
-import axios from 'axios';
 
 @Injectable()
 export class HttpCustomService {
@@ -48,20 +46,20 @@ export class HttpCustomService {
     }
   }
 
-  // * Deja esto tal como esta, solo cambiar las variables
   public async generateCobreLink(properties: IgenerateLink) {
-    interface IBody extends Omit<IgenerateLink, 'redirectUrl' | 'jwt'> {
+    interface IBody extends Omit<IgenerateLink, 'jwt'> {
       notificationMethods: ('EMAIL' | 'WHATSAPP' | 'ONLINE')[];
       enabledPaymentMethods: 'PSE'[];
       currency: 'COP';
     }
 
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    myHeaders.append('Accept', 'application/json');
-    myHeaders.append('X-APIGW-AUTH', properties.jwt);
-    myHeaders.append('X-CORRELATION-ID', uuid());
-    myHeaders.append('X-API-KEY', envs.cobreApiKey);
+    const myHeaders = {
+      'X-API-KEY': envs.cobreApiKey,
+      'X-APIGW-AUTH': properties.jwt,
+      'X-CORRELATION-ID': uuid(),
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
 
     const {
       cellPhone,
@@ -73,6 +71,7 @@ export class HttpCustomService {
       fullName,
       description,
       references,
+      redirectUrl,
     } = properties;
 
     const bodyData: IBody = {
@@ -88,6 +87,7 @@ export class HttpCustomService {
       notificationMethods: ['EMAIL', 'WHATSAPP', 'ONLINE'],
       enabledPaymentMethods: ['PSE'],
       currency: 'COP',
+      redirectUrl,
     };
 
     const requestOptions = {
@@ -103,7 +103,10 @@ export class HttpCustomService {
       requestOptions,
     )
       .then((response) => response.json())
-      .then((result) => result)
+      .then((result) => {
+        const data: ICobreLinkAPIResponse = result;
+        return data;
+      })
       .catch((error) => {
         throw new Error(error);
       });

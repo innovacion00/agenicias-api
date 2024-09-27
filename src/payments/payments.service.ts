@@ -6,7 +6,10 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+
+
 import { User } from 'src/auth/entities/user.entity';
+
 import { CreateLinkDto } from 'src/common/dto';
 import { IgenerateLink } from 'src/common/interface';
 import { HttpCustomService } from 'src/common/services';
@@ -35,11 +38,19 @@ export class PaymentsService {
   }
 
   async generatePaymentLink(createLinkDto: CreateLinkDto, user: User) {
-    const { cobreAuthToken } = await this.httpCustomService.generateCobreJwt();
-
     const { telefono, email, documentInfo, fullName } = user;
-    const { amount, expirationDate, description, references, redirectUrl } =
-      createLinkDto;
+    const {
+      amount,
+      reservaId,
+      expirationDate,
+      description,
+      references,
+      redirectUrl,
+    } = createLinkDto;
+
+
+
+    const { cobreAuthToken } = await this.httpCustomService.generateCobreJwt();
 
     const properties: IgenerateLink = {
       cellPhone: telefono,
@@ -56,6 +67,7 @@ export class PaymentsService {
     };
 
     const data = await this.httpCustomService.generateCobreLink(properties);
-    return {data};
+    return data;
+    // return {cobreAuthToken};
   }
 }

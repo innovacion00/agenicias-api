@@ -11,6 +11,24 @@ export class Reserva extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: User;
+
+  @Prop({
+    type: {
+      link: { type: String, default: '' },
+      expirationDate: { type: String, default: '' },
+      rastreador: { type: String, default: '' },
+    },
+    default: {
+      link: '',
+      expirationDate: '',
+      rastreador: '',
+    },
+  })
+  linkInfo: {
+    link: string;
+    expirationDate: string;
+    rastreador: string;
+  };
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

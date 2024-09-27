@@ -15,9 +15,9 @@ export class User extends Document {
   @Prop({
     required: true,
     type: String,
-    lowercase: true,
+    select: false,
   })
-  fullName: string;
+  password: string;
 
   @Prop({
     required: true,
@@ -27,15 +27,10 @@ export class User extends Document {
 
   @Prop({
     required: true,
-    type: {
-      palabra: { type: String, required: true },
-      pista: { type: String, required: true },
-    },
+    type: String,
+    lowercase: true,
   })
-  validacion: {
-    palabra: string;
-    pista: string;
-  };
+  fullName: string;
 
   @Prop({
     required: true,
@@ -50,19 +45,24 @@ export class User extends Document {
   };
 
   @Prop({
+    required: true,
+    type: {
+      palabra: { type: String, required: true },
+      pista: { type: String, required: true },
+    },
+  })
+  validacion: {
+    palabra: string;
+    pista: string;
+  };
+
+  @Prop({
     unique: true,
     required: true,
     type: String,
     index: true,
   })
   slug: string;
-
-  @Prop({
-    required: true,
-    type: String,
-    select: false,
-  })
-  password: string;
 
   @Prop({
     type: Number,

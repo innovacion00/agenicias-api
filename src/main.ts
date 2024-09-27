@@ -17,6 +17,6 @@ async function bootstrap() {
   );
 
   await app.listen(envs.port);
-  logger.log(`Escuchando pueto ${envs.port}`);
+  logger.log(`Escuchando puerto ${envs.port}`);
 }
 bootstrap();
