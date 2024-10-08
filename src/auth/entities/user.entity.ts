@@ -35,18 +35,6 @@ export class User extends Document {
   @Prop({
     required: true,
     type: {
-      tipo: { type: String, required: true },
-      document: { type: String, required: true },
-    },
-  })
-  documentInfo: {
-    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
-    document: string;
-  };
-
-  @Prop({
-    required: true,
-    type: {
       palabra: { type: String, required: true },
       pista: { type: String, required: true },
     },
@@ -55,20 +43,6 @@ export class User extends Document {
     palabra: string;
     pista: string;
   };
-
-  @Prop({
-    unique: true,
-    required: true,
-    type: String,
-    index: true,
-  })
-  slug: string;
-
-  @Prop({
-    type: Number,
-    default: 0,
-  })
-  saldo: number;
 
   @Prop({
     type: Boolean,
@@ -93,7 +67,7 @@ export class User extends Document {
   @Prop({
     type: [String],
     required: true,
-    enum: ['admin', 'user'],
+    enum: ['admin', 'user', 'super-admin'],
     default: ['user'],
   })
   role: string[];
@@ -103,6 +77,9 @@ export class User extends Document {
     default: 0,
   })
   changePasswordTries: number;
+
+  @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
+  agencia: Types.ObjectId;
 
   @Prop({
     type: [{ type: Types.ObjectId, ref: 'Reserva' }],

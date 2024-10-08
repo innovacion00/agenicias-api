@@ -9,7 +9,7 @@ import { SwitchIsActiveDto } from './dto';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  // @Auth(ValidRoles.admin)
+  // @Auth(ValidRoles.superUser)
   @Patch('switch-active')
   switchIsActive(@Body() switchIsActiveDto: SwitchIsActiveDto) {
     return this.adminService.switchIsActiveUser(switchIsActiveDto);

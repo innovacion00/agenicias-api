@@ -23,21 +23,6 @@ class ValidacionDto {
   pista: string;
 }
 
-class DocumentDto {
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CA', 'PA'])
-  tipo: 'CC' | 'NIT' | 'CA' | 'PA';
-
-  @IsString()
-  @MinLength(6)
-  @Matches(/^[^\s._]+$/, {
-    message:
-      'document no puede contener espacios guiones bajos.',
-  })
-  document: string;
-}
-
 export class CreateUSerDto {
   @IsEmail()
   @IsNotEmpty()
@@ -64,14 +49,6 @@ export class CreateUSerDto {
   validacion: {
     palabra: string;
     pista: string;
-  };
-
-  @ValidateNested()
-  @IsNotEmpty()
-  @Type(() => DocumentDto)
-  documentInfo: {
-    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
-    document: string;
   };
 
   @IsString()

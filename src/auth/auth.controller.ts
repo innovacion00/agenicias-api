@@ -6,6 +6,7 @@ import {
   Query,
   Patch,
   HttpCode,
+  Param,
 } from '@nestjs/common';
 
 import { Auth, GetUser } from './decorators';
@@ -20,22 +21,25 @@ import {
 
 import { AuthService } from './auth.service';
 import { ValidRoles } from './interfaces';
+import { ParseMongoIdPipe } from 'src/common/pipes';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // #region Iniciar secion/registrarse
-  @Post('sign-up')
-  createUser(@Body() createUserDto: CreateUSerDto) {
-    return this.authService.create(createUserDto);
+  @Post('sign-up/:id')
+  createUser(
+    @Param('id', ParseMongoIdPipe) id: string,
+    @Body() createUserDto: CreateUSerDto,
+  ) {
+    return this.authService.create(createUserDto, id);
   }
 
   @Post('sign-in')
   loggin(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto);
   }
-  // #endregion
 
   // #region Tokens
   @Post('validar-token')
@@ -49,7 +53,6 @@ export class AuthController {
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     this.authService.refreshToken(refreshTokenDto);
   }
-  // #endregion
 
   // #region Cambio contraseña
   @Get('get-validation')
@@ -71,5 +74,4 @@ export class AuthController {
   ) {
     return this.authService.changePassword(newPasswordDto, _id);
   }
-  // #endregion
 }

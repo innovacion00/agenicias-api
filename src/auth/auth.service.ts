@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -12,7 +13,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { isEmail } from 'class-validator';
-import slugify from 'slugify';
 
 import { User } from './entities/user.entity';
 import {
@@ -23,14 +23,16 @@ import {
   ValidarPalabraDto,
 } from './dto';
 import { JwtPayload } from './interfaces';
+import { Agencia } from 'src/agencias/entities';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<User>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+
+    @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -42,19 +44,18 @@ export class AuthService {
       );
     }
 
-    if (error instanceof NotFoundException) {
+    const exceptionTypes = [
+      NotFoundException,
+      BadRequestException,
+      UnauthorizedException,
+      ForbiddenException,
+    ];
+
+    if (exceptionTypes.some((exception) => error instanceof exception)) {
       throw error;
     }
 
-    if (error instanceof BadRequestException) {
-      throw error;
-    }
-
-    if (error instanceof UnauthorizedException) {
-      throw error;
-    }
-
-    this.logger.log(error);
+    this.logger.error(error);
     throw new InternalServerErrorException('Revisar logs');
   }
 
@@ -85,35 +86,45 @@ export class AuthService {
     return user;
   }
 
-  async create(createUserDto: CreateUSerDto) {
+  async create(createUserDto: CreateUSerDto, id: string) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
     try {
       const { password, validacion, ...userData } = createUserDto;
 
-      validacion.palabra = bcrypt.hashSync(validacion.palabra, 10);
-
-      let slug = slugify(createUserDto.fullName);
-      let counter = 1;
-      let slugValidation = await this.findOneByTerm(slug, 'slug');
-
-      while (slugValidation) {
-        slug = `${slugify(createUserDto.fullName, { lower: true })}-${counter}`;
-        slugValidation = await this.findOneByTerm(slug, 'slug');
-        counter++;
+      const agenciaDoc = await this.agenciaModel.findById(id);
+      if (!agenciaDoc) {
+        throw new NotFoundException('Agencia invalida');
       }
+
+      if (!agenciaDoc.isActive) {
+        throw new ForbiddenException('Agencia no activa');
+      }
+
+      if (agenciaDoc.usuarios.length === agenciaDoc.userLimit) {
+        throw new BadRequestException(
+          'Número de usuarios máximos alcanzado, comunicarse con asesor',
+        );
+      }
+
+      validacion.palabra = bcrypt.hashSync(validacion.palabra, 10);
 
       const user = await this.userModel.create({
         ...userData,
+        agencia: id,
         validacion,
         password: bcrypt.hashSync(password, 10),
-        slug,
       });
+
+      agenciaDoc.usuarios.push(user._id as User);
+      await agenciaDoc.save();
+
       const { password: hashedPassword, ...userDbData } = user.toObject();
       return {
         ...userDbData,
         token: this.generateJwt({ _id: userDbData._id as string }),
       };
     } catch (error) {
+      // handleError(error, AuthService.name);
       this.handleError(error);
     }
   }
@@ -124,10 +135,22 @@ export class AuthService {
     const user = await this.userModel
       .findOne({ email })
       .lean()
+      .populate('agencia', 'fullName slug saldo documentInfo')
       .select(
-        'email password fullName telefono validacion slug password isActive changePassword firstLog role',
+        'email password fullName telefono validacion slug password isActive changePassword firstLog role agencia',
       );
 
+    const agenciaInfo = await this.agenciaModel.findById(user.agencia);
+    //* Agencia
+    if (!agenciaInfo) {
+      throw new NotFoundException('Agencia no econtrada');
+    }
+
+    if (!agenciaInfo.isActive) {
+      throw new ForbiddenException('Agencia no activa');
+    }
+
+    // *User
     if (!user) {
       throw new UnauthorizedException('Non valid credential');
     }
@@ -202,7 +225,6 @@ export class AuthService {
 
       const tries = user.changePasswordTries + 1;
       if (!bcrypt.compareSync(palabra, user.validacion.palabra)) {
-        
         await user.updateOne({ ...user.toJSON(), changePasswordTries: tries });
 
         if (tries === 3) {
