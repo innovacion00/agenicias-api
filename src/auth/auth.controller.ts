@@ -7,6 +7,7 @@ import {
   Patch,
   HttpCode,
   Param,
+  Delete,
 } from '@nestjs/common';
 
 import { Auth, GetUser } from './decorators';
@@ -22,6 +23,7 @@ import {
 import { AuthService } from './auth.service';
 import { ValidRoles } from './interfaces';
 import { ParseMongoIdPipe } from 'src/common/pipes';
+import { Types } from 'mongoose';
 
 @Controller('auth')
 export class AuthController {
@@ -73,5 +75,14 @@ export class AuthController {
     @Body() newPasswordDto: NewPasswordDto,
   ) {
     return this.authService.changePassword(newPasswordDto, _id);
+  }
+  // #region Usuarios
+  @Patch('switch-activation-status/:userId')
+  @Auth(ValidRoles.admin)
+  switchActivationStatus(
+    @GetUser('agencia') agencia: Types.ObjectId,
+    @Param('userId', ParseMongoIdPipe) userId: string,
+  ) {
+    return this.authService.switchActivationStatus(agencia, userId);
   }
 }

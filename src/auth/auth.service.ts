@@ -10,7 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 
-import { isValidObjectId, Model } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { isEmail } from 'class-validator';
 
@@ -44,14 +44,15 @@ export class AuthService {
       );
     }
 
-    const exceptionTypes = [
-      NotFoundException,
-      BadRequestException,
-      UnauthorizedException,
-      ForbiddenException,
-    ];
+    if (error instanceof NotFoundException) {
+      throw error;
+    }
 
-    if (exceptionTypes.some((exception) => error instanceof exception)) {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+
+    if (error instanceof UnauthorizedException) {
       throw error;
     }
 
@@ -76,10 +77,6 @@ export class AuthService {
     }
 
     if (!user) {
-      user = await this.userModel.findOne({ slug: term }).select(select);
-    }
-
-    if (!user) {
       return null;
     }
 
@@ -100,17 +97,28 @@ export class AuthService {
         throw new ForbiddenException('Agencia no activa');
       }
 
-      if (agenciaDoc.usuarios.length === agenciaDoc.userLimit) {
+      const usuariosActivos = await this.userModel.countDocuments({
+        agencia: agenciaDoc._id,
+        isActive: true,
+      });
+      if (usuariosActivos >= agenciaDoc.userLimit) {
         throw new BadRequestException(
-          'Número de usuarios máximos alcanzado, comunicarse con asesor',
+          'No se pueden crear más usuarios en esta agencia.',
         );
       }
+
+      // if (agenciaDoc.usuarios.length >= agenciaDoc.userLimit) {
+      //   throw new BadRequestException(
+      //     'Número de usuarios máximos alcanzado, comunicarse con asesor',
+      //   );
+      // }
 
       validacion.palabra = bcrypt.hashSync(validacion.palabra, 10);
 
       const user = await this.userModel.create({
         ...userData,
-        agencia: id,
+        agencia: new Types.ObjectId(id),
+        // agencia: id,
         validacion,
         password: bcrypt.hashSync(password, 10),
       });
@@ -135,9 +143,9 @@ export class AuthService {
     const user = await this.userModel
       .findOne({ email })
       .lean()
-      .populate('agencia', 'fullName slug saldo documentInfo')
+      .populate('agencia', 'fullName saldo documentInfo')
       .select(
-        'email password fullName telefono validacion slug password isActive changePassword firstLog role agencia',
+        'email password fullName telefono validacion password isActive changePassword firstLog role agencia',
       );
 
     const agenciaInfo = await this.agenciaModel.findById(user.agencia);
@@ -251,7 +259,7 @@ export class AuthService {
     try {
       const user = await this.findOneByTerm(
         _id,
-        'password email fullName telefono validacion slug saldo isActive changePassword firstLog role',
+        'password email fullName telefono validacion saldo isActive changePassword firstLog role',
       );
 
       if (!user) {
@@ -273,5 +281,19 @@ export class AuthService {
     } catch (error) {
       this.handleError(error);
     }
+  }
+
+  async switchActivationStatus(agencia: Types.ObjectId, userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!agencia.equals(user.agencia)) {
+      throw new BadRequestException('Agencia Invalida');
+    }
+
+    await user.updateOne({
+      ...user.toJSON(),
+      isActive: !user.isActive,
+    });
+
+    return { ok: true };
   }
 }

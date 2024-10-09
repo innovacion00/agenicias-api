@@ -68,7 +68,7 @@ export class User extends Document {
     type: [String],
     required: true,
     enum: ['admin', 'user', 'super-admin'],
-    default: ['user'],
+    default: ['admin'],
   })
   role: string[];
 

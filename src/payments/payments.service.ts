@@ -49,15 +49,7 @@ export class PaymentsService {
     try {
       const agenciaInfo = await this.agenciaModel
         .findById(user.agencia)
-        .select('documentInfo isActive');
-
-      if (!agenciaInfo) {
-        throw new NotFoundException('Agencia no encontrada');
-      }
-
-      if (!agenciaInfo.isActive) {
-        throw new ForbiddenException('Agencia innavilitada');
-      }
+        .select('documentInfo');
 
       const documentInfo = {
         document: agenciaInfo.documentInfo.document,
