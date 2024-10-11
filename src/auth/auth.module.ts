@@ -8,12 +8,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AgenciasModule } from 'src/agencias/agencias.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   imports: [
     AgenciasModule,
+    CommonModule,
     MongooseModule.forFeature([
       {
         name: User.name,

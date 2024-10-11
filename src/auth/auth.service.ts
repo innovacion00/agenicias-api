@@ -1,19 +1,21 @@
+import { InjectModel } from '@nestjs/mongoose';
+import { JwtService } from '@nestjs/jwt';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
 
+import { isEmail } from 'class-validator';
 import { isValidObjectId, Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { isEmail } from 'class-validator';
 
+import { Agencia } from 'src/agencias/entities';
+import { ErrorManager } from 'src/common/helpers';
+import { JwtPayload } from './interfaces';
 import { User } from './entities/user.entity';
 import {
   CreateUSerDto,
@@ -22,11 +24,10 @@ import {
   SignInDto,
   ValidarPalabraDto,
 } from './dto';
-import { JwtPayload } from './interfaces';
-import { Agencia } from 'src/agencias/entities';
 
 @Injectable()
 export class AuthService {
+  private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -35,29 +36,8 @@ export class AuthService {
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
 
     private readonly jwtService: JwtService,
-  ) {}
-
-  private handleError(error: any): never {
-    if (error.code === 11000) {
-      throw new BadRequestException(
-        `${JSON.stringify(error.keyValue)} existente en BD`,
-      );
-    }
-
-    if (error instanceof NotFoundException) {
-      throw error;
-    }
-
-    if (error instanceof BadRequestException) {
-      throw error;
-    }
-
-    if (error instanceof UnauthorizedException) {
-      throw error;
-    }
-
-    this.logger.error(error);
-    throw new InternalServerErrorException('Revisar logs');
+  ) {
+    this.errorManager = new ErrorManager(AuthService.name);
   }
 
   private generateJwt(payload: JwtPayload) {
@@ -107,12 +87,6 @@ export class AuthService {
         );
       }
 
-      // if (agenciaDoc.usuarios.length >= agenciaDoc.userLimit) {
-      //   throw new BadRequestException(
-      //     'Número de usuarios máximos alcanzado, comunicarse con asesor',
-      //   );
-      // }
-
       validacion.palabra = bcrypt.hashSync(validacion.palabra, 10);
 
       const user = await this.userModel.create({
@@ -132,14 +106,13 @@ export class AuthService {
         token: this.generateJwt({ _id: userDbData._id as string }),
       };
     } catch (error) {
-      // handleError(error, AuthService.name);
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
   async signIn(signInDto: SignInDto) {
     const { email, password } = signInDto;
-    // const user = await this.findOneByTerm(email, 'email password');
     const user = await this.userModel
       .findOne({ email })
       .lean()
@@ -198,7 +171,8 @@ export class AuthService {
         token: this.generateJwt({ _id }),
       };
     } catch (error) {
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
@@ -210,7 +184,8 @@ export class AuthService {
       }
       return { _id: user._id, pista: user.validacion.pista };
     } catch (error) {
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
@@ -251,7 +226,8 @@ export class AuthService {
         token: this.generateJwt({ _id: user._id as string }),
       };
     } catch (error) {
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
@@ -279,7 +255,8 @@ export class AuthService {
       });
       return { ok: true };
     } catch (error) {
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 

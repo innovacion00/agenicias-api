@@ -11,9 +11,9 @@ import {
 
 export class CreateLinkDto {
 
-  @IsMongoId()
-  @IsNotEmpty()
-  reservaId: string;
+  // @IsMongoId()
+  // @IsNotEmpty()
+  // reservaId: string;
 
   @IsNotEmpty()
   @IsString()

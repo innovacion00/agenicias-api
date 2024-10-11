@@ -4,7 +4,9 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { envs } from './config/envs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['log', 'error', 'warn'],
+  });
   const logger = new Logger('Main');
 
   app.setGlobalPrefix('agencias/v1/');

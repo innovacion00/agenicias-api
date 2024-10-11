@@ -1,54 +1,29 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { CreateAgenciaDto } from './dto/create-agencia.dto';
-import { UpdateAgenciaDto } from './dto/update-agencia.dto';
-import slugify from 'slugify';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Agencia } from './entities';
+
 import { Model } from 'mongoose';
+import slugify from 'slugify';
+
+import { Agencia } from './entities';
+import { CreateAgenciaDto } from './dto/create-agencia.dto';
+import { ErrorManager } from 'src/common/helpers';
+import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 
 @Injectable()
 export class AgenciasService {
+  private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(AgenciasService.name);
 
   constructor(
     @InjectModel(Agencia.name)
     private readonly agenciaModel: Model<Agencia>,
-  ) {}
-
-  private handleError(error: any): never {
-    if (error.code === 11000) {
-      throw new BadRequestException(
-        `${JSON.stringify(error.keyValue)} existente en BD`,
-      );
-    }
-
-    if (error instanceof NotFoundException) {
-      throw error;
-    }
-
-    if (error instanceof BadRequestException) {
-      throw error;
-    }
-
-    if (error instanceof UnauthorizedException) {
-      throw error;
-    }
-
-    this.logger.log(error);
-    throw new InternalServerErrorException('Revisar logs');
+  ) {
+    this.errorManager = new ErrorManager(AgenciasService.name);
   }
 
   async create(createAgenciaDto: CreateAgenciaDto) {
     createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
     try {
-      const {} = createAgenciaDto;
 
       let slug = slugify(createAgenciaDto.fullName);
       let counter = 1;
@@ -72,7 +47,8 @@ export class AgenciasService {
         agencia,
       };
     } catch (error) {
-      this.handleError(error);
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
