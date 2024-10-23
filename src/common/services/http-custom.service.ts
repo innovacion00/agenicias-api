@@ -84,6 +84,7 @@ export class HttpCustomService {
       fullName,
       description,
       references,
+      // TODO: Volver a activar notificaciones
       // notificationMethods: ['EMAIL', 'WHATSAPP', 'ONLINE'],
       notificationMethods: [],
       enabledPaymentMethods: ['PSE'],
