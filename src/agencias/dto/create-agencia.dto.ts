@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsPhoneNumber,
   IsString,
   Matches,
   MaxLength,
@@ -40,10 +41,7 @@ export class CreateAgenciaDto {
   @IsNotEmpty()
   @MinLength(7)
   @MaxLength(15)
-  @Matches(/^\+[0-9]+$/, {
-    message:
-      'El teléfono solo puede contener dígitos y debe de tener un + al inicio.',
-  })
+  @IsPhoneNumber()
   telefonoContacto: string;
 
   @IsIn([0, 1], { message: 'Solo son permitidas categorias de 0 o 1' })

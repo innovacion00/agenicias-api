@@ -1,8 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { AgenciasService } from './agencias.service';
 import { CreateAgenciaDto } from './dto/create-agencia.dto';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
+import { ParseMongoIdPipe } from 'src/common/pipes';
+import { Types } from 'mongoose';
+import { Auth } from 'src/auth/decorators';
 
+// TODO: Autenticar cada endpoint
 @Controller('agencias')
 export class AgenciasController {
   constructor(private readonly agenciasService: AgenciasService) {}
@@ -12,14 +25,15 @@ export class AgenciasController {
     return this.agenciasService.create(createAgenciaDto);
   }
 
+  // @Auth()
   @Get()
   findAll() {
     return this.agenciasService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.agenciasService.findOne(+id);
+  @Get('getAll')
+  findOne(@Query('search') search: string) {
+    return this.agenciasService.findByProperty(search);
   }
 
   @Patch(':id')
@@ -27,8 +41,10 @@ export class AgenciasController {
     return this.agenciasService.update(+id, updateAgenciaDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.agenciasService.remove(+id);
+  @Patch('switch-activation-agencia/:agenciaId')
+  switchActivationAgency(
+    @Param('agenciaId', ParseMongoIdPipe) agenciaId: Types.ObjectId,
+  ) {
+    return this.agenciasService.switchAgenciaStatus(agenciaId);
   }
 }
