@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   ForbiddenException,
+  ImATeapotException,
 } from '@nestjs/common';
 
 export class ErrorManager {
@@ -21,7 +22,8 @@ export class ErrorManager {
       error instanceof NotFoundException ||
       error instanceof BadRequestException ||
       error instanceof UnauthorizedException ||
-      error instanceof ForbiddenException
+      error instanceof ForbiddenException ||
+      error instanceof ImATeapotException
     ) {
       throw error;
     }

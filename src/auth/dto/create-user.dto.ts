@@ -1,27 +1,11 @@
-import { Type } from 'class-transformer';
 import {
   IsEmail,
-  IsIn,
   IsNotEmpty,
   IsString,
   Matches,
   MaxLength,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
-
-class ValidacionDto {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @Matches(/^\S*$/, { message: 'palabra no puede contener espacios.' })
-  @MaxLength(10)
-  palabra: string;
-
-  @IsString()
-  @MinLength(3)
-  pista: string;
-}
 
 export class CreateUSerDto {
   @IsEmail()
@@ -30,6 +14,7 @@ export class CreateUSerDto {
 
   @IsString()
   @MinLength(2)
+  @MaxLength(20)
   @IsNotEmpty()
   fullName: string;
 
@@ -42,14 +27,6 @@ export class CreateUSerDto {
       'El teléfono solo puede contener dígitos y debe de tener un + al inicio.',
   })
   telefono: string;
-
-  @ValidateNested()
-  @IsNotEmpty()
-  @Type(() => ValidacionDto)
-  validacion: {
-    palabra: string;
-    pista: string;
-  };
 
   @IsString()
   @IsNotEmpty()

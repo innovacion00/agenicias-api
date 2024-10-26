@@ -33,18 +33,6 @@ export class User extends Document {
   fullName: string;
 
   @Prop({
-    required: true,
-    type: {
-      palabra: { type: String, required: true },
-      pista: { type: String, required: true },
-    },
-  })
-  validacion: {
-    palabra: string;
-    pista: string;
-  };
-
-  @Prop({
     type: Boolean,
     required: true,
     default: true,
@@ -72,20 +60,21 @@ export class User extends Document {
   })
   role: string[];
 
-  @Prop({
-    type: Number,
-    default: 0,
-  })
-  changePasswordTries: number;
-
   @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
   agencia: Types.ObjectId;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'OtpVerification',
+    default: null,
+  })
+  otpRef: Types.ObjectId;
 
   @Prop({
     type: [{ type: Types.ObjectId, ref: 'Reserva' }],
     default: [],
   })
-  reservas: Reserva[];
+  reservas: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

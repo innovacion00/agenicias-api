@@ -1,8 +1,13 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from './entities/user.entity';
+import {
+  OtpVerification,
+  OtpVerificationSchema,
+  User,
+  UserSchema,
+} from './entities';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
@@ -14,12 +19,16 @@ import { CommonModule } from 'src/common/common.module';
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   imports: [
-    AgenciasModule,
+    forwardRef(() => AgenciasModule),
     CommonModule,
     MongooseModule.forFeature([
       {
         name: User.name,
         schema: UserSchema,
+      },
+      {
+        name: OtpVerification.name,
+        schema: OtpVerificationSchema,
       },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),

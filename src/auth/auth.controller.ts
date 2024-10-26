@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Query,
-  Patch,
-  HttpCode,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Post, Body, Patch, HttpCode, Param } from '@nestjs/common';
 
 import { Auth, GetUser } from './decorators';
 
@@ -16,8 +6,9 @@ import {
   CreateUSerDto,
   NewPasswordDto,
   SignInDto,
-  ValidarPalabraDto,
   RefreshTokenDto,
+  OtpValidationDto,
+  RequestPasswordChangeDto,
 } from './dto';
 
 import { AuthService } from './auth.service';
@@ -51,21 +42,24 @@ export class AuthController {
   }
 
   @Post('refresh-token')
-  @Auth(ValidRoles.admin)
+  @Auth(ValidRoles.superUser)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     this.authService.refreshToken(refreshTokenDto);
   }
 
-  // #region Cambio contraseña
-  @Get('get-validation')
-  getValidation(@Query('email') email: string) {
-    return this.authService.getUserValidations(email);
+  // # region otp code
+  @Post('validate-otp')
+  @HttpCode(200)
+  validarOtp(@Body() otpValidation: OtpValidationDto) {
+    return this.authService.validarOtpSign(otpValidation);
   }
 
-  @Post('validar-palabra')
+  @Post('request-password-change')
   @HttpCode(200)
-  validarPalabra(@Body() validarPalabraDto: ValidarPalabraDto) {
-    return this.authService.validarPalabra(validarPalabraDto);
+  requestPasswordChange(
+    @Body() requestPasswordChange: RequestPasswordChangeDto,
+  ) {
+    return this.authService.requestPasswordChange(requestPasswordChange);
   }
 
   @Patch('new-credentials')
@@ -77,6 +71,7 @@ export class AuthController {
     return this.authService.changePassword(newPasswordDto, _id);
   }
   // #region Usuarios
+
   @Patch('switch-activation-status/:userId')
   @Auth(ValidRoles.admin)
   switchActivationStatus(

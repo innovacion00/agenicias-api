@@ -19,11 +19,14 @@ import { JwtPayload } from './interfaces';
 import { User } from './entities/user.entity';
 import {
   CreateUSerDto,
+  RequestPasswordChangeDto,
   NewPasswordDto,
+  OtpValidationDto,
   RefreshTokenDto,
   SignInDto,
-  ValidarPalabraDto,
 } from './dto';
+import { OtpVerification } from './entities';
+import { SendEmailCustomService } from 'src/common/services';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +37,11 @@ export class AuthService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
 
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
+
+    @InjectModel(OtpVerification.name)
+    private readonly otpVerificationModel: Model<OtpVerification>,
+
+    private readonly sendEmailCustomService: SendEmailCustomService,
 
     private readonly jwtService: JwtService,
   ) {
@@ -46,10 +54,13 @@ export class AuthService {
   }
 
   private async findOneByTerm(term: string, select: string) {
+    console.log({ term, select });
     let user: User;
+    let agencia: Agencia;
 
     if (!user && isValidObjectId(term)) {
       user = await this.userModel.findById(term).select(select);
+      console.log(user);
     }
 
     if (!user && isEmail(term)) {
@@ -60,13 +71,127 @@ export class AuthService {
       return null;
     }
 
+    if (user) {
+      agencia = await this.agenciaModel.findById(user.agencia);
+      if (agencia && agencia.isActive) {
+        return null;
+      }
+    }
+
+    if (!user.isActive) {
+      return null;
+    }
+
     return user;
   }
 
+  private async sendValidationEmail(email: string, verificationCode: string) {
+    const html = `
+      <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Código de Verificación</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      text-align: center;
+      color: #555;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .code {
+      font-size: 32px;
+      font-weight: bold;
+      color: #4caf50;
+      letter-spacing: 8px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Código de Verificación Geh Suites</h1>
+    </div>
+    <div class="content">
+      <div class="code">${verificationCode}</div>
+      <p>Este código es válido por 10 minutos.</p>
+    </div>
+    <div class="footer">
+      <p>Si no solicitaste este código, puedes ignorar este mensaje.</p>
+    </div>
+  </div>
+</body>
+</html>
+      `;
+    await this.sendEmailCustomService.sendEmail(
+      email,
+      'Codigo de verificacion',
+      '',
+      html,
+    );
+  }
+
+  private async createOtpVerfication(userId: Types.ObjectId) {
+    const otp = `${Math.floor(10000 + Math.random() * 90000)}`;
+    const fechaPlus = Date.now() + 10 * 60 * 1000;
+    let otpVerification: OtpVerification;
+
+    otpVerification = await this.otpVerificationModel.findOne({ userId });
+
+    if (!otpVerification) {
+      otpVerification = await this.otpVerificationModel.create({
+        userId,
+        otp,
+        expiresAt: fechaPlus,
+      });
+
+      return otpVerification;
+    }
+    otpVerification.otp = otp;
+    otpVerification.expiresAt = fechaPlus;
+    otpVerification.usado = false;
+    await otpVerification.save();
+
+    return otpVerification;
+  }
+
+  // #region Crear usuario
   async create(createUserDto: CreateUSerDto, id: string) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
     try {
-      const { password, validacion, ...userData } = createUserDto;
+      const { password, ...userData } = createUserDto;
 
       const agenciaDoc = await this.agenciaModel.findById(id);
       if (!agenciaDoc) {
@@ -87,13 +212,9 @@ export class AuthService {
         );
       }
 
-      validacion.palabra = bcrypt.hashSync(validacion.palabra, 10);
-
       const user = await this.userModel.create({
         ...userData,
         agencia: new Types.ObjectId(id),
-        // agencia: id,
-        validacion,
         password: bcrypt.hashSync(password, 10),
       });
 
@@ -101,9 +222,19 @@ export class AuthService {
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
+
+      const verification = await this.createOtpVerfication(
+        userDbData._id as Types.ObjectId,
+      );
+
+      user.otpRef = verification._id as Types.ObjectId;
+      await user.save();
+
+      await this.sendValidationEmail(user.email, verification.otp);
+
       return {
-        ...userDbData,
-        token: this.generateJwt({ _id: userDbData._id as string }),
+        status: 'Pending',
+        msg: 'Validar Otp code correo',
       };
     } catch (error) {
       this.logger.error(error);
@@ -111,6 +242,7 @@ export class AuthService {
     }
   }
 
+  // #region Sign in
   async signIn(signInDto: SignInDto) {
     const { email, password } = signInDto;
     const user = await this.userModel
@@ -118,9 +250,13 @@ export class AuthService {
       .lean()
       .populate('agencia', 'fullName saldo documentInfo')
       .select(
-        'email password fullName telefono validacion password isActive changePassword firstLog role agencia',
+        'email password fullName telefonopassword isActive changePassword firstLog role agencia',
       );
 
+    // *User
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Non valid credential');
+    }
     const agenciaInfo = await this.agenciaModel.findById(user.agencia);
     //* Agencia
     if (!agenciaInfo) {
@@ -131,22 +267,68 @@ export class AuthService {
       throw new ForbiddenException('Agencia no activa');
     }
 
-    // *User
-    if (!user) {
-      throw new UnauthorizedException('Non valid credential');
-    }
-
     if (!bcrypt.compareSync(password, user.password)) {
       throw new UnauthorizedException('Non valid credential');
     }
 
-    const { password: hashedPassword, ...userData } = user;
+    const verification = await this.createOtpVerfication(
+      user._id as Types.ObjectId,
+    );
+
+    await this.sendValidationEmail(user.email, verification.otp);
+
     return {
-      ...userData,
-      token: this.generateJwt({ _id: userData._id as string }),
+      status: 'Pending',
+      msg: 'Validar Otp code correo',
     };
   }
 
+  // #region validar OTP
+  async validarOtpSign({ otp, email }: OtpValidationDto) {
+    const fechaNow = Date.now();
+    try {
+      const userData = await this.userModel
+        .findOne({ email })
+        .select(
+          'email telefono fullName firstLog role agencia isActive changePassword otpRef',
+        )
+        .exec();
+
+      const validacionDb = await this.otpVerificationModel.findById(
+        userData.otpRef,
+      );
+
+      if (!validacionDb) {
+        throw new NotFoundException('No se encontro codigo de verificacion');
+      }
+
+      if (validacionDb.expiresAt < fechaNow) {
+        throw new BadRequestException('Codigo vencido');
+      }
+
+      if (validacionDb.usado) {
+        throw new UnauthorizedException('Codigo invalido');
+      }
+
+      if (validacionDb.otp !== otp) {
+        throw new BadRequestException('Codigo invalido');
+      }
+
+      validacionDb.usado = true;
+
+      await validacionDb.save();
+
+      return {
+        ...userData.toJSON(),
+        token: this.generateJwt({ _id: userData._id as string }),
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Validar token
   async validarToken(token: string) {
     try {
       const decodedToken = this.jwtService.verify(token);
@@ -157,6 +339,7 @@ export class AuthService {
     }
   }
 
+  // #region Refrescar token
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     try {
       const { _id } = refreshTokenDto;
@@ -176,70 +359,45 @@ export class AuthService {
     }
   }
 
-  async getUserValidations(email: string) {
-    try {
-      const user = await this.findOneByTerm(email, 'validacion');
-      if (!user) {
-        throw new NotFoundException('Email not found');
-      }
-      return { _id: user._id, pista: user.validacion.pista };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
+  // #region Solicitar Cambio de contraseña
+  async requestPasswordChange(
+    requestPasswordChangeDto: RequestPasswordChangeDto,
+  ) {
+    const user = await this.findOneByTerm(requestPasswordChangeDto.email, '');
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado o inactivo');
     }
+    const verification = await this.createOtpVerfication(
+      user._id as Types.ObjectId,
+    );
+
+    user.changePassword = true;
+    await user.save();
+
+    await this.sendValidationEmail(user.email, verification.otp);
+
+    return {
+      status: 'Pending',
+      msg: 'Validar Otp code correo',
+    };
   }
 
-  async validarPalabra(validarPalabraDto: ValidarPalabraDto) {
-    const { id, palabra } = validarPalabraDto;
-    try {
-      const user = await this.userModel
-        .findById(id)
-        .select('validacion changePasswordTries');
-
-      if (user.changePasswordTries === 3) {
-        throw new UnauthorizedException(
-          'Numero de intentos al limite, comunicarse con un asesor',
-        );
-      }
-
-      if (!user) {
-        throw new NotFoundException('Not found user');
-      }
-
-      const tries = user.changePasswordTries + 1;
-      if (!bcrypt.compareSync(palabra, user.validacion.palabra)) {
-        await user.updateOne({ ...user.toJSON(), changePasswordTries: tries });
-
-        if (tries === 3) {
-          throw new UnauthorizedException(
-            'Numero de intentos al limite, comunicarse con un asesor',
-          );
-        }
-
-        throw new UnauthorizedException('Credencial invalida');
-      }
-
-      await user.updateOne({ ...user.toJSON(), changePassword: true });
-
-      return {
-        valid: true,
-        token: this.generateJwt({ _id: user._id as string }),
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
-  }
-
+  // #region Cambiar contraseña
   async changePassword(newPasswordDto: NewPasswordDto, _id: string) {
     try {
+      console.log('Entro');
       const user = await this.findOneByTerm(
         _id,
-        'password email fullName telefono validacion saldo isActive changePassword firstLog role',
+        'password email fullName telefono saldo isActive changePassword firstLog role agencia',
       );
 
+      console.log(user);
       if (!user) {
         throw new NotFoundException('Non found user');
+      }
+
+      if (!user.changePassword) {
+        throw new UnauthorizedException('Change not approved by the user');
       }
 
       if (bcrypt.compareSync(newPasswordDto.password, user.password)) {
@@ -251,7 +409,6 @@ export class AuthService {
         ...user.toJSON(),
         password: hashPassword,
         changePassword: false,
-        changePasswordTries: 0,
       });
       return { ok: true };
     } catch (error) {
@@ -260,6 +417,7 @@ export class AuthService {
     }
   }
 
+  // #region Cambiar estado de actividad en un usuario
   async switchActivationStatus(agencia: Types.ObjectId, userId: string) {
     const user = await this.userModel.findById(userId);
     if (!agencia.equals(user.agencia)) {

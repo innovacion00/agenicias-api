@@ -11,6 +11,10 @@ interface EnvVars {
   COBRE_API_URL: string;
   COBRE_AUTH_STRING: string;
   COBRE_API_KEY: string;
+
+  // TODO: Eliminar la opcionalidad de esta ENV
+  SENDER_EMAIL?: string;
+  EMAIL_APP_PASSWORD?: string;
 }
 
 const envSchema = joi
@@ -24,6 +28,9 @@ const envSchema = joi
     COBRE_API_URL: joi.string().required(),
     COBRE_AUTH_STRING: joi.string().required(),
     COBRE_API_KEY: joi.string().required(),
+
+    EMAIL_APP_PASSWORD: joi.string().required(),
+    SENDER_EMAIL: joi.string().required(),
   })
   .unknown(true);
 
@@ -45,4 +52,7 @@ export const envs = {
   cobreApiUrl: envVars.COBRE_API_URL,
   cobreAuthString: envVars.COBRE_AUTH_STRING,
   cobreApiKey: envVars.COBRE_API_KEY,
+
+  SENDER_EMAIL: envVars.SENDER_EMAIL,
+  EMAIL_APP_PASSWORD: envVars.EMAIL_APP_PASSWORD,
 };
