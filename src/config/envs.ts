@@ -12,9 +12,8 @@ interface EnvVars {
   COBRE_AUTH_STRING: string;
   COBRE_API_KEY: string;
 
-  // TODO: Eliminar la opcionalidad de esta ENV
-  SENDER_EMAIL?: string;
-  EMAIL_APP_PASSWORD?: string;
+  SENDER_EMAIL: string;
+  EMAIL_APP_PASSWORD: string;
 }
 
 const envSchema = joi
