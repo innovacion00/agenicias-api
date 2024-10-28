@@ -22,12 +22,11 @@ export class PaymentsService {
   ) {
     this.errorManager = new ErrorManager(PaymentsService.name);
   }
-
+  // TODO: Modificar para reservas
   async generatePaymentLink(
     createLinkDto: CreateLinkDto,
     agencia: Types.ObjectId,
   ) {
-    // TODO: Probar
     try {
       const agenciaInfo = await this.agenciaModel.findById(agencia);
       const documentInfo = {

@@ -21,4 +21,9 @@ export class ReservasController {
   create(@Body() createReservaDto: CreateReservaDto) {
     return this.reservasService.create(createReservaDto);
   }
+
+  @Get()
+  prueba() {
+    return this.reservasService.prueba();
+  }
 }

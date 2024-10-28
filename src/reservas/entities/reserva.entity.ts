@@ -1,15 +1,40 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { IsNotEmpty, IsString } from 'class-validator';
 import { Document, Types } from 'mongoose';
 
 @Schema()
 export class Reserva extends Document {
-  @IsString()
-  @IsNotEmpty()
-  hotel: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   user: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
+  agencia: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    required: true,
+  })
+  correoTitular: string;
+
+  // TODO: Que son los dadtos de titular
+  // datosTitular:string;
+
+  @Prop({
+    type: String,
+    required: true,
+  })
+  checking: string;
+
+  @Prop({
+    type: String,
+    required: true,
+  })
+  checkout: string;
+
+  @Prop({
+    type: Number,
+    required: true,
+  })
+  cantidadHabitaciones: number;
 
   @Prop({
     type: {
@@ -17,6 +42,7 @@ export class Reserva extends Document {
       expirationDate: { type: String, default: '' },
       rastreador: { type: String, default: '' },
     },
+
     default: {
       link: '',
       expirationDate: '',
