@@ -47,7 +47,7 @@ export class AuthController {
     this.authService.refreshToken(refreshTokenDto);
   }
 
-  // # region otp code
+  // #region otp code
   @Post('validate-otp')
   @HttpCode(200)
   validarOtp(@Body() otpValidation: OtpValidationDto) {
@@ -70,8 +70,8 @@ export class AuthController {
   ) {
     return this.authService.changePassword(newPasswordDto, _id);
   }
-  // #region Usuarios
 
+  // #region Usuarios
   @Patch('switch-activation-status/:userId')
   @Auth(ValidRoles.admin)
   switchActivationStatus(

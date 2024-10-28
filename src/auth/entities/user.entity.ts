@@ -41,13 +41,6 @@ export class User extends Document {
 
   @Prop({
     type: Boolean,
-    required: true,
-    default: false,
-  })
-  changePassword: boolean;
-
-  @Prop({
-    type: Boolean,
     default: true,
   })
   firstLog: boolean;

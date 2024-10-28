@@ -53,18 +53,16 @@ export class AuthService {
     return token;
   }
 
-  private async findOneByTerm(term: string, select: string) {
-    console.log({ term, select });
+  private async findOneByTerm(term: string) {
     let user: User;
     let agencia: Agencia;
 
     if (!user && isValidObjectId(term)) {
-      user = await this.userModel.findById(term).select(select);
-      console.log(user);
+      user = await this.userModel.findById(term);
     }
 
     if (!user && isEmail(term)) {
-      user = await this.userModel.findOne({ email: term }).select(select);
+      user = await this.userModel.findOne({ email: term });
     }
 
     if (!user) {
@@ -73,7 +71,7 @@ export class AuthService {
 
     if (user) {
       agencia = await this.agenciaModel.findById(user.agencia);
-      if (agencia && agencia.isActive) {
+      if (agencia && !agencia.isActive) {
         return null;
       }
     }
@@ -343,7 +341,7 @@ export class AuthService {
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     try {
       const { _id } = refreshTokenDto;
-      const user = await this.findOneByTerm(_id, '');
+      const user = await this.findOneByTerm(_id);
       if (!user.isActive) {
         throw new UnauthorizedException(
           'Usuario inactivo, comunicarse con un asesor',
@@ -363,7 +361,8 @@ export class AuthService {
   async requestPasswordChange(
     requestPasswordChangeDto: RequestPasswordChangeDto,
   ) {
-    const user = await this.findOneByTerm(requestPasswordChangeDto.email, '');
+    const user = await this.findOneByTerm(requestPasswordChangeDto.email);
+
     if (!user) {
       throw new BadRequestException('Usuario no encontrado o inactivo');
     }
@@ -371,7 +370,7 @@ export class AuthService {
       user._id as Types.ObjectId,
     );
 
-    user.changePassword = true;
+    // user.changePassword = true;
     await user.save();
 
     await this.sendValidationEmail(user.email, verification.otp);
@@ -385,19 +384,9 @@ export class AuthService {
   // #region Cambiar contraseña
   async changePassword(newPasswordDto: NewPasswordDto, _id: string) {
     try {
-      console.log('Entro');
-      const user = await this.findOneByTerm(
-        _id,
-        'password email fullName telefono saldo isActive changePassword firstLog role agencia',
-      );
-
-      console.log(user);
+      const user = await this.userModel.findById(_id).select('password');
       if (!user) {
         throw new NotFoundException('Non found user');
-      }
-
-      if (!user.changePassword) {
-        throw new UnauthorizedException('Change not approved by the user');
       }
 
       if (bcrypt.compareSync(newPasswordDto.password, user.password)) {
@@ -408,7 +397,6 @@ export class AuthService {
       await user.updateOne({
         ...user.toJSON(),
         password: hashPassword,
-        changePassword: false,
       });
       return { ok: true };
     } catch (error) {
