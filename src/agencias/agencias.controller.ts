@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   Query,
 } from '@nestjs/common';
 import { AgenciasService } from './agencias.service';
@@ -25,7 +24,7 @@ export class AgenciasController {
     return this.agenciasService.create(createAgenciaDto);
   }
 
-  // @Auth()
+  @Auth()
   @Get()
   findAll() {
     return this.agenciasService.findAll();

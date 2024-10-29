@@ -12,7 +12,7 @@ async function bootstrap() {
   app.setGlobalPrefix('agencias/v1/');
 
   app.enableCors({
-    origin: ['http://172.10.10.172:4321'],
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

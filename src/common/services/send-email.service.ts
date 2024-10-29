@@ -23,11 +23,11 @@ export class SendEmailCustomService {
     });
 
     const info = await transporter.sendMail({
-      from: `"Geh Suites No-Reply" <${envs.SENDER_EMAIL}>`, // sender address
-      to: target, // list of receivers
-      subject, // Subject line
-      text, // plain text body
-      html, // html body
+      from: `"Geh Suites No-Reply" <${envs.SENDER_EMAIL}>`,
+      to: target,
+      subject,
+      text,
+      html,
     });
 
     return info;

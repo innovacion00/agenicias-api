@@ -16,16 +16,16 @@ export class ReservasService {
   async prueba() {
     const num = 12345;
     const info = await this.sendEmailCustomService.sendEmail(
-      'testnoEXISDSTE@gmail.com',
+      'sebastiandevmm@gmail.com',
       'Codigo de verificacion',
       'Hola mundo',
       `
-        <!DOCTYPE html>
+       <!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Código de Verificación</title>
+    <title>Bienvenido a [Nombre de la Plataforma]</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -51,17 +51,26 @@ export class ReservasService {
         font-size: 24px;
       }
       .content {
-        text-align: center;
+        text-align: left;
         color: #555;
         font-size: 16px;
         line-height: 1.6;
       }
-      .code {
-        font-size: 32px;
+      .cta {
+        text-align: center;
+        margin: 30px 0;
+      }
+      .cta a {
+        background-color: #4caf50;
+        color: #ffffff;
+        padding: 12px 24px;
+        text-decoration: none;
+        font-size: 16px;
         font-weight: bold;
-        color: #4caf50;
-        letter-spacing: 8px;
-        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .cta a:hover {
+        background-color: #45a049;
       }
       .footer {
         text-align: center;
@@ -75,19 +84,23 @@ export class ReservasService {
   <body>
     <div class="container">
       <div class="header">
-        <h1>Código de Verificación Geh Suites</h1>
+        <h1>¡Bienvenido a [Nombre de la Plataforma]!</h1>
       </div>
       <div class="content">
-        <div class="code">${num}</div>
-        <p>Este código es válido por 10 minutos.</p>
+        <p>¡Hola [Nombre del Usuario]!</p>
+        <p>Nos alegra darte la bienvenida a nuestra plataforma. Has tomado el primer paso hacia una experiencia increíble y estamos aquí para ayudarte a sacar el máximo provecho.</p>
+        <p>Para empezar, nos gustaría ofrecerte un tutorial asistido. Puedes agendar una cita en el horario que más te convenga para explorar todas las funcionalidades y beneficios de la plataforma.</p>
+      </div>
+      <div class="cta">
+        <a href="[Enlace para Agendar Cita]" target="_blank">Agendar Tutorial</a>
       </div>
       <div class="footer">
-        <p>Si no solicitaste este código, puedes ignorar este mensaje.</p>
+        <p>Gracias por unirte a nosotros,</p>
+        <p>El equipo de [Nombre de la Plataforma]</p>
       </div>
     </div>
   </body>
-</html>
-        `,
+</html>  `,
     );
 
     return { ...info };
