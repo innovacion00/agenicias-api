@@ -29,7 +29,7 @@ export class MyToolService {
     }
   }
 
-  private async hotelSelector(hotel: string) {
+  private hotelSelector(hotel: string) {
     switch (hotel) {
       case '1525':
         return envs.api_1525;
@@ -45,8 +45,16 @@ export class MyToolService {
 
     try {
       const reservaData = await axios.get(url, {
-        // params:
+        params: {
+          localizador: reservaInfo.localizador,
+          nombre: reservaInfo.nombre,
+        },
+        headers: {
+          Authorization: `Bearer ${validationToken}`,
+        },
       });
+
+      return reservaData.data;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

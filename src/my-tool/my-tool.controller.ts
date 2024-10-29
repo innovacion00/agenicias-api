@@ -6,7 +6,7 @@ import { ReservaInfoDto } from './dto';
 export class MyToolController {
   constructor(private readonly myToolService: MyToolService) {}
 
-  @Get()
+  @Get('reservas-info')
   getReservaInfo(
     @Query() reservaInfo: ReservaInfoDto
   ) {
