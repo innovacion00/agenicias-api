@@ -46,6 +46,7 @@ export class MyToolService {
     try {
       for (let i = 0; i < hotelesIps.length; i++) {
         const hotelIp = hotelesIps[i];
+        console.log(hotelIp);
         reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
           params: {
             localizador,
@@ -55,6 +56,7 @@ export class MyToolService {
             Authorization: `Bearer ${validationToken}`,
           },
         });
+        console.log(reservaData.data);
         if (reservaData.data.isSuccess) {
           return reservaData.data;
         }
