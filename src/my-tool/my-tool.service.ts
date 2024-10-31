@@ -17,7 +17,7 @@ export class MyToolService {
   private async generateMyToolToken() {
     try {
       const rawData = await axios.post<{ token: string; valido: string }>(
-        `${envs.api1525}:59000/api/Autenticacion/Validar`,
+        `${envs.apiAixo}:59000/api/Autenticacion/Validar`,
         {
           correo: envs.myToolEmail,
           clave: envs.myToolClave,
@@ -55,7 +55,6 @@ export class MyToolService {
             Authorization: `Bearer ${validationToken}`,
           },
         });
-        console.log(reservaData.data);
         if (reservaData.data.isSuccess) {
           return reservaData.data;
         }
