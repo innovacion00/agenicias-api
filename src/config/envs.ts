@@ -20,7 +20,16 @@ interface EnvVars {
   // ? My Tool
   MY_TOOL_EMAIL: string;
   MY_TOOL_CLAVE: string;
+
   API_1525: string;
+  API_AIXO: string;
+  API_AZUAN: string;
+  API_RODADERO: string;
+  API_AVEXI: string;
+  API_BOCAGRANADE: string;
+  API_ABI: string;
+  API_MADISSON: string;
+  API_WINDSOR: string;
 }
 
 const envSchema = joi
@@ -40,7 +49,16 @@ const envSchema = joi
 
     MY_TOOL_EMAIL: joi.string().required(),
     MY_TOOL_CLAVE: joi.string().required(),
+
     API_1525: joi.string().required(),
+    API_AIXO: joi.string().required(),
+    API_AZUAN: joi.string().required(),
+    API_RODADERO: joi.string().required(),
+    API_AVEXI: joi.string().required(),
+    API_BOCAGRANADE: joi.string().required(),
+    API_ABI: joi.string().required(),
+    API_MADISSON: joi.string().required(),
+    API_WINDSOR: joi.string().required(),
   })
   .unknown(true);
 
@@ -68,5 +86,14 @@ export const envs = {
 
   myToolEmail: envVars.MY_TOOL_EMAIL,
   myToolClave: envVars.MY_TOOL_CLAVE,
-  api_1525: envVars.API_1525,
+
+  api1525: envVars.API_1525,
+  apiAixo: envVars.API_AIXO,
+  apiAzuan: envVars.API_AZUAN,
+  apiRodadero: envVars.API_RODADERO,
+  apiAvexi: envVars.API_AVEXI,
+  apiBocagrande: envVars.API_BOCAGRANADE,
+  apiAbi: envVars.API_ABI,
+  apiMadisson: envVars.API_MADISSON,
+  apiWindsor: envVars.API_WINDSOR,
 };

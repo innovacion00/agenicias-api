@@ -9,7 +9,7 @@ export class ReservaInfoDto {
   @IsNotEmpty()
   nombre: string;
 
-  @IsString()
-  @IsNotEmpty()
-  hotel: string;
+  // @IsString()
+  // @IsNotEmpty()
+  // hotel: string;
 }
