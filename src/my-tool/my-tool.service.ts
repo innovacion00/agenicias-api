@@ -71,18 +71,15 @@ export class MyToolService {
   }
 
   async getReservaInfo(reservaInfo: ReservaInfoDto) {
-    const validationToken = await this.generateMyToolToken();
+    // const validationToken = await this.generateMyToolToken();
 
     const data = await this.reservaInfoRequest(
       reservaInfo.localizador,
       reservaInfo.nombre,
-      validationToken,
+      // validationToken,
+      '',
     );
 
     return data;
-  }
-
-  async holaMundo(){
-    return 'Hola mundo'
   }
 }

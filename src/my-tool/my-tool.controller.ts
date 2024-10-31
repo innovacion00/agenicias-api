@@ -11,8 +11,4 @@ export class MyToolController {
     return this.myToolService.getReservaInfo(reservaInfo);
   }
 
-  @Get('hola-mundo')
-  holaMundo() {
-    return this.myToolService.holaMundo();
-  }
 }
