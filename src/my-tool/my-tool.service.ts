@@ -43,30 +43,31 @@ export class MyToolService {
         result: null,
       },
     };
-    try {
-      for (let i = 0; i < hotelesIps.length; i++) {
-        const hotelIp = hotelesIps[i];
-        console.log(hotelIp);
-        reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
-          params: {
-            localizador,
-            nombre,
-          },
-          headers: {
-            Authorization: `Bearer ${validationToken}`,
-          },
-        });
-        console.log(reservaData.data);
-        if (reservaData.data.isSuccess) {
-          return reservaData.data;
-        }
-      }
+    console.log(JSON.stringify(hotelesIps));
+    return reservaData.data;
+    // try {
+    //   for (let i = 0; i < hotelesIps.length; i++) {
+    //     const hotelIp = hotelesIps[i];
+    //     reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
+    //       params: {
+    //         localizador,
+    //         nombre,
+    //       },
+    //       headers: {
+    //         Authorization: `Bearer ${validationToken}`,
+    //       },
+    //     });
+    //     console.log(reservaData.data);
+    //     if (reservaData.data.isSuccess) {
+    //       return reservaData.data;
+    //     }
+    //   }
 
-      return reservaData.data;
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    //   return reservaData.data;
+    // } catch (error) {
+    //   this.logger.error(error);
+    //   this.errorManager.handle(error);
+    // }
   }
 
   async getReservaInfo(reservaInfo: ReservaInfoDto) {
