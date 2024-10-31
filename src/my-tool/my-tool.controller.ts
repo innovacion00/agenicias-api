@@ -7,9 +7,12 @@ export class MyToolController {
   constructor(private readonly myToolService: MyToolService) {}
 
   @Get('reservas-info')
-  getReservaInfo(
-    @Query() reservaInfo: ReservaInfoDto
-  ) {
+  getReservaInfo(@Query() reservaInfo: ReservaInfoDto) {
     return this.myToolService.getReservaInfo(reservaInfo);
+  }
+
+  @Get('hola-mundo')
+  holaMundo() {
+    return this.myToolService.holaMundo();
   }
 }

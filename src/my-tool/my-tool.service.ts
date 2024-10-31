@@ -81,4 +81,8 @@ export class MyToolService {
 
     return data;
   }
+
+  async holaMundo(){
+    return 'Hola mundo'
+  }
 }
