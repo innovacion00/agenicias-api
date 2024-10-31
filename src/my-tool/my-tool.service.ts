@@ -17,7 +17,7 @@ export class MyToolService {
   private async generateMyToolToken() {
     try {
       const rawData = await axios.post<{ token: string; valido: string }>(
-        `${envs.apiAixo}:59000/api/Autenticacion/Validar`,
+        `${envs.api1525}:59000/api/Autenticacion/Validar`,
         {
           correo: envs.myToolEmail,
           clave: envs.myToolClave,
@@ -43,41 +43,38 @@ export class MyToolService {
         result: null,
       },
     };
-    console.log(JSON.stringify(hotelesIps));
-    return reservaData.data;
-    // try {
-    //   for (let i = 0; i < hotelesIps.length; i++) {
-    //     const hotelIp = hotelesIps[i];
-    //     reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
-    //       params: {
-    //         localizador,
-    //         nombre,
-    //       },
-    //       headers: {
-    //         Authorization: `Bearer ${validationToken}`,
-    //       },
-    //     });
-    //     console.log(reservaData.data);
-    //     if (reservaData.data.isSuccess) {
-    //       return reservaData.data;
-    //     }
-    //   }
+    try {
+      for (let i = 0; i < hotelesIps.length; i++) {
+        const hotelIp = hotelesIps[i];
+        reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
+          params: {
+            localizador,
+            nombre,
+          },
+          headers: {
+            Authorization: `Bearer ${validationToken}`,
+          },
+        });
+        console.log(reservaData.data);
+        if (reservaData.data.isSuccess) {
+          return reservaData.data;
+        }
+      }
 
-    //   return reservaData.data;
-    // } catch (error) {
-    //   this.logger.error(error);
-    //   this.errorManager.handle(error);
-    // }
+      return reservaData.data;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 
   async getReservaInfo(reservaInfo: ReservaInfoDto) {
-    // const validationToken = await this.generateMyToolToken();
+    const validationToken = await this.generateMyToolToken();
 
     const data = await this.reservaInfoRequest(
       reservaInfo.localizador,
       reservaInfo.nombre,
-      // validationToken,
-      '',
+      validationToken,
     );
 
     return data;
