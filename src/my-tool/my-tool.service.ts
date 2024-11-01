@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { ErrorManager } from 'src/common/helpers';
 import { envs } from 'src/config/envs';
 import { ReservaInfoDto } from './dto';
 import { hotelesIps } from 'src/config';
+import { timeout } from 'rxjs';
 
 @Injectable()
 export class MyToolService {
@@ -43,26 +44,40 @@ export class MyToolService {
         result: null,
       },
     };
+
     try {
-      for (let i = 0; i < hotelesIps.length; i++) {
-        const hotelIp = hotelesIps[i];
-        reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
-          params: {
-            localizador,
-            nombre,
-          },
-          headers: {
-            Authorization: `Bearer ${validationToken}`,
-          },
-        });
-        if (reservaData.data.isSuccess) {
-          return reservaData.data;
+      for (const hotelIp of hotelesIps) {
+        try {
+          reservaData = await axios.get(`${hotelIp}:59000/api/BookingSearch`, {
+            params: {
+              localizador,
+              nombre,
+            },
+            headers: {
+              Authorization: `Bearer ${validationToken}`,
+            },
+            timeout: 60000,
+          });
+
+          if (reservaData.data.isSuccess) {
+            return reservaData.data;
+          }
+        } catch (error) {
+          this.logger.error(`Error en ${hotelIp}: ${error.message}`);
         }
       }
 
+      reservaData = {
+        data: {
+          isSuccess: false,
+          message: 'Reserva inexistente según criterios de busqueda',
+          json: null,
+          result: null,
+        },
+      };
       return reservaData.data;
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error('Error final en reservaInfoRequest:', error.message);
       this.errorManager.handle(error);
     }
   }
