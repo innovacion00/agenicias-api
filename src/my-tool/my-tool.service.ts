@@ -63,7 +63,7 @@ export class MyToolService {
             return reservaData.data;
           }
         } catch (error) {
-          this.logger.error(`Error en ${hotelIp}: ${error.message}`);
+          this.logger.warn(`Error en ${hotelIp}: ${error.message}`);
         }
       }
 
