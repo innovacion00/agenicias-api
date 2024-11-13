@@ -30,6 +30,7 @@ interface EnvVars {
   API_ABI: string;
   API_MADISSON: string;
   API_WINDSOR: string;
+  API_MARINA: string;
 }
 
 const envSchema = joi
@@ -40,13 +41,16 @@ const envSchema = joi
 
     JWT_SECRET: joi.string().required(),
 
+    // ? Cobre
     COBRE_API_URL: joi.string().required(),
     COBRE_AUTH_STRING: joi.string().required(),
     COBRE_API_KEY: joi.string().required(),
 
+    // ? Node_Mailer
     EMAIL_APP_PASSWORD: joi.string().required(),
     SENDER_EMAIL: joi.string().required(),
 
+    // ? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
     MY_TOOL_CLAVE: joi.string().required(),
 
@@ -59,6 +63,7 @@ const envSchema = joi
     API_ABI: joi.string().required(),
     API_MADISSON: joi.string().required(),
     API_WINDSOR: joi.string().required(),
+    API_MARINA: joi.string().required(),
   })
   .unknown(true);
 
@@ -96,4 +101,5 @@ export const envs = {
   apiAbi: envVars.API_ABI,
   apiMadisson: envVars.API_MADISSON,
   apiWindsor: envVars.API_WINDSOR,
+  apiMarina: envVars.API_MARINA,
 };
