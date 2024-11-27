@@ -30,7 +30,7 @@ export class CreateAgenciaDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  @MaxLength(20)
+  @MaxLength(50)
   fullName: string;
 
   @IsEmail()
