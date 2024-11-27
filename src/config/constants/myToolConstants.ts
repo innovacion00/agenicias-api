@@ -11,4 +11,5 @@ export const hotelesIps = [
   envs.apiAbi,
   envs.apiAvexi,
   envs.apiAzuan,
+  envs.apiAxis,
 ];

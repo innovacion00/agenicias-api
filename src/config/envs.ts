@@ -31,6 +31,7 @@ interface EnvVars {
   API_MADISSON: string;
   API_WINDSOR: string;
   API_MARINA: string;
+  API_AXIS: string;
 }
 
 const envSchema = joi
@@ -64,6 +65,7 @@ const envSchema = joi
     API_MADISSON: joi.string().required(),
     API_WINDSOR: joi.string().required(),
     API_MARINA: joi.string().required(),
+    API_AXIS: joi.string().required(),
   })
   .unknown(true);
 
@@ -102,4 +104,5 @@ export const envs = {
   apiMadisson: envVars.API_MADISSON,
   apiWindsor: envVars.API_WINDSOR,
   apiMarina: envVars.API_MARINA,
+  apiAxis: envVars.API_AXIS,
 };

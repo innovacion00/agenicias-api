@@ -4,7 +4,6 @@ import { ErrorManager } from 'src/common/helpers';
 import { envs } from 'src/config/envs';
 import { ReservaInfoDto } from './dto';
 import { hotelesIps } from 'src/config';
-import { timeout } from 'rxjs';
 
 @Injectable()
 export class MyToolService {
