@@ -26,7 +26,7 @@ export class AuthController {
     @Param('id', ParseMongoIdPipe) id: string,
     @Body() createUserDto: CreateUSerDto,
   ) {
-    return this.authService.create(createUserDto, id);
+    return this.authService.createUser(createUserDto, id);
   }
 
   @Post('sign-in')

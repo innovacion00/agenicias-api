@@ -1,6 +1,8 @@
 import {
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -27,6 +29,10 @@ export class CreateUSerDto {
       'El teléfono solo puede contener dígitos y debe de tener un + al inicio.',
   })
   telefono: string;
+
+  @IsBoolean()
+  @IsOptional()
+  omitirOtp: boolean;
 
   @IsString()
   @IsNotEmpty()

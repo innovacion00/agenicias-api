@@ -160,7 +160,7 @@ export class AuthService {
       html,
     );
   }
-
+  // #region Crear Otp
   private async createOtpVerfication(userId: Types.ObjectId) {
     const otp = `${Math.floor(10000 + Math.random() * 90000)}`;
     const fechaPlus = Date.now() + 10 * 60 * 1000;
@@ -185,8 +185,8 @@ export class AuthService {
     return otpVerification;
   }
 
-  // #region Crear usuario
-  async create(createUserDto: CreateUSerDto, id: string) {
+  // #region Sign Up
+  async createUser(createUserDto: CreateUSerDto, id: string) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
     try {
       const { password, ...userData } = createUserDto;
@@ -227,6 +227,12 @@ export class AuthService {
 
       user.otpRef = verification._id as Types.ObjectId;
       await user.save();
+      if (createUserDto.omitirOtp) {
+        return {
+          status: 'Ok',
+          msg: 'Usuario creado con exito',
+        };
+      }
 
       await this.sendValidationEmail(user.email, verification.otp);
 
