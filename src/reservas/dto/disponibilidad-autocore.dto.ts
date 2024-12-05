@@ -39,7 +39,7 @@ export class DisponibilidadAutocoreDto {
 
   @IsNumber()
   @Min(1)
-  nigths: number;
+  nights: number;
 
   @IsString()
   @IsEnum(ValidCities, {

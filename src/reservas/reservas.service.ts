@@ -30,13 +30,13 @@ export class ReservasService {
     agenciaId: ObjectId,
     disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
   ) {
-    const { layout, checkingDate, ciudad, nigths } = disponibilidadAutoCoreDto;
+    const { layout, checkingDate, ciudad, nights } = disponibilidadAutoCoreDto;
 
     const agenciaInfo = await this.agenciaModel.findById(agenciaId);
     const data = await this.httpCustomService.getDisponibilidadAutocore(
       layout,
       checkingDate,
-      nigths,
+      nights,
       ciudad,
       agenciaInfo.category,
     );
