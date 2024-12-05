@@ -7,11 +7,13 @@ import { ReservasService } from './reservas.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Reserva, ReservaSchema } from './entities/reserva.entity';
 import { CommonModule } from 'src/common/common.module';
+import { AgenciasModule } from 'src/agencias/agencias.module';
 
 @Module({
   controllers: [ReservasController],
   providers: [ReservasService],
   imports: [
+    AgenciasModule,
     AuthModule,
     CommonModule,
     MongooseModule.forFeature([

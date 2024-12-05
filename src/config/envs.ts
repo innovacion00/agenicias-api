@@ -17,6 +17,11 @@ interface EnvVars {
   SENDER_EMAIL: string;
   EMAIL_APP_PASSWORD: string;
 
+  // ? Autocore Dev
+  AUTOCORE_URL: string;
+  AUTOCORE_ACCESS_KEY: string;
+  AUTOCORE_SECRET_KEY: string;
+
   // ? My Tool
   MY_TOOL_EMAIL: string;
   MY_TOOL_CLAVE: string;
@@ -50,6 +55,11 @@ const envSchema = joi
     // ? Node_Mailer
     EMAIL_APP_PASSWORD: joi.string().required(),
     SENDER_EMAIL: joi.string().required(),
+
+    // ? Autocore Dev
+    AUTOCORE_URL: joi.string().required(),
+    AUTOCORE_ACCESS_KEY: joi.string().required(),
+    AUTOCORE_SECRET_KEY: joi.string().required(),
 
     // ? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
@@ -93,6 +103,10 @@ export const envs = {
 
   myToolEmail: envVars.MY_TOOL_EMAIL,
   myToolClave: envVars.MY_TOOL_CLAVE,
+
+  autocoreUrl: envVars.AUTOCORE_URL,
+  autocoreAccessKey: envVars.AUTOCORE_ACCESS_KEY,
+  autocoreSecretKey: envVars.AUTOCORE_SECRET_KEY,
 
   api1525: envVars.API_1525,
   apiAixo: envVars.API_AIXO,

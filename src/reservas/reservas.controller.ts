@@ -6,12 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
-import { UpdateReservaDto } from './dto/update-reserva.dto';
-import { Auth } from 'src/auth/decorators';
-import { ValidRoles } from 'src/auth/interfaces';
+import { ParseMongoIdPipe } from 'src/common/pipes';
+import { DisponibilidadAutocoreDto } from './dto';
+import { ObjectId } from 'mongoose';
 
 @Controller('reservas')
 export class ReservasController {
@@ -22,8 +23,15 @@ export class ReservasController {
     return this.reservasService.create(createReservaDto);
   }
 
-  @Get()
-  prueba() {
-    return this.reservasService.prueba();
+  @Post('disponibilidad/:agenciaId')
+  @HttpCode(200)
+  getDisponibilidad(
+    @Param('agenciaId', ParseMongoIdPipe) agenciaId: ObjectId,
+    @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
+  ) {
+    return this.reservasService.getDisponibilidad(
+      agenciaId,
+      disponibilidadAutoCoreDto,
+    );
   }
 }

@@ -7,7 +7,14 @@ import {
 import { v4 as uuid } from 'uuid';
 
 import { envs } from 'src/config/envs';
-import { ICobreLinkAPIResponse, IgenerateLink } from '../interface';
+import {
+  ICobreLinkAPIResponse,
+  IdisponibilidadLayout,
+  IgenerateLink,
+  ValidCities,
+} from '../interface';
+import axios from 'axios';
+import { Iavailability } from '../interface/disponibilidad';
 
 @Injectable()
 export class HttpCustomService {
@@ -15,6 +22,7 @@ export class HttpCustomService {
 
   private logger = new Logger(HttpCustomService.name);
 
+  // #region Links de pago
   public async generateCobreJwt() {
     const urlencoded = new URLSearchParams();
     urlencoded.append('grant_type', 'client_credentials');
@@ -116,5 +124,51 @@ export class HttpCustomService {
     return result;
   }
 
-  
+  // #region Disponibilidad
+  public async getDisponibilidadAutocore(
+    layout: IdisponibilidadLayout[],
+    checkin: string,
+    night: number,
+    city: ValidCities,
+    tipoAgencia: number,
+  ) {
+    try {
+      const { data } = await axios.post<Iavailability[]>(
+        `${envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia ? 'wholesale' : 'retailer'}/availability?checkin=${checkin}&nights=${night}&city=${city}`,
+        { layout },
+        {
+          headers: {
+            access_key: envs.autocoreAccessKey,
+            secret_key: envs.autocoreSecretKey,
+          },
+        },
+      );
+
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.error('Error de la API:', error.response.data);
+          throw new Error(
+            `La API retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          console.error('Error de red o timeout:', error.message);
+          throw new Error(
+            'No se recibió respuesta de la API. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          console.error('Error en la configuración de Axios:', error.message);
+          throw new Error(
+            `Error en la configuración de la solicitud: ${error.message}`,
+          );
+        }
+      } else {
+        console.error('Error desconocido:', error);
+        throw new Error(
+          'Ocurrió un error desconocido al realizar la solicitud.',
+        );
+      }
+    }
+  }
 }
