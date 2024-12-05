@@ -23,7 +23,7 @@ class DisponibilidadLayoutDto {
 
   @IsArray()
   @IsInt({ each: true })
-  @ArrayMinSize(1)
+  @ArrayMinSize(0)
   @IsOptional()
   children_ages: number[];
 }
