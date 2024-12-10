@@ -18,7 +18,7 @@ import { ObjectId } from 'mongoose';
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
-  @Post()
+  @Post('reservar')
   create(@Body() createReservaDto: CreateReservaDto) {
     return this.reservasService.create(createReservaDto);
   }

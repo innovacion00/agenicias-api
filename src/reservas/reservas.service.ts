@@ -22,8 +22,9 @@ export class ReservasService {
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
+
   create(createReservaDto: CreateReservaDto) {
-    return 'This action adds a new reserva';
+    return createReservaDto;
   }
 
   async getDisponibilidad(
