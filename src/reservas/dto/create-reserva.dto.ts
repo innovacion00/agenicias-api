@@ -6,11 +6,13 @@ import {
   IsIn,
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsPhoneNumber,
   IsString,
   Matches,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -74,6 +76,11 @@ class RoomsDatumDto {
   @IsString()
   @IsNotEmpty()
   rateId: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Min(10000)
+  unitaryPrice: number;
 }
 
 class ReservaInfoDbDto {
@@ -169,6 +176,10 @@ export class CreateReservaDto {
   @IsMongoId()
   @IsNotEmpty()
   userId: Types.ObjectId;
+
+  @IsNumber()
+  @IsNotEmpty()
+  precio: number;
 
   @ValidateNested()
   @Type(() => ReservaInfoDto)

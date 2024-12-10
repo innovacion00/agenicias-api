@@ -39,4 +39,5 @@ export interface RoomsDatum {
   id: string;
   quantity: string;
   rateId: string;
+  unitaryPrice: number;
 }

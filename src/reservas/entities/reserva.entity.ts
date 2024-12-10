@@ -17,6 +17,12 @@ export class Reserva extends Document {
   cantidadHabitaciones: number;
 
   @Prop({
+    type: Number,
+    required: true,
+  })
+  precio: number;
+
+  @Prop({
     type: {
       adults: { type: String, require: true },
       checkin: { type: String, require: true },
@@ -27,6 +33,7 @@ export class Reserva extends Document {
       country: { type: String, require: true },
       currency: { type: String, require: true },
       email: { type: String, require: true },
+      telephone: { type: String, require: true },
       firstName: { type: String, require: true },
       lastName: { type: String, require: true },
       nights: { type: String, require: true },
@@ -43,10 +50,10 @@ export class Reserva extends Document {
             id: { type: String, require: true },
             quantity: { type: String, require: true },
             rateId: { type: String, require: true },
+            unitaryPrice: { type: Number, require: true },
           },
         },
       ],
-      telephone: { type: String, require: true },
     },
   })
   reservationInfo: IreservaInfoBd;
