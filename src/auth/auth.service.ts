@@ -296,6 +296,7 @@ export class AuthService {
         .select(
           'email telefono fullName firstLog role agencia isActive changePassword otpRef',
         )
+        .populate('agencia', 'category fullName')
         .exec();
 
       const validacionDb = await this.otpVerificationModel.findById(
