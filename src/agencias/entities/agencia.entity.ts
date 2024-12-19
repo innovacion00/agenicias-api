@@ -57,8 +57,20 @@ export class Agencia extends Document {
     },
   })
   documentInfo: {
-    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+    tipo: 'CC' | 'NIT' | 'CE' | 'PA';
     document: string;
+  };
+
+  @Prop({
+    required: true,
+    type: {
+      counterPartyId: { type: String, require: true },
+      bolcilloId: { type: String, require: true },
+    },
+  })
+  cobreInfo: {
+    counterPartyId: string;
+    bolcilloId: string;
   };
 
   @Prop({

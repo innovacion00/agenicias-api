@@ -17,14 +17,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Types } from 'mongoose';
+
+import { Type } from 'class-transformer';
 import {
   Agency,
   IreservaInfo,
   IreservaInfoBd,
   RoomsDatum,
-} from '../interfaces';
-import { Type } from 'class-transformer';
-import { ValidCities } from 'src/common/interface';
+  ValidCities,
+} from 'src/common/interface';
 
 class AgencyDto {
   @IsBoolean()
@@ -46,7 +47,6 @@ class RoomsDatumDto {
   adults: string;
 
   @IsString()
-  @IsNotEmpty()
   children: string;
 
   @IsString()
@@ -101,11 +101,9 @@ class ReservaInfoDbDto {
   checkout: Date;
 
   @IsString()
-  @IsNotEmpty()
   children: string;
 
   @IsString()
-  @IsNotEmpty()
   children_ages: string;
 
   @IsEnum(ValidCities, {
@@ -173,13 +171,13 @@ class ReservaInfoDto {
 }
 
 export class CreateReservaDto {
+  @IsNumber()
+  @IsNotEmpty()
+  total: number;
+
   @IsMongoId()
   @IsNotEmpty()
   userId: Types.ObjectId;
-
-  @IsNumber()
-  @IsNotEmpty()
-  precio: number;
 
   @ValidateNested()
   @Type(() => ReservaInfoDto)

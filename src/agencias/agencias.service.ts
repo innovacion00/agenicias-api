@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
+import { addDay } from '@formkit/tempo';
+
 import { Model, Types } from 'mongoose';
 import slugify from 'slugify';
 
@@ -8,6 +10,8 @@ import { Agencia } from './entities';
 import { CreateAgenciaDto } from './dto/create-agencia.dto';
 import { ErrorManager } from 'src/common/helpers';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
+import { HttpCustomService } from 'src/common/services';
+import { MetadataLinkPago } from 'src/common/interface';
 
 @Injectable()
 export class AgenciasService {
@@ -17,6 +21,8 @@ export class AgenciasService {
   constructor(
     @InjectModel(Agencia.name)
     private readonly agenciaModel: Model<Agencia>,
+
+    private readonly httpCustomService: HttpCustomService,
   ) {
     this.errorManager = new ErrorManager(AgenciasService.name);
   }
@@ -37,9 +43,26 @@ export class AgenciasService {
           .select('slug');
         counter++;
       }
+      // ? Cobre
+      const bolsilloInfo = await this.httpCustomService.createBolcillo(
+        createAgenciaDto.fullName,
+      );
+      const counterPartyInfo = await this.httpCustomService.createCounterParty(
+        createAgenciaDto.fullName,
+        createAgenciaDto.emailContacto,
+        createAgenciaDto.documentInfo.document,
+        createAgenciaDto.documentInfo.tipo,
+        createAgenciaDto.telefonoContacto,
+      );
+
+      const cobreInfo = {
+        counterPartyId: counterPartyInfo.id,
+        bolcilloId: bolsilloInfo.id,
+      };
 
       const agencia = await this.agenciaModel.create({
         slug,
+        cobreInfo,
         ...createAgenciaDto,
       });
       return {
@@ -90,6 +113,24 @@ export class AgenciasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  async prueba(agenciaId: Types.ObjectId) {
+    const agenciaInfo = await this.agenciaModel.findById(agenciaId);
+    const metadata: MetadataLinkPago = {
+      r2p_methods: ['pse', 'nequi', 'bancolombia'],
+      description_to_payer: 'Pago de reserva',
+      redirect_url: 'https://www.gehsuites.com/es',
+      description_to_beneficiary_account: `pago de agencias ${agenciaInfo.fullName}`,
+      valid_until: addDay(new Date()),
+    };
+    return this.httpCustomService.generatePaymenLink(
+      agenciaInfo.cobreInfo.counterPartyId,
+      agenciaInfo.cobreInfo.bolcilloId,
+      100,
+      metadata,
+      agenciaId,
+    );
   }
 
   update(id: number, updateAgenciaDto: UpdateAgenciaDto) {

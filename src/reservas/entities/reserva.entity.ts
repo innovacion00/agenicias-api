@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { IreservaInfoBd } from '../interfaces';
+import { IreservaInfoBd } from 'src/common/interface';
 
 @Schema()
 export class Reserva extends Document {
@@ -9,6 +9,9 @@ export class Reserva extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
   agenciaId: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
+  hotel: string;
 
   @Prop({
     type: Number,
@@ -20,7 +23,13 @@ export class Reserva extends Document {
     type: Number,
     required: true,
   })
-  precio: number;
+  total: number;
+
+  @Prop({
+    type: String,
+    default: 'pendiente',
+  })
+  status: 'pendiente' | 'rechazado' | 'aprobado';
 
   @Prop({
     type: {
@@ -56,7 +65,7 @@ export class Reserva extends Document {
       ],
     },
   })
-  reservationInfo: IreservaInfoBd;
+  reservation: IreservaInfoBd;
 
   @Prop({
     type: String,

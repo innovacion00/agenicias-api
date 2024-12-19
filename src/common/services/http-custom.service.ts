@@ -4,17 +4,23 @@ import {
   Logger,
 } from '@nestjs/common';
 
+import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
 import { envs } from 'src/config/envs';
 import {
-  ICobreLinkAPIResponse,
+  Iavailability,
   IdisponibilidadLayout,
-  IgenerateLink,
+  IreservaAutocoreResp,
+  IreservaInfo,
+  IrespuestaAuthCobre,
+  IrespuestaCounterParty,
+  IrespuestaCreateBolcillo,
+  IrespuestaGenerarLinkPago,
+  MetadataLinkPago,
   ValidCities,
 } from '../interface';
-import axios from 'axios';
-import { Iavailability } from '../interface/disponibilidad';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class HttpCustomService {
@@ -22,106 +28,221 @@ export class HttpCustomService {
 
   private logger = new Logger(HttpCustomService.name);
 
-  // #region Links de pago
-  public async generateCobreJwt() {
-    const urlencoded = new URLSearchParams();
-    urlencoded.append('grant_type', 'client_credentials');
+  // #region Generar auth token cobre
+  public async generateAuthToken() {
+    try {
+      const { data } = await axios.post<IrespuestaAuthCobre>(
+        envs.cobreApiUrl.concat('/v1/auth'),
+        {
+          user_id: envs.cobreUserId,
+          secret: envs.cobreSecret,
+        },
+      );
 
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-        Authorization: `Basic ${envs.cobreAuthString}`,
-        'X-API-KEY': envs.cobreApiKey,
-      },
-      body: urlencoded,
-    };
-
-    const response = await fetch(
-      envs.cobreApiUrl.concat('api-auth/v1/util/tokens'),
-      requestOptions,
-    );
-
-    if (response.ok) {
-      const result = await response.json();
-      const cobreAuthToken = result.access_token;
-      return { cobreAuthToken };
-    } else {
-      const errorMessage = await response.text();
-      this.logger.log({ code: response.status, message: errorMessage });
-      throw new InternalServerErrorException();
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error('Error de la API:', error.response.data);
+          throw new InternalServerErrorException(
+            `La API de generar auth-token retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API generar auth-token. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud generar auth-token: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido generar auth-token:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud generar auth-token.',
+        );
+      }
     }
   }
 
-  public async generateCobreLink(properties: IgenerateLink) {
-    interface IBody extends Omit<IgenerateLink, 'jwt'> {
-      notificationMethods: ('EMAIL' | 'WHATSAPP' | 'ONLINE')[];
-      enabledPaymentMethods: 'PSE'[];
-      currency: 'COP';
+  // #region Crear Bolcillo
+  public async createBolcillo(nombre: string) {
+    try {
+      const tokenInfo = await this.generateAuthToken();
+      const { data } = await axios.post<IrespuestaCreateBolcillo>(
+        envs.cobreApiUrl.concat('/v1/accounts'),
+        {
+          provider_id: 'pr_col_cobre',
+          action: 'create',
+          alias: nombre,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo.access_token}`,
+          },
+        },
+      );
+
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error(
+            'Error de la API crear bolcillo:',
+            error.response.data,
+          );
+          throw new InternalServerErrorException(
+            `La API crear bolcillo retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API crear bolcillo. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud crear bolcillo: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud crear bolcillo.',
+        );
+      }
     }
+  }
 
-    const myHeaders = {
-      'X-API-KEY': envs.cobreApiKey,
-      'X-APIGW-AUTH': properties.jwt,
-      'X-CORRELATION-ID': uuid(),
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
+  // #region Crear Counter party
+  public async createCounterParty(
+    nombre: string,
+    email: string,
+    document: string,
+    documentType: string,
+    telefono: string,
+  ) {
+    try {
+      const tokenInfo = await this.generateAuthToken();
 
-    const {
-      cellPhone,
-      email,
-      amount,
-      document,
-      documentType,
-      expirationDate,
-      fullName,
-      description,
-      references,
-      redirectUrl,
-    } = properties;
+      const { data } = await axios.post<IrespuestaCounterParty>(
+        envs.cobreApiUrl.concat('/v1/counterparties'),
+        {
+          geo: 'col',
+          type: 'r2p',
+          alias: `${nombre} - Link de pago`,
+          metadata: {
+            counterparty_email: email,
+            counterparty_fullname: nombre,
+            counterparty_id_number: document,
+            counterparty_id_type: documentType.toLowerCase(),
+            counterparty_phone: telefono,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo.access_token}`,
+          },
+        },
+      );
 
-    const bodyData: IBody = {
-      cellPhone,
-      email,
-      amount,
-      document,
-      documentType,
-      expirationDate,
-      fullName,
-      description,
-      references,
-      // TODO: Volver a activar notificaciones
-      // notificationMethods: ['EMAIL', 'WHATSAPP', 'ONLINE'],
-      notificationMethods: [],
-      enabledPaymentMethods: ['PSE'],
-      currency: 'COP',
-      redirectUrl,
-    };
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error('Error de la API:', error.response.data);
+          throw new InternalServerErrorException(
+            `La API Crear Counter party retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API Crear Counter party. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud Crear Counter party: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud Crear Counter party.',
+        );
+      }
+    }
+  }
 
-    const requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      body: JSON.stringify(bodyData),
-    };
+  // #region Crear link de pago
+  public async generatePaymenLink(
+    source_id: string,
+    destination_id: string,
+    amount: number,
+    metadata: MetadataLinkPago,
+    external_id: Types.ObjectId,
+  ) {
+    try {
+      const tokenInfo = await this.generateAuthToken();
 
-    const result = await fetch(
-      envs.cobreApiUrl.concat(
-        'workplace-bank-cash-in/v1/task/cash-in-links/referenced',
-      ),
-      requestOptions,
-    )
-      .then((response) => response.json())
-      .then((result) => {
-        const data: ICobreLinkAPIResponse = result;
-        return data;
-      })
-      .catch((error) => {
-        throw new Error(error);
-      });
+      const { data } = await axios.post<IrespuestaGenerarLinkPago>(
+        envs.cobreApiUrl.concat('/v1/money_movements'),
+        {
+          source_id,
+          destination_id,
+          amount: amount * 100,
+          metadata,
+          external_id,
+          checker_approval: false,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo.access_token}`,
+            idempotency: uuid(),
+          },
+        },
+      );
 
-    return result;
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error('Error de la API:', error.response.data);
+          throw new InternalServerErrorException(
+            `La API retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud.',
+        );
+      }
+    }
   }
 
   // #region Disponibilidad
@@ -148,25 +269,81 @@ export class HttpCustomService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response) {
-          console.error('Error de la API:', error.response.data);
+          this.logger.error(
+            'Error de la API get disponibilidad:',
+            error.response.data,
+          );
           throw new Error(
-            `La API retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+            `La API get disponibilidad retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
           );
         } else if (error.request) {
-          console.error('Error de red o timeout:', error.message);
-          throw new Error(
-            'No se recibió respuesta de la API. Verifique su conexión o tiempo de espera.',
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API get disponibilidad. Verifique su conexión o tiempo de espera.',
           );
         } else {
-          console.error('Error en la configuración de Axios:', error.message);
-          throw new Error(
-            `Error en la configuración de la solicitud: ${error.message}`,
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud get disponibilidad: ${error.message}`,
           );
         }
       } else {
-        console.error('Error desconocido:', error);
-        throw new Error(
-          'Ocurrió un error desconocido al realizar la solicitud.',
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud get disponibilidad.',
+        );
+      }
+    }
+  }
+
+  // #region Realizar reserva autocore agencia
+  public async createReservaAutocore(
+    hotelId: string,
+    reservaInfo: IreservaInfo,
+  ) {
+    try {
+      const { data } = await axios.post<IreservaAutocoreResp>(
+        envs.autocoreUrl.concat(`/v2/bookings/hotel_id=${hotelId}`),
+        { ...reservaInfo },
+        {
+          headers: {
+            access_key: envs.autocoreAccessKey,
+            secret_key: envs.autocoreSecretKey,
+          },
+        },
+      );
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error(
+            'Error de la API get Crear reserva:',
+            error.response.data,
+          );
+          throw new Error(
+            `La API get Crear reserva retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API get Crear reserva. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud get Crear reserva: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud get Crear reserva.',
         );
       }
     }

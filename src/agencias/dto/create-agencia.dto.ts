@@ -14,8 +14,8 @@ import {
 class DocumentDto {
   @IsString()
   @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CA', 'PA'])
-  tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+  @IsIn(['CC', 'NIT', 'CE', 'PA'])
+  tipo: 'CC' | 'NIT' | 'CE' | 'PA';
 
   @IsString()
   @IsNotEmpty()
@@ -51,7 +51,7 @@ export class CreateAgenciaDto {
   @IsNotEmpty()
   @Type(() => DocumentDto)
   documentInfo: {
-    tipo: 'CC' | 'NIT' | 'CA' | 'PA';
+    tipo: 'CC' | 'NIT' | 'CE' | 'PA';
     document: string;
   };
 }

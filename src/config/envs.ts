@@ -10,6 +10,8 @@ interface EnvVars {
 
   // ? Cobre
   COBRE_API_URL: string;
+  COBRE_USER_ID: string;
+  COBRE_SECRET: string;
   COBRE_AUTH_STRING: string;
   COBRE_API_KEY: string;
 
@@ -49,6 +51,8 @@ const envSchema = joi
 
     // ? Cobre
     COBRE_API_URL: joi.string().required(),
+    COBRE_USER_ID: joi.string().required(),
+    COBRE_SECRET: joi.string().required(),
     COBRE_AUTH_STRING: joi.string().required(),
     COBRE_API_KEY: joi.string().required(),
 
@@ -94,20 +98,25 @@ export const envs = {
 
   jwtSecret: envVars.JWT_SECRET,
 
+  // ? Cobre
   cobreApiUrl: envVars.COBRE_API_URL,
+  cobreUserId: envVars.COBRE_USER_ID,
+  cobreSecret: envVars.COBRE_SECRET,
   cobreAuthString: envVars.COBRE_AUTH_STRING,
   cobreApiKey: envVars.COBRE_API_KEY,
 
+  // ? Node_Mailer
   SENDER_EMAIL: envVars.SENDER_EMAIL,
   EMAIL_APP_PASSWORD: envVars.EMAIL_APP_PASSWORD,
 
-  myToolEmail: envVars.MY_TOOL_EMAIL,
-  myToolClave: envVars.MY_TOOL_CLAVE,
-
+  // ? Autocore Dev
   autocoreUrl: envVars.AUTOCORE_URL,
   autocoreAccessKey: envVars.AUTOCORE_ACCESS_KEY,
   autocoreSecretKey: envVars.AUTOCORE_SECRET_KEY,
 
+  // ? My Tool
+  myToolEmail: envVars.MY_TOOL_EMAIL,
+  myToolClave: envVars.MY_TOOL_CLAVE,
   api1525: envVars.API_1525,
   apiAixo: envVars.API_AIXO,
   apiAzuan: envVars.API_AZUAN,

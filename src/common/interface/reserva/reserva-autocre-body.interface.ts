@@ -7,14 +7,14 @@ export interface IreservaInfo {
 
 export interface Agency {
   is_agency: boolean;
-  agency_type: string;
+  agency_type: string | number;
   external_ref_id: string;
 }
 
 export interface IreservaInfoBd {
   adults: string;
-  checkin: Date;
-  checkout: Date;
+  checkin: string;
+  checkout: string;
   children: string;
   children_ages: string;
   city: ValidCities;
@@ -33,8 +33,8 @@ export interface IreservaInfoBd {
 export interface RoomsDatum {
   adults: string;
   children: string;
-  checkin: Date;
-  checkout: Date;
+  checkin: string;
+  checkout: string;
   currency: string;
   id: string;
   quantity: string;

@@ -46,4 +46,9 @@ export class AgenciasController {
   ) {
     return this.agenciasService.switchAgenciaStatus(agenciaId);
   }
+
+  @Get('prueba/:agenciaId')
+  prueba(@Param('agenciaId') agenciaId: Types.ObjectId) {
+    return this.agenciasService.prueba(agenciaId);
+  }
 }
