@@ -26,12 +26,18 @@ export class Reserva extends Document {
   })
   total: number;
 
+  /*
+  ? 0 Pendiente de pago
+  ? 1 En proceso de pago
+  ? 2 Pago Rechazado
+  ? 3 Pago Aprobado
+  */
   @Prop({
-    type: String,
-    default: 'pendiente',
+    type: Number,
+    default: 0,
     index: true,
   })
-  status: 'pendiente' | 'rechazado' | 'aprobado';
+  status: 0 | 1 | 2 | 3;
 
   @Prop({
     type: [

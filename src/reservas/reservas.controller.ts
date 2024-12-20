@@ -13,7 +13,10 @@ import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { DisponibilidadAutocoreDto, GenerateLinkDto } from './dto';
+import {
+  DisponibilidadAutocoreDto,
+  GenerateLinkDto,
+} from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 
 @Controller('reservas')
@@ -25,14 +28,19 @@ export class ReservasController {
   create(
     @Body() createReservaDto: CreateReservaDto,
     @Query('hotelId') hotelId: string,
-    @GetUser('_id') _id: Types.ObjectId,
+    @GetUser('id') _id: string,
   ) {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
+  @Post('/change-status')
+  cambiarEstadoPagoReserva(@Body() genericDto: any) {
+    return this.reservasService.cambiarEstadoPagoReserva(genericDto);
+  }
+
   @Get('/reservas-by-user')
   @Auth()
-  getReservasByUser(@GetUser('id') _id: string) {
+  getReservasByUser(@GetUser('_id') _id: Types.ObjectId) {
     return this.reservasService.getReservasByUser(_id);
   }
 
