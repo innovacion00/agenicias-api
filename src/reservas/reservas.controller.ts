@@ -28,7 +28,7 @@ export class ReservasController {
   create(
     @Body() createReservaDto: CreateReservaDto,
     @Query('hotelId') hotelId: string,
-    @GetUser('id') _id: string,
+    @GetUser('_id') _id: string,
   ) {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
