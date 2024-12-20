@@ -13,23 +13,35 @@ import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { DisponibilidadAutocoreDto } from './dto';
+import { DisponibilidadAutocoreDto, GenerateLinkDto } from './dto';
+import { Auth, GetUser } from 'src/auth/decorators';
 
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
   @Post('reservar')
+  @Auth()
   create(
     @Body() createReservaDto: CreateReservaDto,
     @Query('hotelId') hotelId: string,
+    @GetUser('_id') _id: Types.ObjectId,
   ) {
-    return this.reservasService.create(createReservaDto, hotelId);
+    return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
   @Get('/:userId')
-  getReservasByUser(@Param('userId') userId: string) {
+  getReservasByUser(@Param('userId') userId: Types.ObjectId) {
     return this.reservasService.getReservasByUser(userId);
+  }
+
+  @Post('/generate-link')
+  @Auth()
+  generateLinkPago(
+    @GetUser('agencia') agencia: Types.ObjectId,
+    @Body() generateLinkDto: GenerateLinkDto,
+  ) {
+    return this.reservasService.generarLinkPago(generateLinkDto, agencia);
   }
 
   @Post('disponibilidad/:agenciaId')

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   CreateReservaDto,
   DisponibilidadAutocoreDto,
+  GenerateLinkDto,
   UpdateReservaDto,
 } from './dto';
 import { Model, Types } from 'mongoose';
@@ -12,6 +13,8 @@ import { User } from 'src/auth/entities';
 import { HttpCustomService } from 'src/common/services';
 import { hotelesAutocore, tiposAgencia } from 'src/config/constants';
 import { Reserva } from './entities';
+import { MetadataLinkPago } from 'src/common/interface';
+import { addDay, format } from '@formkit/tempo';
 
 @Injectable()
 export class ReservasService {
@@ -30,14 +33,16 @@ export class ReservasService {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
 
-  async create(createReservaDto: CreateReservaDto, hotelId: string) {
+  async createReserva(
+    createReservaDto: CreateReservaDto,
+    hotelId: string,
+    userId: Types.ObjectId,
+  ) {
     createReservaDto.reservaInfo.agency.agency_type =
       createReservaDto.reservaInfo.agency.agency_type === 1
         ? tiposAgencia.mayorista
         : tiposAgencia.minorista;
-    const agenciaInfo = await this.userModel
-      .findById(createReservaDto.userId)
-      .select('agencia');
+    const agenciaInfo = await this.userModel.findById(userId).select('agencia');
 
     const reservaAutocoreInfo =
       await this.httpCustomService.createReservaAutocore(
@@ -47,7 +52,7 @@ export class ReservasService {
     const reserva = this.reservasModel.create({
       hotel: hotelesAutocore[hotelId],
       agenciaId: agenciaInfo.id,
-      userId: createReservaDto.userId,
+      userId,
       cantidadHabitaciones:
         createReservaDto.reservaInfo.reservation.roomsData.length,
       total: createReservaDto.total,
@@ -58,8 +63,51 @@ export class ReservasService {
     return reserva;
   }
 
-  async getReservasByUser(userId: string) {
-    return { userId };
+  async generarLinkPago(
+    generateLinkDto: GenerateLinkDto,
+    agencia: Types.ObjectId,
+  ) {
+    const agenciaInfo = await this.agenciaModel.findById(agencia);
+    const reservaInfo = await this.reservasModel.findById(
+      generateLinkDto.reservaId,
+    );
+
+    const checkin = format(reservaInfo.reservation.checkin, 'full', 'es');
+
+    const hotel = reservaInfo.hotel;
+
+    const metadata: MetadataLinkPago = {
+      r2p_methods: ['pse', 'nequi', 'bancolombia'],
+      description_to_payer: `Pago de reserva para el dia ${checkin}, en el ${hotel}`,
+      redirect_url: 'https://www.gehsuites.com/es',
+      description_to_beneficiary_account: `Pago de agencia ${agenciaInfo.fullName}, para reserva ${reservaInfo._id}`,
+      valid_until: addDay(new Date()),
+    };
+
+    const linkInfo = await this.httpCustomService.generatePaymenLink(
+      agenciaInfo.cobreInfo.counterPartyId,
+      agenciaInfo.cobreInfo.bolcilloId,
+      reservaInfo.total,
+      metadata,
+      generateLinkDto.reservaId,
+    );
+
+    const linkPago = {
+      link: linkInfo.metadata.payment_link,
+      expirationDate: linkInfo.metadata.valid_until,
+      idLinkPago: linkInfo.id,
+    };
+
+    reservaInfo.updateOne({
+      ...reservaInfo,
+      linkPago,
+    });
+    return { agencia };
+  }
+
+  async getReservasByUser(userId: Types.ObjectId) {
+    const reservas = await this.reservasModel.find({ userId });
+    return { reservas };
   }
 
   async getDisponibilidad(

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
+import { IAsistente } from '../interfaces';
 
 @Schema()
 export class Reserva extends Document {
@@ -30,6 +31,33 @@ export class Reserva extends Document {
     default: 'pendiente',
   })
   status: 'pendiente' | 'rechazado' | 'aprobado';
+
+  @Prop({
+    type: [
+      {
+        fullName: { type: String, required: true },
+        tipoDocumento: {
+          type: String,
+          required: true,
+          enum: ['CC', 'NIT', 'CE', 'PA'],
+        },
+        documento: {
+          type: String,
+          required: true,
+        },
+        telefono: {
+          type: String,
+          required: true,
+        },
+        email: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    default: [],
+  })
+  asistentes: IAsistente[];
 
   @Prop({
     type: {
@@ -77,19 +105,19 @@ export class Reserva extends Document {
     type: {
       link: { type: String, default: '' },
       expirationDate: { type: String, default: '' },
-      rastreador: { type: String, default: '' },
+      idLinkPago: { type: String, default: '' },
     },
 
     default: {
       link: '',
       expirationDate: '',
-      rastreador: '',
+      idLinkPago: '',
     },
   })
   linkInfo: {
     link: string;
     expirationDate: string;
-    rastreador: string;
+    idLinkPago: Types.ObjectId;
   };
 }
 

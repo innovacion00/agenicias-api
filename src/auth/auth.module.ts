@@ -39,7 +39,13 @@ import { CommonModule } from 'src/common/common.module';
         return {
           secret: envs.jwtSecret,
           signOptions: {
-            expiresIn: '2h',
+            /*
+            TODO: Ahora es tu problema crear una forma de refrescar 
+            el token, el del frontend no sabia como hacer cosas 
+            basicas(No sabia hacer nada) y me dio flojera crear 
+            una ruta de refrescar token y explicarle como usarla,
+            buena suerte */
+            expiresIn: '365d',
           },
         };
       },

@@ -346,22 +346,7 @@ export class AuthService {
 
   // #region Refrescar token
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    try {
-      const { _id } = refreshTokenDto;
-      const user = await this.findOneByTerm(_id);
-      if (!user.isActive) {
-        throw new UnauthorizedException(
-          'Usuario inactivo, comunicarse con un asesor',
-        );
-      }
-
-      return {
-        token: this.generateJwt({ _id }),
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  
   }
 
   // #region Solicitar Cambio de contraseña

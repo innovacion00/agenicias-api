@@ -42,7 +42,6 @@ export class AuthController {
   }
 
   @Post('refresh-token')
-  @Auth(ValidRoles.superUser)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     this.authService.refreshToken(refreshTokenDto);
   }

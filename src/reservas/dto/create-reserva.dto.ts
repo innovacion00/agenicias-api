@@ -26,6 +26,7 @@ import {
   RoomsDatum,
   ValidCities,
 } from 'src/common/interface';
+import { IAsistente } from '../interfaces';
 
 class AgencyDto {
   @IsBoolean()
@@ -170,14 +171,47 @@ class ReservaInfoDto {
   reservation: IreservaInfoBd;
 }
 
+class AsistenteDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @MinLength(5)
+  fullName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(['CC', 'NIT', 'CE', 'PA'])
+  tipoDocumento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @Matches(/^[^\s._]+$/, {
+    message: 'document no puede contener espacios guiones bajos.',
+  })
+  documento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(7)
+  @MaxLength(15)
+  @IsPhoneNumber()
+  telefono: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
 export class CreateReservaDto {
   @IsNumber()
   @IsNotEmpty()
   total: number;
 
-  @IsMongoId()
-  @IsNotEmpty()
-  userId: Types.ObjectId;
+  @ValidateNested()
+  @Type(() => AsistenteDto)
+  @IsOptional()
+  asistentes: IAsistente[];
 
   @ValidateNested()
   @Type(() => ReservaInfoDto)
