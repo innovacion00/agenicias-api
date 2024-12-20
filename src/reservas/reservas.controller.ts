@@ -30,7 +30,7 @@ export class ReservasController {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
-  @Get('/reserva-by-user')
+  @Get('/reservas-by-user')
   @Auth()
   getReservasByUser(@GetUser('id') _id: string) {
     return this.reservasService.getReservasByUser(_id);
