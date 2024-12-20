@@ -30,9 +30,10 @@ export class ReservasController {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
-  @Get('/:userId')
-  getReservasByUser(@Param('userId') userId: Types.ObjectId) {
-    return this.reservasService.getReservasByUser(userId);
+  @Get('/reserva-by-user')
+  @Auth()
+  getReservasByUser(@GetUser('id') _id: string) {
+    return this.reservasService.getReservasByUser(_id);
   }
 
   @Post('/generate-link')

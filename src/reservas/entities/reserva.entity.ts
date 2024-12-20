@@ -3,15 +3,15 @@ import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
 import { IAsistente } from '../interfaces';
 
-@Schema()
+@Schema({ timestamps: true })
 export class Reserva extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true, index: true })
   agenciaId: Types.ObjectId;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, index: true })
   hotel: string;
 
   @Prop({
@@ -29,6 +29,7 @@ export class Reserva extends Document {
   @Prop({
     type: String,
     default: 'pendiente',
+    index: true,
   })
   status: 'pendiente' | 'rechazado' | 'aprobado';
 

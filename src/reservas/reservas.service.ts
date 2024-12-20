@@ -51,7 +51,7 @@ export class ReservasService {
       );
     const reserva = this.reservasModel.create({
       hotel: hotelesAutocore[hotelId],
-      agenciaId: agenciaInfo.id,
+      agenciaId: agenciaInfo.agencia._id,
       userId,
       cantidadHabitaciones:
         createReservaDto.reservaInfo.reservation.roomsData.length,
@@ -105,7 +105,7 @@ export class ReservasService {
     return { agencia };
   }
 
-  async getReservasByUser(userId: Types.ObjectId) {
+  async getReservasByUser(userId: string) {
     const reservas = await this.reservasModel.find({ userId });
     return { reservas };
   }
