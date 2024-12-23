@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsEnum,
   IsIn,
-  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -16,7 +15,6 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 import { Type } from 'class-transformer';
 import {
@@ -26,7 +24,7 @@ import {
   RoomsDatum,
   ValidCities,
 } from 'src/common/interface';
-import { IAsistente } from '../interfaces';
+import { IAsistente, ITitularInfo } from '../interfaces';
 
 class AgencyDto {
   @IsBoolean()
@@ -43,6 +41,10 @@ class AgencyDto {
 }
 
 class RoomsDatumDto {
+  @IsString()
+  @IsNotEmpty()
+  nombreHabitacion: string;
+
   @IsString()
   @IsNotEmpty()
   adults: string;
@@ -93,12 +95,15 @@ class ReservaInfoDbDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
+  @IsNotEmpty()
   checkin: Date;
 
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkout debe venir en formato YYYY-MM-DD',
   })
+  @IsNotEmpty()
+  @IsNotEmpty()
   checkout: Date;
 
   @IsString()
@@ -113,6 +118,7 @@ class ReservaInfoDbDto {
       return `city ${args.value} no esta en las ciudades validad: ${validCities}.`;
     },
   })
+  @IsNotEmpty()
   city: ValidCities;
 
   @IsString()
@@ -203,15 +209,56 @@ class AsistenteDto {
   email: string;
 }
 
+class TitularInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(50)
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(50)
+  lastName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(20)
+  tipoDocumento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @Matches(/^[^\s._]+$/, {
+    message: 'document no puede contener espacios guiones bajos.',
+  })
+  documento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'fechaNacimineto debe venir en formato YYYY-MM-DD',
+  })
+  fechaNacimiento: string;
+}
+
 export class CreateReservaDto {
   @IsNumber()
   @IsNotEmpty()
   total: number;
 
-  @ValidateNested()
+  @ValidateNested({ each: true })
   @Type(() => AsistenteDto)
+  @IsArray()
   @IsOptional()
   asistentes: IAsistente[];
+
+  @ValidateNested()
+  @Type(() => TitularInfoDto)
+  @IsNotEmpty()
+  titularInfo: ITitularInfo;
 
   @ValidateNested()
   @Type(() => ReservaInfoDto)

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
-import { IAsistente } from '../interfaces';
+import { IAsistente, ITitularInfo } from '../interfaces';
 
 @Schema({ timestamps: true })
 export class Reserva extends Document {
@@ -31,13 +31,14 @@ export class Reserva extends Document {
   ? 1 En proceso de pago
   ? 2 Pago Rechazado
   ? 3 Pago Aprobado
+  ? 4 Cancelado
   */
   @Prop({
     type: Number,
     default: 0,
     index: true,
   })
-  status: 0 | 1 | 2 | 3;
+  status: 0 | 1 | 2 | 3 | 4;
 
   @Prop({
     type: [
@@ -68,6 +69,18 @@ export class Reserva extends Document {
 
   @Prop({
     type: {
+      firstName: { type: String, require: true },
+      lastName: { type: String, require: true },
+      tipoDocumento: { type: String, require: true },
+      documento: { type: String, require: true },
+      fechaNacimiento: { type: String, require: true },
+    },
+    require: true,
+  })
+  titularInfo: ITitularInfo;
+
+  @Prop({
+    type: {
       adults: { type: String, require: true },
       checkin: { type: String, require: true },
       checkout: { type: String, require: true },
@@ -86,6 +99,7 @@ export class Reserva extends Document {
       roomsData: [
         {
           type: {
+            nombreHabitacion: { type: String, require: true },
             adults: { type: String, require: true },
             children: { type: String, require: true },
             checkin: { type: String, require: true },
@@ -99,6 +113,7 @@ export class Reserva extends Document {
         },
       ],
     },
+    required: true,
   })
   reservation: IreservaInfoBd;
 

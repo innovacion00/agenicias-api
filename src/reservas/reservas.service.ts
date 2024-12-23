@@ -34,6 +34,7 @@ export class ReservasService {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
 
+  // #region Crear reserva
   async createReserva(
     createReservaDto: CreateReservaDto,
     hotelId: string,
@@ -65,19 +66,21 @@ export class ReservasService {
         total: createReservaDto.total,
         reservation: createReservaDto.reservaInfo.reservation,
         reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        titularInfo: createReservaDto.titularInfo,
       });
 
       userInfo.reservas.push(reserva._id as Reserva);
 
       await userInfo.save();
 
-      return reserva;
+      return createReservaDto;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
   }
 
+  // #region Generar link de pago
   async generarLinkPago(
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
@@ -126,11 +129,13 @@ export class ReservasService {
     }
   }
 
+  // #region Cambiar estado de la reserva
   async cambiarEstadoPagoReserva(changeStatusDTO: ChangeStatusDto) {
     console.log(JSON.stringify(changeStatusDTO));
     return true;
   }
 
+  // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId) {
     try {
       const reservas = await this.reservasModel.find({ userId });
@@ -141,6 +146,7 @@ export class ReservasService {
     }
   }
 
+  // #region Obtener disponibilidad
   async getDisponibilidad(
     agenciaId: Types.ObjectId,
     disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
