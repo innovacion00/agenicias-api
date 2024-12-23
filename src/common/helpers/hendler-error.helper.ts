@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   ImATeapotException,
+  ConflictException,
 } from '@nestjs/common';
 
 export class ErrorManager {
@@ -23,7 +24,8 @@ export class ErrorManager {
       error instanceof BadRequestException ||
       error instanceof UnauthorizedException ||
       error instanceof ForbiddenException ||
-      error instanceof ImATeapotException
+      error instanceof ImATeapotException ||
+      error instanceof ConflictException
     ) {
       throw error;
     }

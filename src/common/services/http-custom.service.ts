@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -21,6 +22,7 @@ import {
   ValidCities,
 } from '../interface';
 import { Types } from 'mongoose';
+import { ErrorManager } from '../helpers';
 
 @Injectable()
 export class HttpCustomService {
@@ -305,7 +307,7 @@ export class HttpCustomService {
     reservaInfo: IreservaInfo,
   ) {
     try {
-      const { data } = await axios.post<IreservaAutocoreResp>(
+      const { data } = await axios.post(
         envs.autocoreUrl.concat(`/v2/bookings/hotel_id=${hotelId}`),
         { ...reservaInfo },
         {
@@ -315,7 +317,8 @@ export class HttpCustomService {
           },
         },
       );
-      return data;
+
+      return data as IreservaAutocoreResp;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response) {
@@ -323,7 +326,7 @@ export class HttpCustomService {
             'Error de la API get Crear reserva:',
             error.response.data,
           );
-          throw new Error(
+          throw new InternalServerErrorException(
             `La API get Crear reserva retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
           );
         } else if (error.request) {

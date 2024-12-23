@@ -14,6 +14,7 @@ import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import {
+  ChangeStatusDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
 } from './dto';
@@ -34,8 +35,8 @@ export class ReservasController {
   }
 
   @Post('/change-status')
-  cambiarEstadoPagoReserva(@Body() genericDto: any) {
-    return this.reservasService.cambiarEstadoPagoReserva(genericDto);
+  cambiarEstadoPagoReserva(@Body() changeStatusDto: ChangeStatusDto) {
+    return this.reservasService.cambiarEstadoPagoReserva(changeStatusDto);
   }
 
   @Get('/reservas-by-user')

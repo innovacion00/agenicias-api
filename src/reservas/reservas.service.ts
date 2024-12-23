@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { addDay, format } from '@formkit/tempo';
 import {
+  ChangeStatusDto,
   CreateReservaDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
@@ -50,6 +51,11 @@ export class ReservasService {
           hotelId,
           createReservaDto.reservaInfo,
         );
+
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException(reservaAutocoreInfo.msg);
+      }
+
       const reserva = await this.reservasModel.create({
         hotel: hotelesAutocore[hotelId],
         agenciaId: userInfo.agencia._id,
@@ -112,6 +118,7 @@ export class ReservasService {
         ...reservaInfo,
         linkPago,
       });
+
       return { linkPago };
     } catch (error) {
       this.logger.error(error);
@@ -119,8 +126,8 @@ export class ReservasService {
     }
   }
 
-  async cambiarEstadoPagoReserva(genericDto: any) {
-    console.log(JSON.stringify(genericDto));
+  async cambiarEstadoPagoReserva(changeStatusDTO: ChangeStatusDto) {
+    console.log(JSON.stringify(changeStatusDTO));
     return true;
   }
 

@@ -1,3 +1,4 @@
+export * from './change-status.dto';
 export * from './create-reserva.dto';
 export * from './disponibilidad-autocore.dto';
 export * from './generate-link.dto';
