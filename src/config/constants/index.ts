@@ -1,2 +1,2 @@
-export * from './autocoreContants';
+export * from './autocoreConstants';
 export * from './myToolConstants';

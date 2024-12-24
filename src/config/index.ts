@@ -1,2 +1,2 @@
-export * from './constants/myToolConstants';
+export * from './constants';
 export * from './envs';

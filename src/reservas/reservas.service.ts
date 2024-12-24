@@ -129,10 +129,30 @@ export class ReservasService {
     }
   }
 
+
   // #region Cambiar estado de la reserva
   async cambiarEstadoPagoReserva(changeStatusDTO: ChangeStatusDto) {
-    console.log(JSON.stringify(changeStatusDTO));
-    return true;
+    const reserva = await this.reservasModel.findById(
+      changeStatusDTO.content.external_id,
+    );
+
+    switch (changeStatusDTO.event_key) {
+      case 'money_movements.status.initiated':
+        reserva.status = 1;
+        await reserva.save();
+        return true;
+
+      case 'money_movements.status.rejected':
+        reserva.status = 2;
+        await reserva.save();
+        return true;
+
+      case 'money_movements.status.completed':
+        reserva.status = 3;
+        return true;
+      default:
+        return true;
+    }
   }
 
   // #region Obtener reservas por usuario
