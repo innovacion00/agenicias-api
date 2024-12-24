@@ -98,6 +98,7 @@ export class ReservasService {
       const metadata: MetadataLinkPago = {
         r2p_methods: ['pse', 'nequi', 'bancolombia'],
         description_to_payer: `Pago de reserva para el dia ${checkin}, en el ${hotel}`,
+        // TODO: Cambiar redirecionamiento
         redirect_url: 'https://www.gehsuites.com/es',
         description_to_beneficiary_account: `Pago de agencia ${agenciaInfo.fullName}, para reserva ${reservaInfo._id}`,
         valid_until: addDay(new Date()),
@@ -128,7 +129,10 @@ export class ReservasService {
       this.errorManager.handle(error);
     }
   }
-
+  // #region Cancelar reserva
+  async cancelarReserva() {
+    return { a: 1 };
+  }
 
   // #region Cambiar estado de la reserva
   async cambiarEstadoPagoReserva(changeStatusDTO: ChangeStatusDto) {

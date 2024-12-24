@@ -34,6 +34,11 @@ export class ReservasController {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
+  @Delete('cancelar-reserva')
+  cancelarReserva() {
+    return this.reservasService.cancelarReserva();
+  }
+
   @Post('/change-status')
   cambiarEstadoPagoReserva(@Body() changeStatusDto: ChangeStatusDto) {
     return this.reservasService.cambiarEstadoPagoReserva(changeStatusDto);
@@ -48,8 +53,8 @@ export class ReservasController {
   @Post('/generate-link')
   @Auth()
   generateLinkPago(
-    @GetUser('agencia') agencia: Types.ObjectId,
     @Body() generateLinkDto: GenerateLinkDto,
+    @GetUser('agencia') agencia: Types.ObjectId,
   ) {
     return this.reservasService.generarLinkPago(generateLinkDto, agencia);
   }
