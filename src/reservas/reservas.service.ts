@@ -85,26 +85,25 @@ export class ReservasService {
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
   ) {
+    const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
+
     try {
-      const agenciaInfo = await this.agenciaModel.findById(agencia);
       const reservaInfo = await this.reservasModel.findById(
         generateLinkDto.reservaId,
       );
-
-      const checkin = format(reservaInfo.reservation.checkin, 'full', 'es');
 
       const hotel = reservaInfo.hotel;
 
       const metadata: MetadataLinkPago = {
         r2p_methods: ['pse', 'nequi', 'bancolombia'],
-        description_to_payer: `Pago de reserva para el dia ${checkin}, en el ${hotel}`,
+        description_to_payer: `Pago de reserva en ${hotel}`,
         // TODO: Cambiar redirecionamiento
         redirect_url: 'https://www.gehsuites.com/es',
-        description_to_beneficiary_account: `Pago de agencia ${agenciaInfo.fullName}, para reserva ${reservaInfo._id}`,
+        description_to_beneficiary_account: `${reservaInfo.reservaChatbotId}`,
         valid_until: addDay(new Date()),
       };
 
-      const linkInfo = await this.httpCustomService.generatePaymenLink(
+      const linkPago = await this.httpCustomService.generatePaymenLink(
         agenciaInfo.cobreInfo.counterPartyId,
         agenciaInfo.cobreInfo.bolcilloId,
         reservaInfo.total,
@@ -112,18 +111,15 @@ export class ReservasService {
         generateLinkDto.reservaId,
       );
 
-      const linkPago = {
-        link: linkInfo.metadata.payment_link,
-        expirationDate: linkInfo.metadata.valid_until,
-        idLinkPago: linkInfo.id,
+      const linkInfo = {
+        link: linkPago.metadata.payment_link,
+        expirationDate: linkPago.metadata.valid_until,
+        idLinkPago: linkPago.id,
       };
 
-      reservaInfo.updateOne({
-        ...reservaInfo,
-        linkPago,
-      });
+      await reservaInfo.updateOne({ $set: { linkInfo } });
 
-      return { linkPago };
+      return { linkInfo };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
