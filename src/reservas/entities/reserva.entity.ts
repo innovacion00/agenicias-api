@@ -125,6 +125,13 @@ export class Reserva extends Document {
   reservaChatbotId: string;
 
   @Prop({
+    type: String,
+    index: true,
+    required: true,
+  })
+  fechaLimitePago: string;
+
+  @Prop({
     type: {
       link: { type: String, default: '' },
       expirationDate: { type: String, default: '' },

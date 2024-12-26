@@ -1,7 +1,12 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { addDay, format } from '@formkit/tempo';
+import { addDay, format, diffDays } from '@formkit/tempo';
 import {
   ChangeStatusDto,
   CreateReservaDto,
@@ -45,6 +50,13 @@ export class ReservasService {
         createReservaDto.reservaInfo.agency.agency_type === 1
           ? tiposAgencia.mayorista
           : tiposAgencia.minorista;
+
+      const dateDiffDay =
+        diffDays(createReservaDto.reservaInfo.reservation.checkin, new Date()) /
+        2;
+      const dateAddDays = addDay(new Date(), dateDiffDay);
+      const fechaLimitePago = format(dateAddDays, 'YYYY-MM-DD');
+
       const userInfo = await this.userModel.findById(userId);
 
       const reservaAutocoreInfo =
@@ -67,6 +79,7 @@ export class ReservasService {
         reservation: createReservaDto.reservaInfo.reservation,
         reservaChatbotId: reservaAutocoreInfo.chatbot_id,
         titularInfo: createReservaDto.titularInfo,
+        fechaLimitePago,
       });
 
       userInfo.reservas.push(reserva._id as Reserva);
@@ -91,6 +104,10 @@ export class ReservasService {
       const reservaInfo = await this.reservasModel.findById(
         generateLinkDto.reservaId,
       );
+
+      if (!reservaInfo) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
 
       const hotel = reservaInfo.hotel;
 
