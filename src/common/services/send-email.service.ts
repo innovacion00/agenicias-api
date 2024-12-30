@@ -17,13 +17,13 @@ export class SendEmailCustomService {
       host: 'smtp.gmail.com',
       port: 587,
       auth: {
-        user: envs.SENDER_EMAIL,
-        pass: envs.EMAIL_APP_PASSWORD,
+        user: envs.senderEmail,
+        pass: envs.emailAppPassword,
       },
     });
 
     const info = await transporter.sendMail({
-      from: `"Geh Suites No-Reply" <${envs.SENDER_EMAIL}>`,
+      from: `"Geh Suites No-Reply" <${envs.senderEmail}>`,
       to: target,
       subject,
       text,

@@ -106,8 +106,8 @@ export const envs = {
   cobreApiKey: envVars.COBRE_API_KEY,
 
   // ? Node_Mailer
-  SENDER_EMAIL: envVars.SENDER_EMAIL,
-  EMAIL_APP_PASSWORD: envVars.EMAIL_APP_PASSWORD,
+  senderEmail: envVars.SENDER_EMAIL,
+  emailAppPassword: envVars.EMAIL_APP_PASSWORD,
 
   // ? Autocore Dev
   autocoreUrl: envVars.AUTOCORE_URL,

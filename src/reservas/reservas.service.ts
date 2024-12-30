@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { addDay, format, diffDays } from '@formkit/tempo';
 import {
+  CancelReservaDto,
   ChangeStatusDto,
   CreateReservaDto,
   DisponibilidadAutocoreDto,
@@ -82,7 +84,7 @@ export class ReservasService {
         fechaLimitePago,
       });
 
-      userInfo.reservas.push(reserva._id as Reserva);
+      userInfo.reservas.push(reserva._id as Types.ObjectId);
 
       await userInfo.save();
 
@@ -98,9 +100,8 @@ export class ReservasService {
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
   ) {
-    const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
-
     try {
+      const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
       const reservaInfo = await this.reservasModel.findById(
         generateLinkDto.reservaId,
       );
@@ -143,8 +144,35 @@ export class ReservasService {
     }
   }
   // #region Cancelar reserva
-  async cancelarReserva() {
-    return { a: 1 };
+  async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
+    try {
+      const reserva = await this.reservasModel.findById(
+        cancelReservaDto.reservaId,
+      );
+
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (!user.reservas.includes(cancelReservaDto.reservaId)) {
+        throw new ForbiddenException(
+          'No cuentas con los permisos necesarios para cancelar esta reserva',
+        );
+      }
+
+      const data = await this.httpCustomService.cancelarReservas(
+        reserva.reservaChatbotId,
+      );
+
+      await reserva.updateOne({
+        $set: { status: 4 },
+      });
+
+      return data;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 
   // #region Cambiar estado de la reserva
@@ -155,6 +183,7 @@ export class ReservasService {
 
     switch (changeStatusDTO.event_key) {
       case 'money_movements.status.initiated':
+      case 'money_movements.status.processing':
         reserva.status = 1;
         await reserva.save();
         return true;

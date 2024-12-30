@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   HttpCode,
@@ -11,14 +10,15 @@ import {
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
-import { CreateReservaDto } from './dto/create-reserva.dto';
-import { ParseMongoIdPipe } from 'src/common/pipes';
 import {
   ChangeStatusDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
+  CreateReservaDto,
+  CancelReservaDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
+import { User } from 'src/auth/entities';
 
 @Controller('reservas')
 export class ReservasController {
@@ -35,8 +35,12 @@ export class ReservasController {
   }
 
   @Delete('cancelar-reserva')
-  cancelarReserva() {
-    return this.reservasService.cancelarReserva();
+  @Auth()
+  cancelarReserva(
+    @Body() cancelReservaDto: CancelReservaDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.cancelarReserva(cancelReservaDto, user);
   }
 
   @Post('/change-status')
@@ -50,7 +54,7 @@ export class ReservasController {
     return this.reservasService.getReservasByUser(_id);
   }
 
-  @Post('/generate-link')
+  @Post('generate-link')
   @Auth()
   generateLinkPago(
     @Body() generateLinkDto: GenerateLinkDto,
@@ -59,14 +63,15 @@ export class ReservasController {
     return this.reservasService.generarLinkPago(generateLinkDto, agencia);
   }
 
-  @Post('disponibilidad/:agenciaId')
+  @Post('disponibilidad')
+  @Auth()
   @HttpCode(200)
   getDisponibilidad(
-    @Param('agenciaId', ParseMongoIdPipe) agenciaId: Types.ObjectId,
+    @GetUser('agencia') agencia: Types.ObjectId,
     @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
   ) {
     return this.reservasService.getDisponibilidad(
-      agenciaId,
+      agencia,
       disponibilidadAutoCoreDto,
     );
   }
