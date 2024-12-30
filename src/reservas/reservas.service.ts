@@ -143,6 +143,12 @@ export class ReservasService {
       this.errorManager.handle(error);
     }
   }
+
+  // #region
+  async editarReserva() {
+    return { hola: 'hola mundo' };
+  }
+
   // #region Cancelar reserva
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
@@ -186,6 +192,10 @@ export class ReservasService {
     const reserva = await this.reservasModel.findById(
       changeStatusDTO.content.external_id,
     );
+
+    if (reserva.status === 4) {
+      return true;
+    }
 
     switch (changeStatusDTO.event_key) {
       case 'money_movements.status.initiated':

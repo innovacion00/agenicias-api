@@ -7,6 +7,7 @@ import {
   Delete,
   HttpCode,
   Query,
+  Put,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
@@ -32,6 +33,11 @@ export class ReservasController {
     @GetUser('_id') _id: string,
   ) {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
+  }
+
+  @Put('editar-reserva')
+  editarReserva() {
+    return this.reservasService.editarReserva();
   }
 
   @Delete('cancelar-reserva')
