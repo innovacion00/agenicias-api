@@ -154,6 +154,12 @@ export class ReservasService {
         throw new NotFoundException('Reserva no encontrada');
       }
 
+      if (reserva.status === 4) {
+        return {
+          msg: `Reserva ${reserva.reservaChatbotId} ya esta cancelada correctamente`,
+        };
+      }
+
       if (!user.reservas.includes(cancelReservaDto.reservaId)) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
