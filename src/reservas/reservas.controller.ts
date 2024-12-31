@@ -17,9 +17,11 @@ import {
   GenerateLinkDto,
   CreateReservaDto,
   CancelReservaDto,
+  UpdateReservaDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
+import { ParseMongoIdPipe } from 'src/common/pipes';
 
 @Controller('reservas')
 export class ReservasController {
@@ -35,9 +37,18 @@ export class ReservasController {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
   }
 
-  @Put('editar-reserva')
-  editarReserva() {
-    return this.reservasService.editarReserva();
+  @Put('editar-reserva/:reservaId')
+  @Auth()
+  editarReserva(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body() updateReservaDto: UpdateReservaDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.editarReserva(
+      reservaId,
+      updateReservaDto, 
+      user,
+    );
   }
 
   @Delete('cancelar-reserva')

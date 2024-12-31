@@ -23,6 +23,7 @@ import {
 } from '../interface';
 import { Types } from 'mongoose';
 import { ErrorManager } from '../helpers';
+import { reservaAutocoreUpdate } from '../interface/reserva';
 
 @Injectable()
 export class HttpCustomService {
@@ -352,6 +353,58 @@ export class HttpCustomService {
     }
   }
 
+  // #region editar reserva
+  public async editarReservas(
+    chatbotId: string,
+    reservation: reservaAutocoreUpdate,
+  ) {
+    try {
+      const { data } = await axios.put<{ msg: string }>(
+        `${envs.autocoreUrl}/v2/bookings/chatbot/${chatbotId}`,
+        { reservation },
+        {
+          headers: {
+            access_key: envs.autocoreAccessKey,
+            secret_key: envs.autocoreSecretKey,
+          },
+        },
+      );
+
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          this.logger.error(
+            'Error de la API get Crear reserva:',
+            error.response.data,
+          );
+          throw new InternalServerErrorException(
+            `La API get Crear reserva retornó un error: ${error.response.status} - ${error.response.data.message || 'Sin mensaje'}`,
+          );
+        } else if (error.request) {
+          this.logger.error('Error de red o timeout:', error.message);
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de la API get Crear reserva. Verifique su conexión o tiempo de espera.',
+          );
+        } else {
+          this.logger.error(
+            'Error en la configuración de Axios:',
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Error en la configuración de la solicitud get Crear reserva: ${error.message}`,
+          );
+        }
+      } else {
+        this.logger.error('Error desconocido:', error);
+        throw new InternalServerErrorException(
+          'Ocurrió un error desconocido al realizar la solicitud get Crear reserva.',
+        );
+      }
+    }
+  }
+
+  // #region cancelar reserva
   public async cancelarReservas(chatbotId: string) {
     try {
       const { data } = await axios.delete<{ msg: string }>(

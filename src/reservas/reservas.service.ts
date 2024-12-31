@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -6,22 +7,29 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+
 import { Model, Types } from 'mongoose';
+
 import { addDay, format, diffDays } from '@formkit/tempo';
-import {
-  CancelReservaDto,
-  ChangeStatusDto,
-  CreateReservaDto,
-  DisponibilidadAutocoreDto,
-  GenerateLinkDto,
-} from './dto';
+import { isNotEmptyObject } from 'class-validator';
+
 import { ErrorManager } from 'src/common/helpers';
 import { MetadataLinkPago } from 'src/common/interface';
 import { HttpCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
+
 import { hotelesAutocore, tiposAgencia } from 'src/config/constants';
+
+import {
+  CancelReservaDto,
+  ChangeStatusDto,
+  CreateReservaDto,
+  DisponibilidadAutocoreDto,
+  GenerateLinkDto,
+  UpdateReservaDto,
+} from './dto';
 import { Reserva } from './entities';
 
 @Injectable()
@@ -144,9 +152,61 @@ export class ReservasService {
     }
   }
 
-  // #region
-  async editarReserva() {
-    return { hola: 'hola mundo' };
+  // #region editar reserva
+  async editarReserva(
+    reservaId: Types.ObjectId,
+    updateReservaDto: UpdateReservaDto,
+    user: User,
+  ) {
+    try {
+      if (!isNotEmptyObject(updateReservaDto)) {
+        throw new BadRequestException('Cuerpo de peticion invalido');
+      }
+
+      const reserva = await this.reservasModel.findById(reservaId);
+
+      if (!reserva || reserva.status === 4) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (!user.reservas.includes(reservaId)) {
+        throw new ForbiddenException(
+          'No cuentas con los permisos necesarios para editar esta reserva',
+        );
+      }
+
+      const titularInfoUpdates = reserva.titularInfo;
+      const reservationUpdates = reserva.reservation;
+
+      const updateReservaDtoFields = Object.keys(updateReservaDto);
+
+      for (const key of updateReservaDtoFields) {
+        if (titularInfoUpdates[key]) {
+          titularInfoUpdates[key] = updateReservaDto[key];
+        }
+
+        if (reservationUpdates[key]) {
+          reservationUpdates[key] = updateReservaDto[key];
+        }
+      }
+
+      const data = await this.httpCustomService.editarReservas(
+        reserva.reservaChatbotId,
+        updateReservaDto,
+      );
+
+      await reserva.updateOne({
+        $set: {
+          titularInfo: titularInfoUpdates,
+          reservation: reservationUpdates,
+        },
+      });
+
+      return data;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 
   // #region Cancelar reserva
