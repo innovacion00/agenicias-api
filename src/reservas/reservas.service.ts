@@ -114,7 +114,7 @@ export class ReservasService {
         generateLinkDto.reservaId,
       );
 
-      if (!reservaInfo) {
+      if (!reservaInfo || reservaInfo.status === 4) {
         throw new NotFoundException('Reserva no encontrada');
       }
 
@@ -180,13 +180,13 @@ export class ReservasService {
 
       const updateReservaDtoFields = Object.keys(updateReservaDto);
 
-      for (const key of updateReservaDtoFields) {
-        if (titularInfoUpdates[key]) {
-          titularInfoUpdates[key] = updateReservaDto[key];
+      for (const field of updateReservaDtoFields) {
+        if (titularInfoUpdates[field]) {
+          titularInfoUpdates[field] = updateReservaDto[field];
         }
 
-        if (reservationUpdates[key]) {
-          reservationUpdates[key] = updateReservaDto[key];
+        if (reservationUpdates[field]) {
+          reservationUpdates[field] = updateReservaDto[field];
         }
       }
 

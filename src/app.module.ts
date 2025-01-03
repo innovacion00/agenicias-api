@@ -11,12 +11,12 @@ import { MyToolModule } from './my-tool/my-tool.module';
 
 @Module({
   imports: [
+    AgenciasModule,
     AuthModule,
     CommonModule,
     MongooseModule.forRoot(envs.mongoUrl),
-    ReservasModule,
-    AgenciasModule,
     MyToolModule,
+    ReservasModule,
   ],
   controllers: [],
   providers: [],
