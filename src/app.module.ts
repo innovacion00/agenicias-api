@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { MyToolModule } from './my-tool/my-tool.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MyToolModule } from './my-tool/my-tool.module';
     MongooseModule.forRoot(envs.mongoUrl),
     MyToolModule,
     ReservasModule,
+    NotificacionesModule,
   ],
   controllers: [],
   providers: [],

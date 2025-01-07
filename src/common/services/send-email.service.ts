@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { envs } from 'src/config/envs';
 
@@ -13,23 +17,30 @@ export class SendEmailCustomService {
     text: string,
     html: string,
   ) {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      auth: {
-        user: envs.senderEmail,
-        pass: envs.emailAppPassword,
-      },
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        auth: {
+          user: envs.senderEmail,
+          pass: envs.emailAppPassword,
+        },
+      });
 
-    const info = await transporter.sendMail({
-      from: `"Geh Suites No-Reply" <${envs.senderEmail}>`,
-      to: target,
-      subject,
-      text,
-      html,
-    });
+      const info = await transporter.sendMail({
+        from: `"Geh Suites No-Reply" <${envs.senderEmail}>`,
+        to: target,
+        subject,
+        text,
+        html,
+      });
 
-    return info;
+      return info;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        'Error en las notificaciones por email',
+      );
+    }
   }
 }

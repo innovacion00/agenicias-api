@@ -55,17 +55,46 @@ export class ReservasService {
     hotelId: string,
     userId: string,
   ) {
+    // TODO: Se debe validar cada fecha
     try {
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
           ? tiposAgencia.mayorista
           : tiposAgencia.minorista;
 
-      const dateDiffDay =
-        diffDays(createReservaDto.reservaInfo.reservation.checkin, new Date()) /
-        2;
-      const dateAddDays = addDay(new Date(), dateDiffDay);
-      const fechaLimitePago = format(dateAddDays, 'YYYY-MM-DD');
+      const fechaActual = new Date();
+
+      const actualDiffDays = diffDays(
+        createReservaDto.reservaInfo.reservation.checkin,
+        fechaActual,
+      );
+      let fechaLimitePago: string;
+
+      //? Para fechas menores a 72 horas pago inmediato
+      if (actualDiffDays <= 3) {
+        fechaLimitePago = format(new Date(), 'YYYY-MM-DD');
+      }
+      //? Para fechas de 4 a 10 dias antes del checkin los pagos deben ser 2 dias antes de la fecha de checkin
+      else if (actualDiffDays >= 4 && actualDiffDays <= 10) {
+        fechaLimitePago = format(
+          addDay(new Date(), actualDiffDays - 2),
+          'YYYY-MM-DD',
+        );
+      }
+      //? Para fechas de 11 a 30 dias antes del checkin los pagos deben ser 7 dias antes de la fecha de checkin
+      else if (actualDiffDays >= 11 && actualDiffDays <= 30) {
+        fechaLimitePago = format(
+          addDay(new Date(), actualDiffDays - 7),
+          'YYYY-MM-DD',
+        );
+      }
+      //? Para fechas mayores 31 dias el pago debe ser minimo 12 dias antes del checkin
+      else {
+        fechaLimitePago = format(
+          addDay(new Date(), actualDiffDays - 12),
+          'YYYY-MM-DD',
+        );
+      }
 
       const userInfo = await this.userModel.findById(userId);
 

@@ -23,5 +23,6 @@ import { AgenciasModule } from 'src/agencias/agencias.module';
       },
     ]),
   ],
+  exports: [MongooseModule],
 })
 export class ReservasModule {}

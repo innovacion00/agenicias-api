@@ -1,0 +1,27 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+
+import { Model } from 'mongoose';
+
+import { diffDays } from '@formkit/tempo';
+
+import { ErrorManager } from 'src/common/helpers';
+import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
+import { Reserva } from 'src/reservas/entities';
+
+@Injectable()
+export class NotificacionesService {
+  private readonly errorManager: ErrorManager;
+  private readonly logger = new Logger(NotificacionesService.name);
+
+  constructor(
+    @InjectModel(Reserva.name) private readonly reservaModel: Model<Reserva>,
+
+    private readonly emailService: SendEmailCustomService,
+
+    private readonly httpCustomService: HttpCustomService,
+  ) {}
+
+  async notificacionPago() {
+  }
+}
