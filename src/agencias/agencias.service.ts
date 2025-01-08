@@ -120,7 +120,7 @@ export class AgenciasService {
     const metadata: MetadataLinkPago = {
       r2p_methods: ['pse', 'nequi', 'bancolombia'],
       description_to_payer: 'Pago de reserva',
-      redirect_url: 'https://www.gehsuites.com/es',
+      redirect_url: 'https://agencia.gehsuites.com/misreservas',
       description_to_beneficiary_account: `pago de agencias ${agenciaInfo.fullName}`,
       valid_until: addDay(new Date()),
     };

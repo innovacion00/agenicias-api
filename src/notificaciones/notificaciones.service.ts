@@ -1,9 +1,8 @@
+import { diffDays } from '@formkit/tempo';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model } from 'mongoose';
-
-import { diffDays } from '@formkit/tempo';
 
 import { ErrorManager } from 'src/common/helpers';
 import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
@@ -23,5 +22,19 @@ export class NotificacionesService {
   ) {}
 
   async notificacionPago() {
+    try {
+      const allActiveReservas = await this.reservaModel.find({
+        status: { $nin: [3, 4] },
+      });
+
+      for (const reserva of allActiveReservas) {
+        if(diffDays(reserva.fechaLimitePago, "")){}
+      }
+
+      return allActiveReservas;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 }

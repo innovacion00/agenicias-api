@@ -252,7 +252,7 @@ export class AuthService {
     const user = await this.userModel
       .findOne({ email })
       .lean()
-      .populate('agencia', 'fullName saldo documentInfo')
+      .populate('agencia', 'fullName saldo documentInfo firstLog')
       .select(
         'email password fullName telefonopassword isActive changePassword firstLog role agencia',
       );
