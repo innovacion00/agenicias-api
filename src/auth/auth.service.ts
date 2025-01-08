@@ -155,7 +155,7 @@ export class AuthService {
       `;
     await this.sendEmailCustomService.sendEmail(
       email,
-      'Codigo de verificacion',
+      'Booking connect - Codigo de verificacion',
       '',
       html,
     );
@@ -345,9 +345,7 @@ export class AuthService {
   }
 
   // #region Refrescar token
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
-  
-  }
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {}
 
   // #region Solicitar Cambio de contraseña
   async requestPasswordChange(

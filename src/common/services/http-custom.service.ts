@@ -309,7 +309,7 @@ export class HttpCustomService {
   ) {
     try {
       const { data } = await axios.post(
-        envs.autocoreUrl.concat(`/v2/bookings/hotel_id=${hotelId}`),
+        envs.autocoreUrl.concat(`/v2/bookings/hotel_id=${hotelId}?send_link=false`),
         { ...reservaInfo },
         {
           headers: {
