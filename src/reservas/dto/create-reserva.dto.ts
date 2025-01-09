@@ -87,6 +87,10 @@ class RoomsDatumDto {
 }
 
 class ReservaInfoDbDto {
+  @IsOptional()
+  @IsString()
+  source_of_bussiness: string;
+
   @IsString()
   @IsNotEmpty()
   adults: string;

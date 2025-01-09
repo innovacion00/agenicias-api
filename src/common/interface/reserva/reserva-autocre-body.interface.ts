@@ -12,6 +12,7 @@ export interface Agency {
 }
 
 export interface IreservaInfoBd {
+  source_of_bussiness: string;
   adults: string;
   checkin: string;
   checkout: string;

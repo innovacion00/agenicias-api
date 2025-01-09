@@ -81,6 +81,7 @@ export class Reserva extends Document {
 
   @Prop({
     type: {
+      source_of_bussiness: { type: String, default: '' },
       adults: { type: String, require: true },
       checkin: { type: String, require: true },
       checkout: { type: String, require: true },

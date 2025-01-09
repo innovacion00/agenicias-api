@@ -98,6 +98,15 @@ export class ReservasService {
 
       const userInfo = await this.userModel.findById(userId);
 
+      if (!createReservaDto.reservaInfo.reservation.source_of_bussiness) {
+        const agenciasInfo = await this.agenciaModel.findById(
+          userInfo.agencia._id,
+        );
+
+        createReservaDto.reservaInfo.reservation.source_of_bussiness =
+          agenciasInfo.fullName;
+      }
+
       const reservaAutocoreInfo =
         await this.httpCustomService.createReservaAutocore(
           hotelId,
@@ -143,7 +152,11 @@ export class ReservasService {
         generateLinkDto.reservaId,
       );
 
-      if (!reservaInfo || reservaInfo.status === 4) {
+      if (
+        !reservaInfo ||
+        reservaInfo.status === 4 ||
+        reservaInfo.status === 3
+      ) {
         throw new NotFoundException('Reserva no encontrada');
       }
 
@@ -282,7 +295,7 @@ export class ReservasService {
       changeStatusDTO.content.external_id,
     );
 
-    if (reserva.status === 4) {
+    if (reserva.status === 4 || reserva.status === 3) {
       return true;
     }
 
