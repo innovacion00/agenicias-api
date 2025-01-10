@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IdisponibilidadLayout, ValidCities } from 'src/common/interface';
+import { IsNotFutureDate } from '../decorators';
 
 class DisponibilidadLayoutDto {
   @Min(1)
@@ -34,6 +35,7 @@ export class DisponibilidadAutocoreDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'La fecha debe venir en formato YYYY-MM-DD',
   })
+  @IsNotFutureDate()
   @IsNotEmpty()
   checkingDate: string;
 

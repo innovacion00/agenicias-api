@@ -29,7 +29,6 @@ export const selecteroNotificacion = (
     return {
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,
-      // TODO: cambiar a notificacion de cancelacion de reserva
       html: notificacionEmailMenos3Dias(
         reserva,
         formatCheckin,
@@ -51,7 +50,6 @@ export const selecteroNotificacion = (
     return {
       vencida: true,
       subject: `Booking Connect - Notificacion vencimiento de reserva ${reserva}`,
-      // TODO: cambiar a notificacion de cancelacion de reserva
       html: notificacionEmailCancelacionReserva(
         reserva,
         formatCheckin,

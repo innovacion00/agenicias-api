@@ -22,6 +22,7 @@ import {
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
+import { ValidateCheckinCheckout } from './pipes';
 
 @Controller('reservas')
 export class ReservasController {
@@ -30,7 +31,7 @@ export class ReservasController {
   @Post('reservar')
   @Auth()
   create(
-    @Body() createReservaDto: CreateReservaDto,
+    @Body(new ValidateCheckinCheckout()) createReservaDto: CreateReservaDto,
     @Query('hotelId') hotelId: string,
     @GetUser('_id') _id: string,
   ) {
@@ -46,7 +47,7 @@ export class ReservasController {
   ) {
     return this.reservasService.editarReserva(
       reservaId,
-      updateReservaDto, 
+      updateReservaDto,
       user,
     );
   }

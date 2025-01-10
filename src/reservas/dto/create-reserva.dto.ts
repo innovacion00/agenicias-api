@@ -25,6 +25,7 @@ import {
   ValidCities,
 } from 'src/common/interface';
 import { IAsistente, ITitularInfo } from '../interfaces';
+import { IsNotFutureDate } from '../decorators';
 
 class AgencyDto {
   @IsBoolean()
@@ -53,12 +54,14 @@ class RoomsDatumDto {
   children: string;
 
   @IsString()
+  @IsNotFutureDate()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
   checkin: Date;
 
   @IsString()
+  @IsNotFutureDate()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
@@ -100,6 +103,7 @@ class ReservaInfoDbDto {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
   @IsNotEmpty()
+  @IsNotFutureDate()
   checkin: Date;
 
   @IsString()
@@ -107,7 +111,7 @@ class ReservaInfoDbDto {
     message: 'checkout debe venir en formato YYYY-MM-DD',
   })
   @IsNotEmpty()
-  @IsNotEmpty()
+  @IsNotFutureDate()
   checkout: Date;
 
   @IsString()

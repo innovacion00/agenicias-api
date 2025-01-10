@@ -27,6 +27,7 @@ export class AgenciasService {
     this.errorManager = new ErrorManager(AgenciasService.name);
   }
 
+  // #region Crear agencia
   async create(createAgenciaDto: CreateAgenciaDto) {
     createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
     try {
@@ -113,24 +114,6 @@ export class AgenciasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
-  }
-
-  async prueba(agenciaId: Types.ObjectId) {
-    const agenciaInfo = await this.agenciaModel.findById(agenciaId);
-    const metadata: MetadataLinkPago = {
-      r2p_methods: ['pse', 'nequi', 'bancolombia'],
-      description_to_payer: 'Pago de reserva',
-      redirect_url: 'https://agencia.gehsuites.com/misreservas',
-      description_to_beneficiary_account: `pago de agencias ${agenciaInfo.fullName}`,
-      valid_until: addDay(new Date()),
-    };
-    return this.httpCustomService.generatePaymenLink(
-      agenciaInfo.cobreInfo.counterPartyId,
-      agenciaInfo.cobreInfo.bolcilloId,
-      100,
-      metadata,
-      agenciaId,
-    );
   }
 
   update(id: number, updateAgenciaDto: UpdateAgenciaDto) {

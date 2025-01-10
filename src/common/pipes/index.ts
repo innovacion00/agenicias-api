@@ -1,1 +1,1 @@
-export * from './parse-mongo-id.pipi.ts.pipe';
+export * from './parse-mongo-id.pipe';
