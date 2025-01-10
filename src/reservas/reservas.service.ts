@@ -357,7 +357,9 @@ export class ReservasService {
   // #region Administracion
   async getAllReservas() {
     try {
-      const allReservas = await this.reservasModel.find();
+      const allReservas = await this.reservasModel
+        .find()
+        .populate('agenciaId', 'fullName _id');
       return allReservas;
     } catch (error) {
       this.logger.error(error);
