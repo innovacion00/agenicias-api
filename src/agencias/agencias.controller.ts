@@ -13,6 +13,7 @@ import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { Types } from 'mongoose';
 import { Auth } from 'src/auth/decorators';
+import { ValidRoles } from 'src/auth/interfaces';
 
 // TODO: Autenticar cada endpoint
 @Controller('agencias')
@@ -24,23 +25,30 @@ export class AgenciasController {
     return this.agenciasService.create(createAgenciaDto);
   }
 
-  @Auth()
   @Get()
+  @Auth(ValidRoles.superAdmin)
   findAll() {
     return this.agenciasService.findAll();
   }
 
-  @Get('getAll')
+  @Get('getByProperty')
+  @Auth(ValidRoles.superAdmin)
   findOne(@Query('search') search: string) {
     return this.agenciasService.findByProperty(search);
   }
 
+  // TODO: Hacer esto
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAgenciaDto: UpdateAgenciaDto) {
-    return this.agenciasService.update(+id, updateAgenciaDto);
+  @Auth(ValidRoles.superAdmin)
+  update(
+    @Param('id') id: Types.ObjectId,
+    @Body() updateAgenciaDto: UpdateAgenciaDto,
+  ) {
+    return this.agenciasService.update(id, updateAgenciaDto);
   }
 
   @Patch('switch-activation-agencia/:agenciaId')
+  @Auth(ValidRoles.superAdmin)
   switchActivationAgency(
     @Param('agenciaId', ParseMongoIdPipe) agenciaId: Types.ObjectId,
   ) {

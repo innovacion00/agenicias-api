@@ -353,4 +353,15 @@ export class ReservasService {
       this.errorManager.handle(error);
     }
   }
+
+  // #region Administracion
+  async getAllReservas() {
+    try {
+      const allReservas = await this.reservasModel.find();
+      return allReservas;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 }

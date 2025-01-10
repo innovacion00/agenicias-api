@@ -116,7 +116,7 @@ export class AgenciasService {
     }
   }
 
-  update(id: number, updateAgenciaDto: UpdateAgenciaDto) {
+  update(id: Types.ObjectId, updateAgenciaDto: UpdateAgenciaDto) {
     return `This action updates a #${id} agencia`;
   }
 }

@@ -23,6 +23,7 @@ import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { ValidateCheckinCheckout } from './pipes';
+import { ValidRoles } from 'src/auth/interfaces';
 
 @Controller('reservas')
 export class ReservasController {
@@ -92,5 +93,12 @@ export class ReservasController {
       agencia,
       disponibilidadAutoCoreDto,
     );
+  }
+
+  // #region Administracion
+  @Get()
+  @Auth(ValidRoles.superAdmin)
+  getAllReservas() {
+    return this.reservasService.getAllReservas();
   }
 }

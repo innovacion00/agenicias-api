@@ -27,7 +27,9 @@ export class NotificacionesService {
       const allActiveReservas = await this.reservaModel.find({
         status: { $nin: [3, 4] },
       });
-
+      if (!allActiveReservas.length) {
+        return true;
+      }
       let notificaciones = [];
 
       for (const reserva of allActiveReservas) {
