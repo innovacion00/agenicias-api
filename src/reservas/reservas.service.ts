@@ -31,6 +31,7 @@ import {
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
+import { descuentoFamiliar } from './utils';
 
 @Injectable()
 export class ReservasService {
@@ -350,6 +351,12 @@ export class ReservasService {
         ciudad,
         agenciaInfo.category,
       );
+
+      if (ciudad === 'CARTAGENA') {
+        const disponibilidad = descuentoFamiliar(data);
+        return disponibilidad;
+      }
+
       return data;
     } catch (error) {
       this.logger.error(error);
