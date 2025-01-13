@@ -26,6 +26,12 @@ export class Reserva extends Document {
   })
   total: number;
 
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  exentoIva: boolean;
+
   /*
   ? 0 Pendiente de pago
   ? 1 En proceso de pago

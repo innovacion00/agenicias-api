@@ -128,6 +128,9 @@ export class ReservasService {
         reservaChatbotId: reservaAutocoreInfo.chatbot_id,
         titularInfo: createReservaDto.titularInfo,
         fechaLimitePago,
+        exentoIva: createReservaDto.exentoIva
+          ? createReservaDto.exentoIva
+          : false,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);

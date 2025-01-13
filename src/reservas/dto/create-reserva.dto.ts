@@ -257,6 +257,10 @@ export class CreateReservaDto {
   @IsNotEmpty()
   total: number;
 
+  @IsBoolean()
+  @IsOptional()
+  exentoIva: boolean;
+
   @ValidateNested({ each: true })
   @Type(() => AsistenteDto)
   @IsArray()
