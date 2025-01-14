@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Patch, HttpCode, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  HttpCode,
+  Param,
+  Get,
+} from '@nestjs/common';
 
 import { Auth, GetUser } from './decorators';
 
@@ -78,5 +86,12 @@ export class AuthController {
     @Param('userId', ParseMongoIdPipe) userId: string,
   ) {
     return this.authService.switchActivationStatus(agencia, userId);
+  }
+
+  // #region Administrativo
+  @Get('getAllUsers')
+  @Auth(ValidRoles.superAdmin)
+  getAllUsers() {
+    return this.authService.getAllUsers();
   }
 }

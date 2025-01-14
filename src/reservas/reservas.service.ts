@@ -369,7 +369,9 @@ export class ReservasService {
     try {
       const allReservas = await this.reservasModel
         .find()
-        .populate('agenciaId', 'fullName _id');
+        .populate('agenciaId', 'fullName _id')
+        .sort({ createdAt: -1 });
+
       return allReservas;
     } catch (error) {
       this.logger.error(error);

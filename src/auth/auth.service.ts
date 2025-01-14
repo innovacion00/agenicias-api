@@ -409,4 +409,15 @@ export class AuthService {
 
     return { ok: true };
   }
+
+  // #region Administrativo
+  async getAllUsers() {
+    try {
+      const users = await this.userModel.find();
+      return users;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 }
