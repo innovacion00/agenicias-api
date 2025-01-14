@@ -294,32 +294,37 @@ export class ReservasService {
   }
 
   // #region Cambiar estado de la reserva
-  async cambiarEstadoPagoReserva(changeStatusDTO: ChangeStatusDto) {
-    const reserva = await this.reservasModel.findById(
-      changeStatusDTO.content.external_id,
-    );
+  async cambiarEstadoPagoReserva(changeStatusDTO: any) {
+    try {
+      const reserva = await this.reservasModel.findById(
+        changeStatusDTO.content.external_id,
+      );
 
-    if (reserva.status === 4 || reserva.status === 3) {
-      return true;
-    }
+      if (reserva.status === 4 || reserva.status === 3) {
+        return true;
+      }
 
-    switch (changeStatusDTO.event_key) {
-      case 'money_movements.status.initiated':
-      case 'money_movements.status.processing':
-        reserva.status = 1;
-        await reserva.save();
-        return true;
+      switch (changeStatusDTO.event_key) {
+        case 'money_movements.status.initiated':
+        case 'money_movements.status.processing':
+          reserva.status = 1;
+          await reserva.save();
+          return true;
 
-      case 'money_movements.status.rejected':
-        reserva.status = 2;
-        await reserva.save();
-        return true;
+        case 'money_movements.status.rejected':
+          reserva.status = 2;
+          await reserva.save();
+          return true;
 
-      case 'money_movements.status.completed':
-        reserva.status = 3;
-        return true;
-      default:
-        return true;
+        case 'money_movements.status.completed':
+          reserva.status = 3;
+          return true;
+        default:
+          return true;
+      }
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 

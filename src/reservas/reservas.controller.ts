@@ -63,7 +63,7 @@ export class ReservasController {
   }
 
   @Post('/change-status')
-  cambiarEstadoPagoReserva(@Body() changeStatusDto: ChangeStatusDto) {
+  cambiarEstadoPagoReserva(@Body() changeStatusDto: any) {
     return this.reservasService.cambiarEstadoPagoReserva(changeStatusDto);
   }
 
