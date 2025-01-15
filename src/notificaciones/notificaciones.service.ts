@@ -22,6 +22,7 @@ export class NotificacionesService {
     private readonly emailService: SendEmailCustomService,
   ) {}
 
+
   async notificacionPago() {
     try {
       const allActiveReservas = await this.reservaModel.find({
@@ -32,25 +33,27 @@ export class NotificacionesService {
       }
       let notificaciones = [];
 
-      for (const reserva of allActiveReservas) {
-        await fetch('https://jsonplaceholder.typicode.com/todos/1');
-        notificaciones.push(reserva);
-        if (diffDays(reserva.fechaLimitePago, new Date()) <= 7) {
-          const { html, vencida, subject } = selecteroNotificacion(
-            reserva.reservaChatbotId,
-            reserva.fechaLimitePago,
-            reserva.reservation.checkin,
-            reserva.reservation.checkout,
-          );
+      const reservasNotification = allActiveReservas.filter(
+        (reserva) => diffDays(reserva.fechaLimitePago, new Date()) <= 7,
+      );
 
-          const userDoc = await this.userModel.findById(reserva.userId);
+      for (const reserva of reservasNotification) {
+        const { html, vencida, subject } = selecteroNotificacion(
+          reserva.reservaChatbotId,
+          reserva.fechaLimitePago,
+          reserva.reservation.checkin,
+          reserva.reservation.checkout,
+        );
 
-          if (vencida) {
-            await reserva.updateOne({ $set: { status: 4 } });
-          }
+        const userDoc = await this.userModel.findById(reserva.userId);
 
-          await this.emailService.sendEmail(userDoc.email, subject, '', html);
+        if (vencida) {
+          await reserva.updateOne({ $set: { status: 4 } });
         }
+
+        notificaciones.push(
+          this.emailService.sendEmail(userDoc.email, subject, '', html),
+        );
       }
       const results = await Promise.allSettled(notificaciones);
       results.forEach((result) => {
@@ -58,7 +61,7 @@ export class NotificacionesService {
           this.logger.error(result.reason);
         }
       });
-      return notificaciones;
+      return reservasNotification;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

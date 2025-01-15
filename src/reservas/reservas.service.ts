@@ -318,6 +318,7 @@ export class ReservasService {
 
         case 'money_movements.status.completed':
           reserva.status = 3;
+          await reserva.save();
           return true;
         default:
           return true;

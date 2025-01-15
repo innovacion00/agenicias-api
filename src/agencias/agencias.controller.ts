@@ -38,14 +38,14 @@ export class AgenciasController {
   }
 
   // TODO: Hacer esto
-  @Patch(':id')
-  @Auth(ValidRoles.superAdmin)
-  update(
-    @Param('id') id: Types.ObjectId,
-    @Body() updateAgenciaDto: UpdateAgenciaDto,
-  ) {
-    return this.agenciasService.update(id, updateAgenciaDto);
-  }
+  // @Auth(ValidRoles.superAdmin)
+  // @Patch(':id')
+  // update(
+  //   @Param('id') id: Types.ObjectId,
+  //   @Body() updateAgenciaDto: UpdateAgenciaDto,
+  // ) {
+  //   return this.agenciasService.update(id, updateAgenciaDto);
+  // }
 
   @Patch('switch-activation-agencia/:agenciaId')
   @Auth(ValidRoles.superAdmin)
