@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -22,7 +21,6 @@ import {
   ValidCities,
 } from '../interface';
 import { Types } from 'mongoose';
-import { ErrorManager } from '../helpers';
 import { reservaAutocoreUpdate } from '../interface/reserva';
 
 @Injectable()

@@ -15,7 +15,7 @@ import { Types } from 'mongoose';
 import { Auth } from 'src/auth/decorators';
 import { ValidRoles } from 'src/auth/interfaces';
 
-// TODO: Autenticar cada endpoint
+
 @Controller('agencias')
 export class AgenciasController {
   constructor(private readonly agenciasService: AgenciasService) {}
@@ -37,15 +37,14 @@ export class AgenciasController {
     return this.agenciasService.findByProperty(search);
   }
 
-  // TODO: Hacer esto
-  // @Auth(ValidRoles.superAdmin)
-  // @Patch(':id')
-  // update(
-  //   @Param('id') id: Types.ObjectId,
-  //   @Body() updateAgenciaDto: UpdateAgenciaDto,
-  // ) {
-  //   return this.agenciasService.update(id, updateAgenciaDto);
-  // }
+  @Auth(ValidRoles.superAdmin)
+  @Patch('update/:id')
+  updateAgencia(
+    @Param('id', ParseMongoIdPipe) id: Types.ObjectId,
+    @Body() updateAgenciaDto: UpdateAgenciaDto,
+  ) {
+    return this.agenciasService.updateAgencias(id, updateAgenciaDto);
+  }
 
   @Patch('switch-activation-agencia/:agenciaId')
   @Auth(ValidRoles.superAdmin)

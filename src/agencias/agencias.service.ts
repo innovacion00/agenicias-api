@@ -116,7 +116,16 @@ export class AgenciasService {
     }
   }
 
-  update(id: Types.ObjectId, updateAgenciaDto: UpdateAgenciaDto) {
-    return `This action updates a #${id} agencia`;
+  async updateAgencias(id: Types.ObjectId, updateAgenciaDto: UpdateAgenciaDto) {
+    try {
+      const agenciasDoc = await this.agenciaModel.findById(id);
+
+      await agenciasDoc.updateOne(updateAgenciaDto);
+
+      return { id };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 }
