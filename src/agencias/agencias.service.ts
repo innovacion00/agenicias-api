@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
-import { addDay } from '@formkit/tempo';
-
 import { Model, Types } from 'mongoose';
 import slugify from 'slugify';
 
@@ -11,7 +9,6 @@ import { CreateAgenciaDto } from './dto/create-agencia.dto';
 import { ErrorManager } from 'src/common/helpers';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 import { HttpCustomService } from 'src/common/services';
-import { MetadataLinkPago } from 'src/common/interface';
 
 @Injectable()
 export class AgenciasService {
@@ -51,7 +48,7 @@ export class AgenciasService {
       const counterPartyInfo = await this.httpCustomService.createCounterParty(
         createAgenciaDto.fullName,
         createAgenciaDto.emailContacto,
-        createAgenciaDto.documentInfo.document,
+        createAgenciaDto.documentInfo.document.replace(/-/g, ''),
         createAgenciaDto.documentInfo.tipo,
         createAgenciaDto.telefonoContacto,
       );
@@ -76,6 +73,7 @@ export class AgenciasService {
     }
   }
 
+  // #region Encontrar todas las agencias
   async findAll() {
     try {
       const agencias = await this.agenciaModel.find().exec();
@@ -86,6 +84,7 @@ export class AgenciasService {
     }
   }
 
+  // #region Encontrar agencia por termino
   async findByProperty(search: string) {
     const agencias = await this.agenciaModel.find({
       $or: [
@@ -101,6 +100,7 @@ export class AgenciasService {
     return agencias;
   }
 
+  // #region Cambiar estado agencia
   async switchAgenciaStatus(agenciaId: Types.ObjectId) {
     try {
       const agenciaDoc = await this.agenciaModel.findById(agenciaId).exec();
@@ -117,6 +117,7 @@ export class AgenciasService {
     }
   }
 
+  // #region Actualizar datos de agencia
   async updateAgencias(id: Types.ObjectId, updateAgenciaDto: UpdateAgenciaDto) {
     try {
       const agenciasDoc = await this.agenciaModel.findById(id);
@@ -129,4 +130,9 @@ export class AgenciasService {
       this.errorManager.handle(error);
     }
   }
+
+  // TODO Borrar
+  // async camiarUserLimits() {
+  //   return { hola: 'hola' };
+  // }
 }

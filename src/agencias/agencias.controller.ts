@@ -15,7 +15,6 @@ import { Types } from 'mongoose';
 import { Auth } from 'src/auth/decorators';
 import { ValidRoles } from 'src/auth/interfaces';
 
-
 @Controller('agencias')
 export class AgenciasController {
   constructor(private readonly agenciasService: AgenciasService) {}
@@ -53,4 +52,9 @@ export class AgenciasController {
   ) {
     return this.agenciasService.switchAgenciaStatus(agenciaId);
   }
+
+  // TODO: Eliminar
+  // camiarUserLimits() {
+  //   return this.agenciasService.camiarUserLimits();
+  // }
 }
