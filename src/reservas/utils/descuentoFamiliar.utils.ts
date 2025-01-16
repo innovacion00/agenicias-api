@@ -16,7 +16,7 @@ export const descuentoFamiliar = (
           ? availability.children_ages.split(',').length
           : 0;
 
-        if (availability.adults + childrenCount >= 3) {
+        if (availability.adults + childrenCount === 3) {
           for (const rooms of availability.available_rooms) {
             for (const product of rooms.products) {
               product.baseRate.amountBeforeTax =
