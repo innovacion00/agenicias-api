@@ -359,7 +359,7 @@ export class ReservasService {
       );
 
       if (ciudad === 'CARTAGENA') {
-        const disponibilidad = descuentoFamiliar(data);
+        const disponibilidad = descuentoFamiliar(data, nights);
         return disponibilidad;
       }
 

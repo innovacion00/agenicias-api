@@ -64,6 +64,7 @@ export class AgenciasService {
       const agencia = await this.agenciaModel.create({
         slug,
         cobreInfo,
+        userLimit: createAgenciaDto.category === 0 ? 10 : 20,
         ...createAgenciaDto,
       });
       return {

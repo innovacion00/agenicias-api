@@ -212,6 +212,7 @@ export class AuthService {
 
       const user = await this.userModel.create({
         ...userData,
+        role: agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'],
         agencia: new Types.ObjectId(id),
         password: bcrypt.hashSync(password, 10),
       });

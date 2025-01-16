@@ -1,6 +1,9 @@
 import { Iavailability } from 'src/common/interface';
 
-export const descuentoFamiliar = (disponibilidades: Iavailability[]) => {
+export const descuentoFamiliar = (
+  disponibilidades: Iavailability[],
+  nights: number,
+) => {
   for (const disponibilidad of disponibilidades) {
     if (
       disponibilidad.hotel.roomcloud_id === '13645' ||
@@ -17,7 +20,7 @@ export const descuentoFamiliar = (disponibilidades: Iavailability[]) => {
           for (const rooms of availability.available_rooms) {
             for (const product of rooms.products) {
               product.baseRate.amountBeforeTax =
-                product.baseRate.amountBeforeTax - 50000;
+                product.baseRate.amountBeforeTax - 50000 * nights;
               product.baseRate.amountAfterTax =
                 product.baseRate.amountBeforeTax * 0.19 +
                 product.baseRate.amountBeforeTax;
