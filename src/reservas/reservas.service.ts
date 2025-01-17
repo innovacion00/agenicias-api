@@ -24,7 +24,6 @@ import { hotelesAutocore, tiposAgencia } from 'src/config/constants';
 
 import {
   CancelReservaDto,
-  ChangeStatusDto,
   CreateReservaDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
