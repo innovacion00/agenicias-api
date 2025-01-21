@@ -51,7 +51,12 @@ class RoomsDatumDto {
   adults: string;
 
   @IsString()
+  @IsOptional()
   children: string;
+
+  @IsString()
+  @IsOptional()
+  children_ages: string;
 
   @IsString()
   @IsNotFutureDate()
@@ -115,6 +120,7 @@ class ReservaInfoDbDto {
   checkout: Date;
 
   @IsString()
+  @IsNotEmpty()
   children: string;
 
   @IsString()

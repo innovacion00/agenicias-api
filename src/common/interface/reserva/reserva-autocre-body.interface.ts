@@ -34,7 +34,8 @@ export interface IreservaInfoBd {
 export interface RoomsDatum {
   nombreHabitacion: string;
   adults: string;
-  children: string;
+  children?: string;
+  children_ages?: string;
   checkin: string;
   checkout: string;
   currency: string;
