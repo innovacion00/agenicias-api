@@ -101,4 +101,10 @@ export class ReservasController {
   getAllReservas() {
     return this.reservasService.getAllReservas();
   }
+
+  @Get('prueba')
+  @Auth()
+  prueba(@GetUser() user: User) {
+    return this.reservasService.prueba(user);
+  }
 }

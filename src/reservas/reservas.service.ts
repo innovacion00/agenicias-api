@@ -15,12 +15,16 @@ import { isNotEmptyObject } from 'class-validator';
 
 import { ErrorManager } from 'src/common/helpers';
 import { MetadataLinkPago } from 'src/common/interface';
-import { HttpCustomService } from 'src/common/services';
+import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
 
-import { hotelesAutocore, tiposAgencia } from 'src/config/constants';
+import {
+  hotelesAutocore,
+  notificacionCancelacionVoluntaria,
+  tiposAgencia,
+} from 'src/config/constants';
 
 import {
   CancelReservaDto,
@@ -44,6 +48,8 @@ export class ReservasService {
 
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
 
+    private readonly emailService: SendEmailCustomService,
+
     private readonly httpCustomService: HttpCustomService,
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
@@ -55,7 +61,6 @@ export class ReservasService {
     hotelId: string,
     userId: string,
   ) {
-    // TODO: Se debe validar cada fecha
     try {
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
@@ -69,6 +74,10 @@ export class ReservasService {
         fechaActual,
       );
       let fechaLimitePago: string;
+      const fechaLimitePago2: string = format(
+        addDay(createReservaDto.reservaInfo.reservation.checkin, -1),
+        'YYYY-MM-DD',
+      );
 
       //? Para fechas menores a 72 horas pago inmediato
       if (actualDiffDays <= 3) {
@@ -100,22 +109,26 @@ export class ReservasService {
 
       if (!createReservaDto.reservaInfo.reservation.source_of_bussiness) {
         const agenciasInfo = await this.agenciaModel.findById(
-          userInfo.agencia._id,
+          userInfo.agencia,
         );
 
         createReservaDto.reservaInfo.reservation.source_of_bussiness =
           agenciasInfo.fullName;
       }
 
-      const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaAutocore(
-          hotelId,
-          createReservaDto.reservaInfo,
-        );
+      // const reservaAutocoreInfo =
+      //   await this.httpCustomService.createReservaAutocore(
+      //     hotelId,
+      //     createReservaDto.reservaInfo,
+      //   );
 
-      if (reservaAutocoreInfo.no_available_rooms) {
-        throw new ConflictException(reservaAutocoreInfo.msg);
-      }
+      // if (reservaAutocoreInfo.no_available_rooms) {
+      //   throw new ConflictException(reservaAutocoreInfo.msg);
+      // }
+
+      const reservaAutocoreInfo = {
+        chatbot_id: 'CSKJKLSJDKL',
+      };
 
       const reserva = await this.reservasModel.create({
         hotel: hotelesAutocore[hotelId],
@@ -124,10 +137,12 @@ export class ReservasService {
         cantidadHabitaciones:
           createReservaDto.reservaInfo.reservation.roomsData.length,
         total: createReservaDto.total,
+        totalMitad: createReservaDto.total / 2,
         reservation: createReservaDto.reservaInfo.reservation,
         reservaChatbotId: reservaAutocoreInfo.chatbot_id,
         titularInfo: createReservaDto.titularInfo,
         fechaLimitePago,
+        fechaLimitePago2,
         exentoIva: createReservaDto.exentoIva
           ? createReservaDto.exentoIva
           : false,
@@ -177,7 +192,7 @@ export class ReservasService {
       const linkPago = await this.httpCustomService.generatePaymenLink(
         agenciaInfo.cobreInfo.counterPartyId,
         agenciaInfo.cobreInfo.bolcilloId,
-        reservaInfo.total,
+        reservaInfo.totalMitad,
         metadata,
         generateLinkDto.reservaId,
       );
@@ -261,6 +276,8 @@ export class ReservasService {
         cancelReservaDto.reservaId,
       );
 
+      const agenciaDoc = await this.agenciaModel.findById(user.agencia);
+
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
       }
@@ -279,6 +296,18 @@ export class ReservasService {
 
       const data = await this.httpCustomService.cancelarReservas(
         reserva.reservaChatbotId,
+      );
+
+      const mensaje = notificacionCancelacionVoluntaria(
+        reserva.reservaChatbotId,
+        agenciaDoc.fullName,
+      );
+
+      await this.emailService.sendEmail(
+        'reservas@gehsuites.com',
+        `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
+        '',
+        mensaje,
       );
 
       await reserva.updateOne({
@@ -316,6 +345,12 @@ export class ReservasService {
           return true;
 
         case 'money_movements.status.completed':
+          if (!reserva.pagadoPrimeraMitad) {
+            reserva.status = 5;
+            reserva.pagadoPrimeraMitad = true;
+            await reserva.save();
+            return true;
+          }
           reserva.status = 3;
           await reserva.save();
           return true;
@@ -382,5 +417,18 @@ export class ReservasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  async prueba(user: User) {
+    // const mensaje = notificacionCancelacionVoluntaria('12131', 'agencia mia');
+    // await this.emailService.sendEmail(
+    //   'innovacion@gehsuites.com',
+    //   'Prueba',
+    //   '',
+    //   mensaje,
+    // );
+
+    const agenciaDoc = await this.agenciaModel.findById(user.agencia);
+    return agenciaDoc;
   }
 }
