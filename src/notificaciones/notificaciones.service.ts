@@ -38,9 +38,14 @@ export class NotificacionesService {
       );
 
       for (const reserva of reservasNotification) {
+        const fechaLimitePago = !reserva.pagadoPrimeraMitad
+          ? reserva.fechaLimitePago
+          : reserva.fechaLimitePago2;
+
         const { html, vencida, subject } = selecteroNotificacion(
           reserva.reservaChatbotId,
-          reserva.fechaLimitePago,
+          fechaLimitePago,
+          reserva.pagadoPrimeraMitad,
           reserva.reservation.checkin,
           reserva.reservation.checkout,
         );

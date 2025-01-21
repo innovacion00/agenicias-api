@@ -9,6 +9,7 @@ import {
 export const selecteroNotificacion = (
   reserva: string,
   fechaLimitePago: string,
+  pagadoPrimeraMitad: boolean,
   checkin: string,
   checkout: string,
 ) => {
@@ -21,7 +22,12 @@ export const selecteroNotificacion = (
     return {
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,
-      html: notificacionEmail7Dias(reserva, formatCheckin, formatCheckout),
+      html: notificacionEmail7Dias(
+        reserva,
+        formatCheckin,
+        formatCheckout,
+        pagadoPrimeraMitad,
+      ),
     };
   }
 
@@ -34,6 +40,7 @@ export const selecteroNotificacion = (
         formatCheckin,
         formatCheckout,
         diasRestantes,
+        pagadoPrimeraMitad,
       ),
     };
   }
