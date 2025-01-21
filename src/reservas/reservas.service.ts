@@ -108,9 +108,7 @@ export class ReservasService {
       const userInfo = await this.userModel.findById(userId);
 
       if (!createReservaDto.reservaInfo.reservation.source_of_bussiness) {
-        const agenciasInfo = await this.agenciaModel.findById(
-          userInfo.agencia,
-        );
+        const agenciasInfo = await this.agenciaModel.findById(userInfo.agencia);
 
         createReservaDto.reservaInfo.reservation.source_of_bussiness =
           agenciasInfo.fullName;
@@ -130,6 +128,18 @@ export class ReservasService {
         chatbot_id: 'CSKJKLSJDKL',
       };
 
+      const retenciones: any = {};
+      if (createReservaDto.reteFuente) {
+        retenciones.reteFuente = createReservaDto.reteFuente;
+      }
+
+      if (createReservaDto.reteIca) {
+        retenciones.reteIca = createReservaDto.reteIca;
+      }
+
+      if (createReservaDto.reteIva) {
+        retenciones.reteIva = createReservaDto.reteIva;
+      }
       const reserva = await this.reservasModel.create({
         hotel: hotelesAutocore[hotelId],
         agenciaId: userInfo.agencia._id,
@@ -146,6 +156,7 @@ export class ReservasService {
         exentoIva: createReservaDto.exentoIva
           ? createReservaDto.exentoIva
           : false,
+        ...retenciones,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);

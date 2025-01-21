@@ -47,7 +47,7 @@ export class Reserva extends Document {
       resultado: 0,
     },
   })
-  reteFunte: {
+  reteFuente: {
     porcentaje: number;
     resultado: number;
   };
