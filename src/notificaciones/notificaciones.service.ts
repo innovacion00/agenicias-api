@@ -20,8 +20,8 @@ export class NotificacionesService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
 
     private readonly emailService: SendEmailCustomService,
+    private readonly httpCustomService: HttpCustomService,
   ) {}
-
 
   async notificacionPago() {
     try {
@@ -48,6 +48,9 @@ export class NotificacionesService {
         const userDoc = await this.userModel.findById(reserva.userId);
 
         if (vencida) {
+          await this.httpCustomService.cancelarReservas(
+            reserva.reservaChatbotId,
+          );
           await reserva.updateOne({ $set: { status: 4 } });
         }
 
