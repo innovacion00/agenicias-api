@@ -403,11 +403,6 @@ export class ReservasService {
         agenciaInfo.category,
       );
 
-      if (ciudad === 'CARTAGENA') {
-        const disponibilidad = descuentoFamiliar(data, nights);
-        return disponibilidad;
-      }
-
       return data;
     } catch (error) {
       this.logger.error(error);

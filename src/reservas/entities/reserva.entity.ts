@@ -165,7 +165,8 @@ export class Reserva extends Document {
           type: {
             nombreHabitacion: { type: String, require: true },
             adults: { type: String, require: true },
-            children: { type: String, require: true },
+            children: { type: String, default: '' },
+            children_ages: { type: String, default: '' },
             checkin: { type: String, require: true },
             checkout: { type: String, require: true },
             currency: { type: String, require: true },
