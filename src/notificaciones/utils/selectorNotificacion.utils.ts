@@ -1,4 +1,4 @@
-import { diffDays, format } from '@formkit/tempo';
+import { diffDays, diffHours, format } from '@formkit/tempo';
 import {
   notificacionEmail7Dias,
   notificacionEmailCancelacionReserva,
@@ -15,6 +15,7 @@ export const selecteroNotificacion = (
 ) => {
   const fechaActual = new Date();
   const diasRestantes = diffDays(fechaLimitePago, fechaActual);
+  const horasRestantes = diffHours(fechaLimitePago, fechaActual);
   const formatCheckin = format(checkin, 'full', 'es');
   const formatCheckout = format(checkout, 'full', 'es');
 
@@ -45,7 +46,7 @@ export const selecteroNotificacion = (
     };
   }
 
-  if (diasRestantes === 0) {
+  if (diasRestantes === 0 && horasRestantes < 0) {
     return {
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,

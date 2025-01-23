@@ -1,3 +1,6 @@
+import { format } from '@formkit/tempo';
+import { convertidorMoneda } from 'src/common/helpers';
+
 // #region Notificaciones reservas
 export const notificacionEmail7Dias = (
   reserva: string,
@@ -574,12 +577,19 @@ export const notificacionEmailCancelacionReserva = (
 `;
 };
 
+
 // #region Cancelacion
-export const notificacionCancelacionVoluntaria = (
+// ? Mensaje para el equipo de reservas
+export const notificacionCancelacionVoluntariaReservas = (
   reserva: string,
   agencia: string,
+  pagadoPrimeraMitad: boolean,
+  saldo: number,
 ) => {
-  return `<!DOCTYPE html>
+  const montoFormateado = convertidorMoneda(saldo);
+
+  if (!pagadoPrimeraMitad) {
+    return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -642,8 +652,8 @@ export const notificacionCancelacionVoluntaria = (
       <ul>
         <li><strong>Código de Reserva:</strong> ${reserva}</li>
       </ul>
-      <p>Les solicitamos realizar las actualizaciones correspondientes en el sistema y, si es necesario, contactar a la agencia para confirmar cualquier detalle adicional.</p>
-      <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
+      <p>Les solicitamos si es necesario, contactar a la agencia para confirmar cualquier detalle adicional.</p>
+      <p>Saludos cordiales,<br>El equipo de innovacion y desarrollo de Geh Suites</p>
     </div>
     <div class="email-footer">
       <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
@@ -652,4 +662,246 @@ export const notificacionCancelacionVoluntaria = (
 </body>
 </html>
 `;
+  } else {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notificación de Cancelación de Reserva</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #d9534f;
+      color: #ffffff;
+      text-align: center;
+      padding: 20px;
+    }
+    .email-header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .email-body {
+      padding: 20px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    .email-body a {
+      color: #d9534f;
+      text-decoration: none;
+    }
+    .email-body a:hover {
+      text-decoration: underline;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>Notificación de Cancelación de Reserva</h1>
+    </div>
+    <div class="email-body">
+      <p>Estimado equipo de reservas,</p>
+      <p>La agencia <strong>${agencia}</strong> ha cancelado una reserva con el siguiente detalle:</p>
+      <ul>
+        <li><strong>Código de Reserva:</strong> ${reserva}</li>
+      </ul>
+      <p><strong>Detalles: </strong>Cancelado voluntariamente pero se pago la primera mitad de la reserva.</p>
+      <p><strong>Saldo a favor de esta reserva: </strong>${montoFormateado}.</p>
+      <p>Les solicitamos si es necesario, contactar a la agencia para confirmar cualquier detalle adicional y estar pendiente a cualquier duda de la agencia.</p>
+      <p>Saludos cordiales,<br>El equipo de innovacion y desarrollo de Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+  }
+};
+
+export const notificacionCancelacionVencimiento = (
+  reserva: string,
+  agencia: string,
+  pagadoPrimeraMitad: boolean,
+  fechaLimitePago: string,
+  saldo: number,
+) => {
+  const montoFormateado = convertidorMoneda(saldo);
+
+  if (!pagadoPrimeraMitad) {
+    return `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Notificación de Cancelación de Reserva</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          margin: 0;
+          padding: 0;
+        }
+        .email-container {
+          max-width: 600px;
+          margin: 20px auto;
+          background-color: #ffffff;
+          border: 1px solid #e0e0e0;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+        .email-header {
+          background-color: #d9534f;
+          color: #ffffff;
+          text-align: center;
+          padding: 20px;
+        }
+        .email-header h1 {
+          margin: 0;
+          font-size: 24px;
+        }
+        .email-body {
+          padding: 20px;
+          line-height: 1.6;
+          color: #333333;
+        }
+        .email-body a {
+          color: #d9534f;
+          text-decoration: none;
+        }
+        .email-body a:hover {
+          text-decoration: underline;
+        }
+        .email-footer {
+          background-color: #f4f4f4;
+          text-align: center;
+          padding: 10px;
+          font-size: 12px;
+          color: #777777;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="email-header">
+          <h1>Notificación de Cancelación de Reserva</h1>
+        </div>
+        <div class="email-body">
+          <p>Estimado equipo de reservas,</p>
+          <p>A la agencia <strong>${agencia}</strong> se le ha cancelado una reserva con el siguiente detalle:</p>
+          <ul>
+            <li><strong>Código de Reserva:</strong> ${reserva}</li>
+            <li><strong>Fecha limite de pago:</strong> ${format(fechaLimitePago, 'full', 'es-Co')}</li>
+          </ul>
+          <p><strong>Detalles: </strong>Cancelado debido a falta de pago oportuno de su primer pago.</p>
+          <p>Les solicitamos si es necesario, contactar a la agencia para confirmar cualquier detalle adicional.</p>
+          <p>Saludos cordiales,<br>El equipo de innovacion y desarrollo de Geh Suites</p>
+        </div>
+        <div class="email-footer">
+          <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+  } else {
+    return `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Notificación de Cancelación de Reserva</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          margin: 0;
+          padding: 0;
+        }
+        .email-container {
+          max-width: 600px;
+          margin: 20px auto;
+          background-color: #ffffff;
+          border: 1px solid #e0e0e0;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+        .email-header {
+          background-color: #d9534f;
+          color: #ffffff;
+          text-align: center;
+          padding: 20px;
+        }
+        .email-header h1 {
+          margin: 0;
+          font-size: 24px;
+        }
+        .email-body {
+          padding: 20px;
+          line-height: 1.6;
+          color: #333333;
+        }
+        .email-body a {
+          color: #d9534f;
+          text-decoration: none;
+        }
+        .email-body a:hover {
+          text-decoration: underline;
+        }
+        .email-footer {
+          background-color: #f4f4f4;
+          text-align: center;
+          padding: 10px;
+          font-size: 12px;
+          color: #777777;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="email-header">
+          <h1>Notificación de Cancelación de Reserva</h1>
+        </div>
+        <div class="email-body">
+          <p>Estimado equipo de reservas,</p>
+          <p>A la agencia <strong>${agencia}</strong> se le ha cancelado una reserva con el siguiente detalle:</p>
+          <ul>
+            <li><strong>Código de Reserva:</strong> ${reserva}</li>
+            <li><strong>Fecha limite de pago:</strong> ${format(fechaLimitePago, 'full', 'es-Co')}</li>
+          </ul>
+          <p><strong>Detalles: </strong>Cancelado debido al no pago de la segunda mitad de la reserva.</p>
+          <p><strong>Saldo a favor de esta reserva: </strong>${montoFormateado}.</p>
+          <p>Les solicitamos si es necesario, contactar a la agencia para confirmar cualquier detalle adicional y estar pendiente en caso de consultas.</p>
+          <p>Saludos cordiales,<br>El equipo de innovacion y desarrollo de Geh Suites</p>
+        </div>
+        <div class="email-footer">
+          <p>©${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+  }
 };

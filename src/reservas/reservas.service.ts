@@ -22,7 +22,7 @@ import { User } from 'src/auth/entities';
 
 import {
   hotelesAutocore,
-  notificacionCancelacionVoluntaria,
+  notificacionCancelacionVoluntariaReservas,
   tiposAgencia,
 } from 'src/config/constants';
 
@@ -114,19 +114,15 @@ export class ReservasService {
           agenciasInfo.fullName;
       }
 
-      // const reservaAutocoreInfo =
-      //   await this.httpCustomService.createReservaAutocore(
-      //     hotelId,
-      //     createReservaDto.reservaInfo,
-      //   );
+      const reservaAutocoreInfo =
+        await this.httpCustomService.createReservaAutocore(
+          hotelId,
+          createReservaDto.reservaInfo,
+        );
 
-      // if (reservaAutocoreInfo.no_available_rooms) {
-      //   throw new ConflictException(reservaAutocoreInfo.msg);
-      // }
-
-      const reservaAutocoreInfo = {
-        chatbot_id: 'CSKJKLSJDKL',
-      };
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException(reservaAutocoreInfo.msg);
+      }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {
@@ -194,7 +190,6 @@ export class ReservasService {
       const metadata: MetadataLinkPago = {
         r2p_methods: ['pse', 'nequi', 'bancolombia'],
         description_to_payer: `Pago de reserva en ${hotel}`,
-        // TODO: Cambiar redirecionamiento
         redirect_url: 'https://agencia.gehsuites.com/misreservas',
         description_to_beneficiary_account: `${reservaInfo.reservaChatbotId}`,
         valid_until: addDay(new Date()),
@@ -309,16 +304,21 @@ export class ReservasService {
         reserva.reservaChatbotId,
       );
 
-      const mensaje = notificacionCancelacionVoluntaria(
+      const saldoFavor =
+        reserva.status !== 3 ? reserva.totalMitad : reserva.total;
+
+      const mensajeReserva = notificacionCancelacionVoluntariaReservas(
         reserva.reservaChatbotId,
         agenciaDoc.fullName,
+        reserva.pagadoPrimeraMitad,
+        saldoFavor,
       );
 
       await this.emailService.sendEmail(
         'reservas@gehsuites.com',
         `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
         '',
-        mensaje,
+        mensajeReserva,
       );
 
       await reserva.updateOne({
@@ -425,16 +425,21 @@ export class ReservasService {
     }
   }
 
-  async prueba(user: User) {
-    // const mensaje = notificacionCancelacionVoluntaria('12131', 'agencia mia');
-    // await this.emailService.sendEmail(
-    //   'innovacion@gehsuites.com',
-    //   'Prueba',
-    //   '',
-    //   mensaje,
-    // );
+  async prueba() {
+    try {
+      const reservas = await this.reservasModel.find();
 
-    const agenciaDoc = await this.agenciaModel.findById(user.agencia);
-    return agenciaDoc;
+      for (const reserva of reservas) {
+        reserva.totalMitad = reserva.total / 2;
+        if (reserva.status === 3) {
+          reserva.pagadoPrimeraMitad = true;
+        }
+        await reserva.save();
+      }
+      return reservas.length;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 }

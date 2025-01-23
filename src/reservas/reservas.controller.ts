@@ -102,9 +102,8 @@ export class ReservasController {
     return this.reservasService.getAllReservas();
   }
 
-  @Get('prueba')
-  @Auth()
-  prueba(@GetUser() user: User) {
-    return this.reservasService.prueba(user);
+  @Post('prueba')
+  prueba() {
+    return this.reservasService.prueba();
   }
 }

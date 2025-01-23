@@ -28,6 +28,7 @@ export class Reserva extends Document {
 
   @Prop({
     type: Number,
+    default: 0,
   })
   totalMitad: number;
 
