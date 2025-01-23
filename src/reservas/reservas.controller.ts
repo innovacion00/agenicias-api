@@ -101,4 +101,9 @@ export class ReservasController {
   getAllReservas() {
     return this.reservasService.getAllReservas();
   }
+
+  @Post('prueba')
+  prueba() {
+    return this.reservasService.prueba();
+  }
 }

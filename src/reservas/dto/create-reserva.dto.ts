@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsPhoneNumber,
+  IsPositive,
   IsString,
   Matches,
   MaxLength,
@@ -258,10 +259,38 @@ class TitularInfoDto {
   fechaNacimiento: string;
 }
 
+class RetencionesDto {
+  @IsNumber()
+  @IsOptional()
+  @IsPositive()
+  porcentaje: number;
+
+  @IsNumber()
+  @IsOptional()
+  @IsPositive()
+  resultado: number;
+}
+
 export class CreateReservaDto {
   @IsNumber()
   @IsNotEmpty()
   total: number;
+
+  @ValidateNested()
+  @Type(() => RetencionesDto)
+  @IsOptional()
+  reteFuente: RetencionesDto;
+
+  @ValidateNested()
+  @Type(() => RetencionesDto)
+  @IsOptional()
+  reteIca: RetencionesDto;
+
+  @ValidateNested()
+  @Type(() => RetencionesDto)
+  @IsOptional()
+  reteIva: RetencionesDto;
+
 
   @IsBoolean()
   @IsOptional()

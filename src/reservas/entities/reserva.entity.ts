@@ -27,6 +27,63 @@ export class Reserva extends Document {
   total: number;
 
   @Prop({
+    type: Number,
+    default: 0,
+  })
+  totalMitad: number;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  pagadoPrimeraMitad: boolean;
+
+  @Prop({
+    type: {
+      porcentaje: { type: Number, require: true },
+      resultado: { type: Number, require: true },
+    },
+    default: {
+      porcentaje: 0,
+      resultado: 0,
+    },
+  })
+  reteFuente: {
+    porcentaje: number;
+    resultado: number;
+  };
+
+  @Prop({
+    type: {
+      porcentaje: { type: Number, require: true },
+      resultado: { type: Number, require: true },
+    },
+    default: {
+      porcentaje: 0,
+      resultado: 0,
+    },
+  })
+  reteIva: {
+    porcentaje: number;
+    resultado: number;
+  };
+
+  @Prop({
+    type: {
+      porcentaje: { type: Number, require: true },
+      resultado: { type: Number, require: true },
+    },
+    default: {
+      porcentaje: 0,
+      resultado: 0,
+    },
+  })
+  reteIca: {
+    porcentaje: number;
+    resultado: number;
+  };
+
+  @Prop({
     type: Boolean,
     default: false,
   })
@@ -38,13 +95,14 @@ export class Reserva extends Document {
   ? 2 Pago Rechazado
   ? 3 Pago Aprobado
   ? 4 Cancelado
+  ? 5 Pago abonado
   */
   @Prop({
     type: Number,
     default: 0,
     index: true,
   })
-  status: 0 | 1 | 2 | 3 | 4;
+  status: 0 | 1 | 2 | 3 | 4 | 5;
 
   @Prop({
     type: [
@@ -138,6 +196,12 @@ export class Reserva extends Document {
     required: true,
   })
   fechaLimitePago: string;
+
+  @Prop({
+    type: String,
+    index: true,
+  })
+  fechaLimitePago2: string;
 
   @Prop({
     type: {
