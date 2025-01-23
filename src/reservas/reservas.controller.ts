@@ -102,8 +102,8 @@ export class ReservasController {
     return this.reservasService.getAllReservas();
   }
 
-  @Post('prueba')
-  prueba() {
-    return this.reservasService.prueba();
-  }
+  // @Post('prueba')
+  // prueba() {
+  //   return this.reservasService.prueba();
+  // }
 }

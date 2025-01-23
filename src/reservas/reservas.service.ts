@@ -425,21 +425,22 @@ export class ReservasService {
     }
   }
 
-  async prueba() {
-    try {
-      const reservas = await this.reservasModel.find();
+  // async prueba() {
+  //   try {
+  //     const reservas = await this.reservasModel.find();
 
-      for (const reserva of reservas) {
-        reserva.totalMitad = reserva.total / 2;
-        if (reserva.status === 3) {
-          reserva.pagadoPrimeraMitad = true;
-        }
-        await reserva.save();
-      }
-      return reservas.length;
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
-  }
+  //     for (const reserva of reservas) {
+  //       const fechaLimitePago2: string = format(
+  //         addDay(reserva.reservation.checkin, -1),
+  //         'YYYY-MM-DD',
+  //       );
+  //       reserva.fechaLimitePago2 = fechaLimitePago2;
+  //       await reserva.save();
+  //     }
+  //     return reservas.length;
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     this.errorManager.handle(error);
+  //   }
+  // }
 }
