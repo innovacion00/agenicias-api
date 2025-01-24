@@ -22,3 +22,5 @@ export const hotelesAutocore = {
   '19629': 'Hotel Axis',
   '15740': 'Hotel Sansiraka',
 };
+
+export const hotelesAutocoreIds = Object.keys(hotelesAutocore);

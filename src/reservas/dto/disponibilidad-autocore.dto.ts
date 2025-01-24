@@ -47,7 +47,7 @@ export class DisponibilidadAutocoreDto {
   @IsEnum(ValidCities, {
     message: (args) => {
       const validCities = Object.values(ValidCities).join(',');
-      return `La ciudad ${args.value} no esta en las ciudades validad: ${validCities}.`;
+      return `La ciudad ${args.value} no esta en las ciudades validas: ${validCities}.`;
     },
   })
   ciudad: ValidCities;

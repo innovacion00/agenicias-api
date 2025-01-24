@@ -10,7 +10,7 @@ import { isAfter } from '@formkit/tempo';
 import { CreateReservaDto } from '../dto';
 
 @Injectable()
-export class ValidateCheckinCheckout implements PipeTransform {
+export class ParseCheckinCheckoutPipe implements PipeTransform {
   transform(createReservaDto: CreateReservaDto, metadata: ArgumentMetadata) {
     const {
       checkin: primaryCheckin,

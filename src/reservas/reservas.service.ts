@@ -385,6 +385,17 @@ export class ReservasService {
     }
   }
 
+  // #region Obtener reservas por agencia
+  async getReservasByAgencia(agenciaId: Types.ObjectId) {
+    try {
+      const reservas = await this.reservasModel.find({ agenciaId });
+      return { reservas };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
   // #region Obtener disponibilidad
   async getDisponibilidad(
     agenciaId: Types.ObjectId,
@@ -411,6 +422,7 @@ export class ReservasService {
   }
 
   // #region Administracion
+  //? Obtener todas las reservas
   async getAllReservas() {
     try {
       const allReservas = await this.reservasModel
@@ -425,6 +437,21 @@ export class ReservasService {
     }
   }
 
+  //? Cancelar reservas
+  async cancelarReservaAdmin(reservaId: Types.ObjectId) {
+    try {
+      const reserva = await this.reservasModel.findById(reservaId);
+      await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+      reserva.status = 4;
+      reserva.save();
+      return reserva;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // ? Pruebas
   // async prueba() {
   //   try {
   //     const reservas = await this.reservasModel.find();

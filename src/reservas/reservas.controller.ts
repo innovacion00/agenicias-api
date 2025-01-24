@@ -12,7 +12,6 @@ import {
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
 import {
-  ChangeStatusDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
   CreateReservaDto,
@@ -22,7 +21,7 @@ import {
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { ValidateCheckinCheckout } from './pipes';
+import { ParseCheckinCheckoutPipe, ParseHotelIdPipe } from './pipes';
 import { ValidRoles } from 'src/auth/interfaces';
 
 @Controller('reservas')
@@ -32,8 +31,8 @@ export class ReservasController {
   @Post('reservar')
   @Auth()
   create(
-    @Body(new ValidateCheckinCheckout()) createReservaDto: CreateReservaDto,
-    @Query('hotelId') hotelId: string,
+    @Body(new ParseCheckinCheckoutPipe()) createReservaDto: CreateReservaDto,
+    @Query('hotelId', ParseHotelIdPipe) hotelId: string,
     @GetUser('_id') _id: string,
   ) {
     return this.reservasService.createReserva(createReservaDto, hotelId, _id);
@@ -73,6 +72,12 @@ export class ReservasController {
     return this.reservasService.getReservasByUser(_id);
   }
 
+  @Get('reservas-by-agencia')
+  @Auth(ValidRoles.admin)
+  getReservasByAgencia(@GetUser('agencia') agencia: Types.ObjectId) {
+    return this.reservasService.getReservasByAgencia(agencia);
+  }
+
   @Post('generate-link')
   @Auth()
   generateLinkPago(
@@ -102,6 +107,13 @@ export class ReservasController {
     return this.reservasService.getAllReservas();
   }
 
+  @Delete('cancelar-reserva-admin/:reservaId')
+  @Auth(ValidRoles.superAdmin)
+  cancelarReservaAdmin(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+  ) {
+    return this.reservasService.cancelarReservaAdmin(reservaId);
+  }
   // @Post('prueba')
   // prueba() {
   //   return this.reservasService.prueba();
