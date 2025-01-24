@@ -44,7 +44,7 @@ import { CommonModule } from 'src/common/common.module';
             el token, el del frontend no sabia como hacer cosas 
             basicas(No sabia hacer nada) y me dio flojera crear 
             una ruta de refrescar token y explicarle como usarla,
-            buena suerte */
+            buena suerte ✌️*/
             expiresIn: '365d',
           },
         };

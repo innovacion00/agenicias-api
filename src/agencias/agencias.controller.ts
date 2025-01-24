@@ -52,9 +52,4 @@ export class AgenciasController {
   ) {
     return this.agenciasService.switchAgenciaStatus(agenciaId);
   }
-
-  // TODO: Eliminar
-  // camiarUserLimits() {
-  //   return this.agenciasService.camiarUserLimits();
-  // }
 }

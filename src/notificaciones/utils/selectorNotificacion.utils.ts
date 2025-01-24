@@ -4,9 +4,9 @@ import {
   notificacionEmailCancelacionReserva,
   notificacionEmailMenos3Dias,
   notificacionEmailUltimoDia,
-} from 'src/config/constants/emailPlantillas';
+} from 'src/config/constants';
 
-export const selecteroNotificacion = (
+export const selectorNotificacion = (
   reserva: string,
   fechaLimitePago: string,
   pagadoPrimeraMitad: boolean,

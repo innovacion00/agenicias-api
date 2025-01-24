@@ -7,7 +7,7 @@ import { ErrorManager } from 'src/common/helpers';
 import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
 import { Reserva } from 'src/reservas/entities';
 import { User } from 'src/auth/entities';
-import { selecteroNotificacion } from './utils';
+import { selectorNotificacion } from './utils';
 import { diffDays } from '@formkit/tempo';
 import { notificacionCancelacionVencimiento } from 'src/config';
 
@@ -43,7 +43,7 @@ export class NotificacionesService {
           ? reserva.fechaLimitePago
           : reserva.fechaLimitePago2;
 
-        const { html, vencida, subject } = selecteroNotificacion(
+        const { html, vencida, subject } = selectorNotificacion(
           reserva.reservaChatbotId,
           fechaLimitePago,
           reserva.pagadoPrimeraMitad,
