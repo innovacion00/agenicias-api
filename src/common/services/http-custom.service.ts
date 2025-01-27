@@ -300,7 +300,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region Realizar reserva autocore agencia
+  // #region Crear reserva autocore agencia
   public async createReservaAutocore(
     hotelId: string,
     reservaInfo: IreservaInfo,
@@ -308,7 +308,7 @@ export class HttpCustomService {
     try {
       const { data } = await axios.post(
         envs.autocoreUrl.concat(`/v2/bookings/hotel_id=${hotelId}?send_link=false`),
-        { ...reservaInfo,  },
+        { ...reservaInfo  },
         {
           headers: {
             access_key: envs.autocoreAccessKey,

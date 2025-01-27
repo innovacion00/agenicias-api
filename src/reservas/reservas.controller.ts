@@ -114,8 +114,11 @@ export class ReservasController {
   ) {
     return this.reservasService.cancelarReservaAdmin(reservaId);
   }
+  
   // @Post('prueba')
-  // prueba() {
-  //   return this.reservasService.prueba();
+  // prueba(
+  //   @Body() borrarDto: BorrarDto,
+  // ) {
+  //   return this.reservasService.prueba(borrarDto);
   // }
 }

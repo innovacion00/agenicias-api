@@ -34,7 +34,6 @@ import {
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
-import { descuentoFamiliar } from './utils';
 
 @Injectable()
 export class ReservasService {
@@ -275,7 +274,7 @@ export class ReservasService {
     }
   }
 
-  // #region Cancelar reserva
+  // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
       const reserva = await this.reservasModel.findById(
@@ -294,7 +293,16 @@ export class ReservasService {
         };
       }
 
-      if (!user.reservas.includes(cancelReservaDto.reservaId)) {
+      if (
+        !user.role.includes('admin') &&
+        !user.reservas.includes(cancelReservaDto.reservaId)
+      ) {
+        throw new ForbiddenException(
+          'No cuentas con los permisos necesarios para cancelar esta reserva',
+        );
+      }
+
+      if (reserva.agenciaId.toString() !== user.agencia.toString()) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
         );
@@ -378,7 +386,7 @@ export class ReservasService {
   async getReservasByUser(userId: Types.ObjectId) {
     try {
       const reservas = await this.reservasModel.find({ userId });
-      return { reservas };
+      return reservas;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -389,7 +397,7 @@ export class ReservasService {
   async getReservasByAgencia(agenciaId: Types.ObjectId) {
     try {
       const reservas = await this.reservasModel.find({ agenciaId });
-      return { reservas };
+      return reservas;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -452,19 +460,12 @@ export class ReservasService {
   }
 
   // ? Pruebas
-  // async prueba() {
+  // async prueba(borrarDto: BorrarDto) {
   //   try {
-  //     const reservas = await this.reservasModel.find();
+  //     const user = await this.userModel.findById(borrarDto.userId);
+  //     const reserva = await this.reservasModel.findById(borrarDto.reservaId);
 
-  //     for (const reserva of reservas) {
-  //       const fechaLimitePago2: string = format(
-  //         addDay(reserva.reservation.checkin, -1),
-  //         'YYYY-MM-DD',
-  //       );
-  //       reserva.fechaLimitePago2 = fechaLimitePago2;
-  //       await reserva.save();
-  //     }
-  //     return reservas.length;
+  //     return user.reservas.includes(borrarDto.reservaId);
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);
