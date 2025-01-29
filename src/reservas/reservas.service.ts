@@ -165,7 +165,6 @@ export class ReservasService {
     }
   }
 
-  // #region Generar link de pago
   async generarLinkPago(
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
@@ -194,12 +193,14 @@ export class ReservasService {
         valid_until: addDay(new Date()),
       };
 
+      const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
+
       const linkPago = await this.httpCustomService.generatePaymenLink(
         agenciaInfo.cobreInfo.counterPartyId,
         agenciaInfo.cobreInfo.bolcilloId,
-        reservaInfo.totalMitad,
+        generateLinkDto.pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
         metadata,
-        generateLinkDto.reservaId,
+        external_id,
       );
 
       const linkInfo = {
@@ -208,7 +209,15 @@ export class ReservasService {
         idLinkPago: linkPago.id,
       };
 
-      await reservaInfo.updateOne({ $set: { linkInfo } });
+      if (generateLinkDto.pagoTotal) {
+        await reservaInfo.updateOne({
+          $set: { linkInfo, pagadoPrimeraMitad: generateLinkDto.pagoTotal },
+        });
+      } else {
+        await reservaInfo.updateOne({
+          $set: { linkInfo },
+        });
+      }
 
       return { linkInfo };
     } catch (error) {
@@ -343,9 +352,9 @@ export class ReservasService {
   // #region Cambiar estado de la reserva
   async cambiarEstadoPagoReserva(changeStatusDTO: any) {
     try {
-      const reserva = await this.reservasModel.findById(
-        changeStatusDTO.content.external_id,
-      );
+      const valores = changeStatusDTO.content.external_id.split(' ');
+
+      const reserva = await this.reservasModel.findById(valores[0]);
 
       if (reserva.status === 4 || reserva.status === 3) {
         return true;
@@ -361,6 +370,13 @@ export class ReservasService {
         case 'money_movements.status.rejected':
         case 'money_movements.status.canceled':
         case 'money_movements.status.failed':
+          if (valores[1]) {
+            reserva.pagadoPrimeraMitad = false;
+            reserva.status = 2;
+            await reserva.save();
+            return true;
+          }
+
           reserva.status = 2;
           await reserva.save();
           return true;

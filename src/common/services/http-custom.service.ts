@@ -145,7 +145,7 @@ export class HttpCustomService {
     destination_id: string,
     amount: number,
     metadata: MetadataLinkPago,
-    external_id: Types.ObjectId,
+    external_id: string,
   ) {
     try {
       const tokenInfo = await this.generateAuthToken();
@@ -208,7 +208,7 @@ export class HttpCustomService {
           `/v2/bookings/hotel_id=${hotelId}?send_link=false`,
         ),
         { ...reservaInfo },
-        autocoreHeaders
+        autocoreHeaders,
       );
 
       return data as IreservaAutocoreResp;
@@ -226,7 +226,7 @@ export class HttpCustomService {
       const { data } = await axios.put<{ msg: string }>(
         `${envs.autocoreUrl}/v2/bookings/chatbot/${chatbotId}`,
         { reservation },
-        autocoreHeaders
+        autocoreHeaders,
       );
 
       return data;
@@ -240,7 +240,7 @@ export class HttpCustomService {
     try {
       const { data } = await axios.delete<{ msg: string }>(
         `${envs.autocoreUrl}/v2/bookings/chatbot/${chatbotId}`,
-        autocoreHeaders
+        autocoreHeaders,
       );
 
       return data;
