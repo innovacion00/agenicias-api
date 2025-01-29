@@ -19,10 +19,15 @@ interface EnvVars {
   SENDER_EMAIL: string;
   EMAIL_APP_PASSWORD: string;
 
-  // ? Autocore Dev
+  // ? Autocore
   AUTOCORE_URL: string;
   AUTOCORE_ACCESS_KEY: string;
   AUTOCORE_SECRET_KEY: string;
+
+  // ? Autocore dev
+  AUTOCORE_URL_DEV?: string;
+  AUTOCORE_ACCESS_KEY_DEV?: string;
+  AUTOCORE_SECRET_KEY_DEV?: string;
 
   // ? My Tool
   MY_TOOL_EMAIL: string;
@@ -60,15 +65,19 @@ const envSchema = joi
     EMAIL_APP_PASSWORD: joi.string().required(),
     SENDER_EMAIL: joi.string().required(),
 
-    // ? Autocore Dev
+    // ? Autocore
     AUTOCORE_URL: joi.string().required(),
     AUTOCORE_ACCESS_KEY: joi.string().required(),
     AUTOCORE_SECRET_KEY: joi.string().required(),
 
+    // ? Autocore dev
+    AUTOCORE_URL_DEV: joi.string().optional(),
+    AUTOCORE_ACCESS_KEY_DEV: joi.string().optional(),
+    AUTOCORE_SECRET_KEY_DEV: joi.string().optional(),
+
     // ? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
     MY_TOOL_CLAVE: joi.string().required(),
-
     API_1525: joi.string().required(),
     API_AIXO: joi.string().required(),
     API_AZUAN: joi.string().required(),
@@ -109,10 +118,15 @@ export const envs = {
   senderEmail: envVars.SENDER_EMAIL,
   emailAppPassword: envVars.EMAIL_APP_PASSWORD,
 
-  // ? Autocore Dev
+  // ? Autocore
   autocoreUrl: envVars.AUTOCORE_URL,
   autocoreAccessKey: envVars.AUTOCORE_ACCESS_KEY,
   autocoreSecretKey: envVars.AUTOCORE_SECRET_KEY,
+
+  // ? Autocore Dev
+  autocoreUrlDev: envVars.AUTOCORE_URL_DEV,
+  autocoreAccessKeyDev: envVars.AUTOCORE_ACCESS_KEY_DEV,
+  autocoreSecretKeyDev: envVars.AUTOCORE_SECRET_KEY_DEV,
 
   // ? My Tool
   myToolEmail: envVars.MY_TOOL_EMAIL,
