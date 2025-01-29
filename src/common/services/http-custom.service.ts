@@ -58,7 +58,9 @@ export class HttpCustomService {
     }
   }
 
-  // #region Generar auth token cobre
+  // #region Cobre
+
+  //? Generar token de autenticacion
   public async generateAuthToken() {
     try {
       const { data } = await axios.post<IrespuestaAuthCobre>(
@@ -75,7 +77,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region Crear Bolcillo
+  //? Crear bolcillo en cobre
   public async createBolcillo(nombre: string) {
     try {
       const tokenInfo = await this.generateAuthToken();
@@ -99,7 +101,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region Crear Counter party
+  //? Crear counter party en cobre
   public async createCounterParty(
     nombre: string,
     email: string,
@@ -137,7 +139,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region Crear link de pago
+  //? Crear link de pago cobre
   public async generatePaymenLink(
     source_id: string,
     destination_id: string,
@@ -172,7 +174,9 @@ export class HttpCustomService {
     }
   }
 
-  // #region Disponibilidad
+  // #region Autocore
+
+  //? Obtener disponibilidad
   public async getDisponibilidadAutocore(
     layout: IdisponibilidadLayout[],
     checkin: string,
@@ -198,7 +202,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region Crear reserva autocore agencia
+  //? Crear reserva autocore agencia
   public async createReservaAutocore(
     hotelId: string,
     reservaInfo: IreservaInfo,
@@ -223,7 +227,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region editar reserva
+  //? Editar reserva
   public async editarReservas(
     chatbotId: string,
     reservation: reservaAutocoreUpdate,
@@ -246,7 +250,7 @@ export class HttpCustomService {
     }
   }
 
-  // #region cancelar reserva
+  //? Cancelar reserva
   public async cancelarReservas(chatbotId: string) {
     try {
       const { data } = await axios.delete<{ msg: string }>(
