@@ -27,6 +27,7 @@ export const hotelesAutocore = {
   '13643': 'Hotel Marina',
   '14364': 'Hotel Bocagrande',
   '17644': 'Hotel Abi',
+  '13677': 'Hotel Boquilla',
 
   //? Bogota
   '18004': 'Hotel Windsor',
