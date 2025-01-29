@@ -7,7 +7,7 @@ import {
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
-import { envs } from 'src/config/envs';
+import { autocoreHeaders, envs } from 'src/config';
 import {
   Iavailability,
   IdisponibilidadLayout,
@@ -188,12 +188,7 @@ export class HttpCustomService {
       const { data } = await axios.post<Iavailability[]>(
         `${envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia ? 'wholesale' : 'retailer'}/availability?checkin=${checkin}&nights=${night}&city=${city}`,
         { layout },
-        {
-          headers: {
-            access_key: envs.autocoreAccessKey,
-            secret_key: envs.autocoreSecretKey,
-          },
-        },
+        autocoreHeaders,
       );
 
       return data;
@@ -213,12 +208,7 @@ export class HttpCustomService {
           `/v2/bookings/hotel_id=${hotelId}?send_link=false`,
         ),
         { ...reservaInfo },
-        {
-          headers: {
-            access_key: envs.autocoreAccessKey,
-            secret_key: envs.autocoreSecretKey,
-          },
-        },
+        autocoreHeaders
       );
 
       return data as IreservaAutocoreResp;
@@ -236,12 +226,7 @@ export class HttpCustomService {
       const { data } = await axios.put<{ msg: string }>(
         `${envs.autocoreUrl}/v2/bookings/chatbot/${chatbotId}`,
         { reservation },
-        {
-          headers: {
-            access_key: envs.autocoreAccessKey,
-            secret_key: envs.autocoreSecretKey,
-          },
-        },
+        autocoreHeaders
       );
 
       return data;
@@ -255,12 +240,7 @@ export class HttpCustomService {
     try {
       const { data } = await axios.delete<{ msg: string }>(
         `${envs.autocoreUrl}/v2/bookings/chatbot/${chatbotId}`,
-        {
-          headers: {
-            access_key: envs.autocoreAccessKey,
-            secret_key: envs.autocoreSecretKey,
-          },
-        },
+        autocoreHeaders
       );
 
       return data;

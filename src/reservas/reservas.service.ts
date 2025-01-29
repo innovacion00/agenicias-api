@@ -24,7 +24,7 @@ import {
   hotelesAutocore,
   notificacionCancelacionVoluntariaReservas,
   tiposAgencia,
-} from 'src/config/constants';
+} from 'src/config';
 
 import {
   CancelReservaDto,
@@ -359,6 +359,8 @@ export class ReservasService {
           return true;
 
         case 'money_movements.status.rejected':
+        case 'money_movements.status.canceled':
+        case 'money_movements.status.failed':
           reserva.status = 2;
           await reserva.save();
           return true;

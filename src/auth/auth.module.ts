@@ -10,7 +10,7 @@ import {
 } from './entities';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { envs } from 'src/config/envs';
+import { envs } from 'src/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CommonModule } from 'src/common/common.module';

@@ -1,6 +1,22 @@
+import { envs } from '../envs';
+
 export const tiposAgencia = {
   mayorista: 'wholsale',
   minorista: 'retailer',
+};
+
+export const autocoreHeaders = {
+  headers: {
+    access_key: envs.autocoreAccessKey,
+    secret_key: envs.autocoreSecretKey,
+  },
+};
+
+export const autocoreHeadersDev = {
+  headers: {
+    access_key: envs.autocoreAccessKeyDev,
+    secret_key: envs.autocoreSecretKeyDev,
+  },
 };
 
 export const hotelesAutocore = {

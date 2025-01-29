@@ -4,7 +4,7 @@ import {
   notificacionEmailCancelacionReserva,
   notificacionEmailMenos3Dias,
   notificacionEmailUltimoDia,
-} from 'src/config/constants';
+} from 'src/config';
 
 export const selectorNotificacion = (
   reserva: string,

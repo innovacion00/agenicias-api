@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { envs } from 'src/config/envs';
+import { envs } from 'src/config';
 
 @Injectable()
 export class SendEmailCustomService {

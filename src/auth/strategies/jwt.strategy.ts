@@ -11,7 +11,7 @@ import { Model } from 'mongoose';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { JwtPayload } from '../interfaces';
-import { envs } from 'src/config/envs';
+import { envs } from 'src/config';
 import { User } from '../entities/user.entity';
 import { Agencia } from 'src/agencias/entities';
 
