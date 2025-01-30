@@ -40,4 +40,24 @@ export const hotelesAutocore = {
   '15740': 'Hotel Sansiraka',
 };
 
+export const hotelesAutocorePaymenLink = {
+  //? Cartagena
+  'Hotel Azuan':1,
+  'Hotel Aixo':4,
+  'Hotel Avexi':6,
+  'Hotel Marina':9,
+  'Hotel Bocagrande':7,
+  'Hotel Abi':5,
+  'Hotel Boquilla':56,
+
+  //? Bogota
+  'Hotel Windsor':10,
+  'Hotel Madisson':3,
+
+  //? Santa marta
+  'Hotel Rodadero':9,
+  'Hotel 1525':2,
+  'Hotel Axis',
+  'Hotel Sansiraka',
+};
 export const hotelesAutocoreIds = Object.keys(hotelesAutocore);

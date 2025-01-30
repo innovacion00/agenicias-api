@@ -7,9 +7,11 @@ import {
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
-import { autocoreHeaders, envs } from 'src/config';
+import { autocoreHeaders, autocoreHeadersDev, envs } from 'src/config';
 import {
   Iavailability,
+  ICreateAgenciaBody,
+  ICreateAgenciaResponce,
   IdisponibilidadLayout,
   IreservaAutocoreResp,
   IreservaInfo,
@@ -29,6 +31,7 @@ export class HttpCustomService {
 
   private logger = new Logger(HttpCustomService.name);
 
+  // #region Controlador de errores
   private axiosError(error: any, apiName: string) {
     if (axios.isAxiosError(error)) {
       if (error.response) {
@@ -59,7 +62,6 @@ export class HttpCustomService {
   }
 
   // #region Cobre
-
   //? Generar token de autenticacion
   public async generateAuthToken() {
     try {
@@ -248,4 +250,42 @@ export class HttpCustomService {
       this.axiosError(error, this.cancelarReservas.name);
     }
   }
+
+  //? Crear agencia autocore
+  public async crearAgenciaAutocore(createAgenciaBody: ICreateAgenciaBody) {
+    try {
+      const { data } = await axios.post<ICreateAgenciaResponce>(
+        envs.autocoreUrlDev.concat('/v2/agencies'),
+        { ...createAgenciaBody },
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.crearAgenciaAutocore.name);
+    }
+  }
+
+  //? Set limite de recarga
+  public async setLimiteRecargaAgencia(
+    id: number,
+    min_recharge_amount: number,
+    max_recharge_amount: number,
+  ) {
+    try {
+      const { data } = await axios.put<{ msg: string }>(
+        envs.autocoreUrlDev.concat(
+          `/v2/preloaded-balance/agencies/${id}/limits`,
+        ),
+        { min_recharge_amount, max_recharge_amount },
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.setLimiteRecargaAgencia.name);
+    }
+  }
+
+  
 }

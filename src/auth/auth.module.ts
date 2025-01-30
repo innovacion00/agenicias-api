@@ -42,9 +42,9 @@ import { CommonModule } from 'src/common/common.module';
             /*
             TODO: Ahora es tu problema crear una forma de refrescar 
             el token, el del frontend no sabia como hacer cosas 
-            basicas(No sabia hacer nada) y me dio flojera crear 
-            una ruta de refrescar token y explicarle como usarla,
-            buena suerte ✌️*/
+            basicas y me dio flojera crear una ruta de refrescar 
+            token y explicarle como usarla,buena suerte ✌️
+            */
             expiresIn: '365d',
           },
         };
