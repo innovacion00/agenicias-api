@@ -42,22 +42,22 @@ export const hotelesAutocore = {
 
 export const hotelesAutocorePaymenLink = {
   //? Cartagena
-  'Hotel Azuan':1,
-  'Hotel Aixo':4,
-  'Hotel Avexi':6,
-  'Hotel Marina':9,
-  'Hotel Bocagrande':7,
-  'Hotel Abi':5,
-  'Hotel Boquilla':56,
+  'Hotel Azuan': 1,
+  'Hotel Aixo': 4,
+  'Hotel Avexi': 6,
+  'Hotel Marina': 9,
+  'Hotel Bocagrande': 7,
+  'Hotel Abi': 5,
+  'Hotel Boquilla': 56,
 
   //? Bogota
-  'Hotel Windsor':10,
-  'Hotel Madisson':3,
+  'Hotel Windsor': 10,
+  'Hotel Madisson': 3,
 
   //? Santa marta
-  'Hotel Rodadero':9,
-  'Hotel 1525':2,
-  'Hotel Axis',
-  'Hotel Sansiraka',
+  'Hotel Rodadero': 9,
+  'Hotel 1525': 2,
+  'Hotel Axis': 48,
+  'Hotel Sansiraka': 44,
 };
 export const hotelesAutocoreIds = Object.keys(hotelesAutocore);

@@ -8,10 +8,13 @@ import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
 import { autocoreHeaders, autocoreHeadersDev, envs } from 'src/config';
+
 import {
   Iavailability,
   ICreateAgenciaBody,
   ICreateAgenciaResponce,
+  ICreatePaymentLinkBody,
+  ICreatePaymentLinkResponse,
   IdisponibilidadLayout,
   IreservaAutocoreResp,
   IreservaInfo,
@@ -20,10 +23,9 @@ import {
   IrespuestaCreateBolcillo,
   IrespuestaGenerarLinkPago,
   MetadataLinkPago,
+  reservaAutocoreUpdate,
   ValidCities,
 } from '../interface';
-import { Types } from 'mongoose';
-import { reservaAutocoreUpdate } from '../interface/reserva';
 
 @Injectable()
 export class HttpCustomService {
@@ -256,7 +258,7 @@ export class HttpCustomService {
     try {
       const { data } = await axios.post<ICreateAgenciaResponce>(
         envs.autocoreUrlDev.concat('/v2/agencies'),
-        { ...createAgenciaBody },
+        createAgenciaBody,
         autocoreHeadersDev,
       );
 
@@ -287,5 +289,35 @@ export class HttpCustomService {
     }
   }
 
-  
+  //? Crear link de pago
+  public async createLinkPagoAutocore(
+    createPaymentLinkBody: ICreatePaymentLinkBody,
+  ) {
+    try {
+      const { data } = await axios.post<ICreatePaymentLinkResponse>(
+        envs.autocoreUrlDev.concat('/v2/links/schedule/'),
+        createPaymentLinkBody,
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.createLinkPagoAutocore.name);
+    }
+  }
+
+  //? Reliazar pago con balance de agencia
+  public async pagoBalanceAutocore(code: string) {
+    try {
+      const { data } = await axios.post(
+        envs.autocoreUrlDev.concat('/v2/links/preloaded-balance'),
+        { code },
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.pagoBalanceAutocore.name);
+    }
+  }
 }
