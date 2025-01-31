@@ -65,7 +65,12 @@ export class ReservasController {
   cambiarEstadoPagoReserva(@Body() changeStatusDto: any) {
     return this.reservasService.cambiarEstadoPagoReserva(changeStatusDto);
   }
-
+  
+  @Post('change-status-pago')
+  cambiarEstadoPago(@Body() payload: any) {
+    return this.reservasService.cambiarEstadoPagoAutocore(payload);
+  }
+  
   @Get('/reservas-by-user')
   @Auth()
   getReservasByUser(@GetUser('_id') _id: Types.ObjectId) {
@@ -99,6 +104,7 @@ export class ReservasController {
       disponibilidadAutoCoreDto,
     );
   }
+
 
   // #region Administracion
   @Get()

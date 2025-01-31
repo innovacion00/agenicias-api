@@ -400,6 +400,42 @@ export class ReservasService {
     }
   }
 
+  // #region Cambiar estado de la reserva autocore
+  async cambiarEstadoPagoAutocore(body: any) {
+    const valores = body.external_ref_id.split(' ') as string[];
+
+    const reserva = await this.reservasModel.findById(valores[0]);
+
+    const status = body.payment_status as string;
+    switch (status.toLowerCase()) {
+      case 'rechazado':
+        if (valores[1]) {
+          reserva.pagadoPrimeraMitad = false;
+          reserva.status = 2;
+          await reserva.save();
+          return true;
+        }
+
+        reserva.status = 2;
+        await reserva.save();
+        return true;
+
+      case 'aplicado':
+        if (!reserva.pagadoPrimeraMitad) {
+          reserva.status = 5;
+          reserva.pagadoPrimeraMitad = true;
+          await reserva.save();
+          return true;
+        }
+        reserva.status = 3;
+        await reserva.save();
+        return true;
+
+      default:
+        return true;
+    }
+  }
+
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId) {
     try {
