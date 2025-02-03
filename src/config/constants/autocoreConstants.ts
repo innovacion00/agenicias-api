@@ -1,7 +1,7 @@
 import { envs } from '../envs';
 
 export const tiposAgencia = {
-  mayorista: 'wholsale',
+  mayorista: 'wholesale',
   minorista: 'retailer',
 };
 
