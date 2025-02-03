@@ -5,6 +5,11 @@ export const tiposAgencia = {
   minorista: 'retailer',
 };
 
+export const agenciaRecargaLimit = {
+  minLimitValue: 2000000,
+  maxLimitValue: 50000000,
+};
+
 export const autocoreHeaders = {
   headers: {
     access_key: envs.autocoreAccessKey,

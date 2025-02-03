@@ -10,6 +10,7 @@ import { CreateAgenciaDto } from './dto/create-agencia.dto';
 import { ErrorManager } from 'src/common/helpers';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 import { HttpCustomService } from 'src/common/services';
+import { agenciaRecargaLimit } from 'src/config';
 
 @Injectable()
 export class AgenciasService {
@@ -25,55 +26,7 @@ export class AgenciasService {
     this.errorManager = new ErrorManager(AgenciasService.name);
   }
 
-  // #region Crear agencia
-  // async create(createAgenciaDto: CreateAgenciaDto) {
-  //   createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
-  //   try {
-  //     let slug = slugify(createAgenciaDto.fullName);
-  //     let counter = 1;
-  //     let slugValidation = await this.agenciaModel
-  //       .findOne({ slug })
-  //       .select('slug');
-
-  //     while (slugValidation) {
-  //       slug = `${slugify(createAgenciaDto.fullName, { lower: true })}-${counter}`;
-  //       slugValidation = await this.agenciaModel
-  //         .findOne({ slug })
-  //         .select('slug');
-  //       counter++;
-  //     }
-  //     // ? Cobre
-  //     const bolsilloInfo = await this.httpCustomService.createBolcillo(
-  //       createAgenciaDto.fullName,
-  //     );
-  //     const counterPartyInfo = await this.httpCustomService.createCounterParty(
-  //       createAgenciaDto.fullName,
-  //       createAgenciaDto.emailContacto,
-  //       createAgenciaDto.documentInfo.document.replace(/-/g, ''),
-  //       createAgenciaDto.documentInfo.tipo,
-  //       createAgenciaDto.telefonoContacto,
-  //     );
-
-  //     const cobreInfo = {
-  //       counterPartyId: counterPartyInfo.id,
-  //       bolcilloId: bolsilloInfo.id,
-  //     };
-
-  //     const agencia = await this.agenciaModel.create({
-  //       slug,
-  //       cobreInfo,
-  //       userLimit: createAgenciaDto.category === 0 ? 10 : 20,
-  //       ...createAgenciaDto,
-  //     });
-  //     return {
-  //       agencia,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.errorManager.handle(error);
-  //   }
-  // }
-
+  // #region Crear una agencia
   async create(createAgenciaDto: CreateAgenciaDto) {
     createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
     try {
@@ -104,14 +57,23 @@ export class AgenciasService {
           cobre_account_id: bolsilloInfo.id,
           country_code: formattedNumber.countryCallingCode,
           phone: formattedNumber.nationalNumber,
-          document_number: createAgenciaDto.documentInfo.document,
+          document_number: createAgenciaDto.documentInfo.document.replace(
+            /-/g,
+            '',
+          ),
           document_type: createAgenciaDto.documentInfo.tipo,
           email_for_notifications: createAgenciaDto.emailContacto,
           is_preloaded: true,
           name: createAgenciaDto.fullName,
         });
 
-      //? Set limitas de recarga
+      // ?Set limites de recarga en autocore
+      await this.httpCustomService.setLimiteRecargaAgencia(
+        autocoreAgenciaInfo.id,
+        agenciaRecargaLimit.minLimitValue,
+        agenciaRecargaLimit.maxLimitValue,
+      );
+
       const cobreInfo = {
         bolcilloId: bolsilloInfo.id,
       };
@@ -119,6 +81,9 @@ export class AgenciasService {
       const agencia = await this.agenciaModel.create({
         slug,
         cobreInfo,
+        autocoreInfo: {
+          id: autocoreAgenciaInfo.id,
+        },
         userLimit: createAgenciaDto.category === 0 ? 10 : 20,
         ...createAgenciaDto,
       });

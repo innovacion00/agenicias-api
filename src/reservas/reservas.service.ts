@@ -10,11 +10,10 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
 
-import { addDay, format, diffDays } from '@formkit/tempo';
+import { addDay, format, diffDays, addHour } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
 
 import { ErrorManager } from 'src/common/helpers';
-import { MetadataLinkPago } from 'src/common/interface';
 import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
@@ -22,6 +21,7 @@ import { User } from 'src/auth/entities';
 
 import {
   hotelesAutocore,
+  hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
   tiposAgencia,
 } from 'src/config';
@@ -113,15 +113,19 @@ export class ReservasService {
           agenciasInfo.fullName;
       }
 
-      const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaAutocore(
-          hotelId,
-          createReservaDto.reservaInfo,
-        );
+      // const reservaAutocoreInfo =
+      //   await this.httpCustomService.createReservaAutocore(
+      //     hotelId,
+      //     createReservaDto.reservaInfo,
+      //   );
 
-      if (reservaAutocoreInfo.no_available_rooms) {
-        throw new ConflictException(reservaAutocoreInfo.msg);
-      }
+      const reservaAutocoreInfo = {
+        chatbot_id: 'CJKSJKD',
+      };
+
+      // if (reservaAutocoreInfo.no_available_rooms) {
+      //   throw new ConflictException(reservaAutocoreInfo.msg);
+      // }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {
@@ -165,6 +169,7 @@ export class ReservasService {
     }
   }
 
+  // #region generar link de pago
   async generarLinkPago(
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
@@ -185,28 +190,34 @@ export class ReservasService {
 
       const hotel = reservaInfo.hotel;
 
-      const metadata: MetadataLinkPago = {
-        r2p_methods: ['pse', 'nequi', 'bancolombia'],
-        description_to_payer: `Pago de reserva en ${hotel}`,
-        redirect_url: 'https://agencia.gehsuites.com/misreservas',
-        description_to_beneficiary_account: `${reservaInfo.reservaChatbotId}`,
-        valid_until: addDay(new Date()),
-      };
-
       const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
 
-      const linkPago = await this.httpCustomService.generatePaymenLink(
-        agenciaInfo.cobreInfo.counterPartyId,
-        agenciaInfo.cobreInfo.bolcilloId,
-        generateLinkDto.pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
-        metadata,
-        external_id,
-      );
+      const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
+        agency_id: agenciaInfo.autocoreInfo.id,
+        amount: generateLinkDto.pagoTotal
+          ? reservaInfo.total
+          : reservaInfo.totalMitad,
+        available_hours: 24,
+        booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
+        description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
+        email: agenciaInfo.emailContacto,
+        external_ref_id: external_id,
+        guest_name: agenciaInfo.fullName,
+        hotel_id: hotelesAutocorePaymenLink[hotel],
+        phone: agenciaInfo.telefonoContacto,
+        redirect: {
+          failure_url: 'https://agencia.gehsuites.com/misreservas',
+          success_url: 'https://agencia.gehsuites.com/misreservas',
+        },
+        source: 'Booking Connect',
+        temp_webhook_url:
+          'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
+      });
 
       const linkInfo = {
-        link: linkPago.metadata.payment_link,
-        expirationDate: linkPago.metadata.valid_until,
-        idLinkPago: linkPago.id,
+        link: linkAutocore.url,
+        expirationDate: addHour(new Date(), 24),
+        idLinkPago: linkAutocore.code,
       };
 
       if (generateLinkDto.pagoTotal) {
@@ -349,66 +360,21 @@ export class ReservasService {
     }
   }
 
-  // #region Cambiar estado de la reserva
-  async cambiarEstadoPagoReserva(changeStatusDTO: any) {
-    try {
-      const valores = changeStatusDTO.content.external_id.split(' ');
-
-      const reserva = await this.reservasModel.findById(valores[0]);
-
-      if (reserva.status === 4 || reserva.status === 3) {
-        return true;
-      }
-
-      switch (changeStatusDTO.event_key) {
-        case 'money_movements.status.initiated':
-        case 'money_movements.status.processing':
-          reserva.status = 1;
-          await reserva.save();
-          return true;
-
-        case 'money_movements.status.rejected':
-        case 'money_movements.status.canceled':
-        case 'money_movements.status.failed':
-          if (valores[1]) {
-            reserva.pagadoPrimeraMitad = false;
-            reserva.status = 2;
-            await reserva.save();
-            return true;
-          }
-
-          reserva.status = 2;
-          await reserva.save();
-          return true;
-
-        case 'money_movements.status.completed':
-          if (!reserva.pagadoPrimeraMitad) {
-            reserva.status = 5;
-            reserva.pagadoPrimeraMitad = true;
-            await reserva.save();
-            return true;
-          }
-          reserva.status = 3;
-          await reserva.save();
-          return true;
-        default:
-          return true;
-      }
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
-  }
-
   // #region Cambiar estado de la reserva autocore
-  async cambiarEstadoPagoAutocore(body: any) {
-    const valores = body.external_ref_id.split(' ') as string[];
+  async cambiarEstadoPagoAutocore(payload: any) {
+    const valores = payload.external_ref_id.split(' ') as string[];
 
     const reserva = await this.reservasModel.findById(valores[0]);
 
-    const status = body.payment_status as string;
+    const status = payload.payment_status as string;
     switch (status.toLowerCase()) {
+      case 'en proceso':
+        reserva.status = 1;
+        await reserva.save();
+        return true;
+
       case 'rechazado':
+      case 'cancelado':
         if (valores[1]) {
           reserva.pagadoPrimeraMitad = false;
           reserva.status = 2;
