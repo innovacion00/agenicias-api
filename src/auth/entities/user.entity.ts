@@ -8,6 +8,7 @@ export class User extends Document {
     index: true,
     required: true,
     lowercase: true,
+    type: String,
   })
   email: string;
 

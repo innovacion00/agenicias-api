@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
 import slugify from 'slugify';
+import parsePhoneNumber from 'libphonenumber-js';
 
 import { Agencia } from './entities';
 import { CreateAgenciaDto } from './dto/create-agencia.dto';
@@ -25,6 +26,54 @@ export class AgenciasService {
   }
 
   // #region Crear agencia
+  // async create(createAgenciaDto: CreateAgenciaDto) {
+  //   createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
+  //   try {
+  //     let slug = slugify(createAgenciaDto.fullName);
+  //     let counter = 1;
+  //     let slugValidation = await this.agenciaModel
+  //       .findOne({ slug })
+  //       .select('slug');
+
+  //     while (slugValidation) {
+  //       slug = `${slugify(createAgenciaDto.fullName, { lower: true })}-${counter}`;
+  //       slugValidation = await this.agenciaModel
+  //         .findOne({ slug })
+  //         .select('slug');
+  //       counter++;
+  //     }
+  //     // ? Cobre
+  //     const bolsilloInfo = await this.httpCustomService.createBolcillo(
+  //       createAgenciaDto.fullName,
+  //     );
+  //     const counterPartyInfo = await this.httpCustomService.createCounterParty(
+  //       createAgenciaDto.fullName,
+  //       createAgenciaDto.emailContacto,
+  //       createAgenciaDto.documentInfo.document.replace(/-/g, ''),
+  //       createAgenciaDto.documentInfo.tipo,
+  //       createAgenciaDto.telefonoContacto,
+  //     );
+
+  //     const cobreInfo = {
+  //       counterPartyId: counterPartyInfo.id,
+  //       bolcilloId: bolsilloInfo.id,
+  //     };
+
+  //     const agencia = await this.agenciaModel.create({
+  //       slug,
+  //       cobreInfo,
+  //       userLimit: createAgenciaDto.category === 0 ? 10 : 20,
+  //       ...createAgenciaDto,
+  //     });
+  //     return {
+  //       agencia,
+  //     };
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     this.errorManager.handle(error);
+  //   }
+  // }
+
   async create(createAgenciaDto: CreateAgenciaDto) {
     createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
     try {
@@ -45,16 +94,25 @@ export class AgenciasService {
       const bolsilloInfo = await this.httpCustomService.createBolcillo(
         createAgenciaDto.fullName,
       );
-      const counterPartyInfo = await this.httpCustomService.createCounterParty(
-        createAgenciaDto.fullName,
-        createAgenciaDto.emailContacto,
-        createAgenciaDto.documentInfo.document.replace(/-/g, ''),
-        createAgenciaDto.documentInfo.tipo,
+
+      const formattedNumber = parsePhoneNumber(
         createAgenciaDto.telefonoContacto,
       );
 
+      const autocoreAgenciaInfo =
+        await this.httpCustomService.crearAgenciaAutocore({
+          cobre_account_id: bolsilloInfo.id,
+          country_code: formattedNumber.countryCallingCode,
+          phone: formattedNumber.nationalNumber,
+          document_number: createAgenciaDto.documentInfo.document,
+          document_type: createAgenciaDto.documentInfo.tipo,
+          email_for_notifications: createAgenciaDto.emailContacto,
+          is_preloaded: true,
+          name: createAgenciaDto.fullName,
+        });
+
+      //? Set limitas de recarga
       const cobreInfo = {
-        counterPartyId: counterPartyInfo.id,
         bolcilloId: bolsilloInfo.id,
       };
 

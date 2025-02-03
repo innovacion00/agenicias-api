@@ -80,7 +80,7 @@ export class AuthController {
 
   // #region Usuarios
   @Patch('switch-activation-status/:userId')
-  @Auth(ValidRoles.admin)
+  @Auth(ValidRoles.admin, ValidRoles.superAdmin)
   switchActivationStatus(
     @GetUser('agencia') agencia: Types.ObjectId,
     @Param('userId', ParseMongoIdPipe) userId: string,
