@@ -65,14 +65,18 @@ export class Agencia extends Document {
     required: true,
     type: {
       bolcilloId: { type: String, require: true },
+      counterPartyId: { type: String },
     },
   })
   cobreInfo: {
     bolcilloId: string;
+    counterPartyId?: string;
   };
 
   @Prop({
-    type: { id: { type: Number, require: true } },
+    type: {
+      id: { type: Number, require: true },
+    },
   })
   autocoreInfo: {
     id: number;
