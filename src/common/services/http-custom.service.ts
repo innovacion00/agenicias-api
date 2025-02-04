@@ -13,9 +13,11 @@ import {
   Iavailability,
   ICreateAgenciaBody,
   ICreateAgenciaResponce,
+  ICreateLinkRecarga,
   ICreatePaymentLinkBody,
   ICreatePaymentLinkResponse,
   IdisponibilidadLayout,
+  IGetSaldoAgencia,
   IreservaAutocoreResp,
   IreservaInfo,
   IrespuestaAuthCobre,
@@ -318,6 +320,43 @@ export class HttpCustomService {
       return data;
     } catch (error) {
       this.axiosError(error, this.pagoBalanceAutocore.name);
+    }
+  }
+
+  //? Recargar billetera autocore
+  public async recargarCarteraAutocore(
+    amount: number,
+    currency: string,
+    agency_id: number,
+  ) {
+    try {
+      const { data } = await axios.post<ICreateLinkRecarga>(
+        envs.autocoreUrlDev.concat(
+          `/v2/preloaded-balance/agencies/${agency_id}`,
+        ),
+        { amount, currency },
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.recargarCarteraAutocore.name);
+    }
+  }
+
+  //? Obtener saldo autocore
+  public async obtenerSaldoCartera(agency_id: number) {
+    try {
+      const { data } = await axios.get<IGetSaldoAgencia>(
+        envs.autocoreUrlDev.concat(
+          `/v2/preloaded-balance/agencies/${agency_id}`,
+        ),
+        autocoreHeadersDev,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.obtenerSaldoCartera.name);
     }
   }
 }

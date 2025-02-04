@@ -113,19 +113,15 @@ export class ReservasService {
           agenciasInfo.fullName;
       }
 
-      // const reservaAutocoreInfo =
-      //   await this.httpCustomService.createReservaAutocore(
-      //     hotelId,
-      //     createReservaDto.reservaInfo,
-      //   );
+      const reservaAutocoreInfo =
+        await this.httpCustomService.createReservaAutocore(
+          hotelId,
+          createReservaDto.reservaInfo,
+        );
 
-      const reservaAutocoreInfo = {
-        chatbot_id: 'CJKSJKD',
-      };
-
-      // if (reservaAutocoreInfo.no_available_rooms) {
-      //   throw new ConflictException(reservaAutocoreInfo.msg);
-      // }
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException(reservaAutocoreInfo.msg);
+      }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {

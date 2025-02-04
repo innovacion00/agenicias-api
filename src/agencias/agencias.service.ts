@@ -11,6 +11,7 @@ import { ErrorManager } from 'src/common/helpers';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 import { HttpCustomService } from 'src/common/services';
 import { agenciaRecargaLimit } from 'src/config';
+import { RechargeWalletDto } from './dto';
 
 @Injectable()
 export class AgenciasService {
@@ -90,6 +91,49 @@ export class AgenciasService {
       return {
         agencia,
       };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Recargar billetera autocore
+  async recargarBilletera(
+    rechargeWalletDto: RechargeWalletDto,
+    agencia: Types.ObjectId,
+  ) {
+    try {
+      if (!rechargeWalletDto.currency) {
+        rechargeWalletDto.currency = 'COP';
+      }
+
+      const { currency, amount } = rechargeWalletDto;
+
+      const agenciaInfo = await this.agenciaModel.findById(agencia);
+
+      const linkRecargaInfo =
+        await this.httpCustomService.recargarCarteraAutocore(
+          amount,
+          currency,
+          agenciaInfo.autocoreInfo.id,
+        );
+
+      return linkRecargaInfo;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async obtenerSaldoBilletera(agencia: Types.ObjectId) {
+    try {
+      const agenciaInfo = await this.agenciaModel.findByIdAndDelete(agencia);
+      
+      const agenciaSaldo = await this.httpCustomService.obtenerSaldoCartera(
+        agenciaInfo.autocoreInfo.id,
+      );
+
+      return agenciaSaldo;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
