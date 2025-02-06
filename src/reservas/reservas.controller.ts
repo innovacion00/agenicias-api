@@ -17,6 +17,7 @@ import {
   CreateReservaDto,
   CancelReservaDto,
   UpdateReservaDto,
+  PagoReservaBilleteraDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -84,6 +85,14 @@ export class ReservasController {
     @GetUser('agencia') agencia: Types.ObjectId,
   ) {
     return this.reservasService.generarLinkPago(generateLinkDto, agencia);
+  }
+
+  @Post('generate-link')
+  @Auth()
+  pagarSaldoBilletera(
+    @Body() pagoReservaBilleteraDto: PagoReservaBilleteraDto,
+  ) {
+    return this.reservasService.realizarPagoBilletera(pagoReservaBilleteraDto);
   }
 
   @Post('disponibilidad')

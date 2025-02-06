@@ -31,6 +31,7 @@ import {
   CreateReservaDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
+  PagoReservaBilleteraDto,
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
@@ -227,6 +228,21 @@ export class ReservasService {
       }
 
       return { linkInfo };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Pago billetera
+  async realizarPagoBilletera(
+    pagoReservaBilleteraDto: PagoReservaBilleteraDto,
+  ) {
+    try {
+      const data = await this.httpCustomService.pagoBalanceAutocore(
+        pagoReservaBilleteraDto.code,
+      );
+      return data;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

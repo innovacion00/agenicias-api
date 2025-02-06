@@ -18,6 +18,7 @@ import {
   ICreatePaymentLinkResponse,
   IdisponibilidadLayout,
   IGetSaldoAgencia,
+  IPagoBilletera,
   IreservaAutocoreResp,
   IreservaInfo,
   IrespuestaAuthCobre,
@@ -311,7 +312,7 @@ export class HttpCustomService {
   //? Reliazar pago con balance de agencia
   public async pagoBalanceAutocore(code: string) {
     try {
-      const { data } = await axios.post(
+      const { data } = await axios.post<IPagoBilletera>(
         envs.autocoreUrlDev.concat('/v2/links/preloaded-balance'),
         { code },
         autocoreHeadersDev,
