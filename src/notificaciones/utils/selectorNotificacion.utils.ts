@@ -65,4 +65,8 @@ export const selectorNotificacion = (
       ),
     };
   }
+
+  return {
+    noValid: true,
+  };
 };

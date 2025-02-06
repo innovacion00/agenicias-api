@@ -34,16 +34,28 @@ export class NotificacionesService {
       }
       let notificaciones = [];
 
-      const reservasNotification = allActiveReservas.filter(
-        (reserva) => diffDays(reserva.fechaLimitePago, new Date()) <= 7,
-      );
+      const reservasNotification = allActiveReservas.filter((reserva) => {
+        if (
+          diffDays(reserva.fechaLimitePago, new Date()) <= 7 &&
+          !reserva.pagadoPrimeraMitad
+        ) {
+          return reserva;
+        }
+
+        if (
+          diffDays(reserva.fechaLimitePago2, new Date()) <= 7 &&
+          reserva.pagadoPrimeraMitad
+        ) {
+          return reserva;
+        }
+      });
 
       for (const reserva of reservasNotification) {
         const fechaLimitePago = !reserva.pagadoPrimeraMitad
           ? reserva.fechaLimitePago
           : reserva.fechaLimitePago2;
 
-        const { html, vencida, subject } = selectorNotificacion(
+        const notiFields = selectorNotificacion(
           reserva.reservaChatbotId,
           fechaLimitePago,
           reserva.pagadoPrimeraMitad,
@@ -56,33 +68,40 @@ export class NotificacionesService {
           .lean()
           .populate('agencia', 'fullName');
 
-        if (vencida) {
-          await this.httpCustomService.cancelarReservas(
-            reserva.reservaChatbotId,
-          );
+        if (!notiFields.noValid) {
+          if (notiFields.vencida) {
+            await this.httpCustomService.cancelarReservas(
+              reserva.reservaChatbotId,
+            );
 
-          await reserva.updateOne({ $set: { status: 4 } });
+            await reserva.updateOne({ $set: { status: 4 } });
 
-          const mensaje = notificacionCancelacionVencimiento(
-            reserva.reservaChatbotId,
-            // @ts-ignore
-            userDoc.agencia.fullName,
-            reserva.pagadoPrimeraMitad,
-            fechaLimitePago,
-            reserva.totalMitad,
-          );
-          await this.emailService.sendEmail(
-            'reservas@gehsuites.com',
-            // @ts-ignore
-            `Booking connect - Notificacion de cancelacion de reserva para la agencia ${userDoc.agencia.fullName}`,
-            '',
-            mensaje,
+            const mensaje = notificacionCancelacionVencimiento(
+              reserva.reservaChatbotId,
+              // @ts-ignore
+              userDoc.agencia.fullName,
+              reserva.pagadoPrimeraMitad,
+              fechaLimitePago,
+              reserva.totalMitad,
+            );
+            await this.emailService.sendEmail(
+              'reservas@gehsuites.com',
+              // @ts-ignore
+              `Booking connect - Notificacion de cancelacion de reserva para la agencia ${userDoc.agencia.fullName}`,
+              '',
+              mensaje,
+            );
+          }
+
+          notificaciones.push(
+            this.emailService.sendEmail(
+              userDoc.email,
+              notiFields.subject,
+              '',
+              notiFields.html,
+            ),
           );
         }
-
-        notificaciones.push(
-          this.emailService.sendEmail(userDoc.email, subject, '', html),
-        );
       }
       const results = await Promise.allSettled(notificaciones);
       results.forEach((result) => {
@@ -90,7 +109,7 @@ export class NotificacionesService {
           this.logger.error(result.reason);
         }
       });
-      return reservasNotification;
+      return true;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
