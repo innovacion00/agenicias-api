@@ -291,7 +291,6 @@ export class CreateReservaDto {
   @IsOptional()
   reteIva: RetencionesDto;
 
-
   @IsBoolean()
   @IsOptional()
   exentoIva: boolean;
@@ -306,6 +305,11 @@ export class CreateReservaDto {
   @Type(() => TitularInfoDto)
   @IsNotEmpty()
   titularInfo: ITitularInfo;
+
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  planAlimentario: string;
 
   @ValidateNested()
   @Type(() => ReservaInfoDto)

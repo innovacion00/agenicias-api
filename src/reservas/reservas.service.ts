@@ -68,6 +68,8 @@ export class ReservasService {
 
       const fechaActual = new Date();
 
+      let planAlimentario = '';
+
       const actualDiffDays = diffDays(
         createReservaDto.reservaInfo.reservation.checkin,
         fechaActual,
@@ -135,6 +137,10 @@ export class ReservasService {
       if (createReservaDto.reteIva) {
         retenciones.reteIva = createReservaDto.reteIva;
       }
+
+      if (createReservaDto.planAlimentario) {
+        planAlimentario = createReservaDto.planAlimentario;
+      }
       const reserva = await this.reservasModel.create({
         hotel: hotelesAutocore[hotelId],
         agenciaId: userInfo.agencia._id,
@@ -152,6 +158,7 @@ export class ReservasService {
           ? createReservaDto.exentoIva
           : false,
         ...retenciones,
+        planAlimentario,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
