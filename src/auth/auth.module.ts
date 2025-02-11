@@ -14,12 +14,14 @@ import { envs } from 'src/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CommonModule } from 'src/common/common.module';
+import { IntegrationsModule } from 'src/integrations/integrations.module';
 
 @Module({
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   imports: [
     forwardRef(() => AgenciasModule),
+    IntegrationsModule,
     CommonModule,
     MongooseModule.forFeature([
       {
