@@ -39,6 +39,12 @@ export class Reserva extends Document {
   pagadoPrimeraMitad: boolean;
 
   @Prop({
+    type: String,
+    default: '',
+  })
+  planAlimentario: string;
+
+  @Prop({
     type: {
       porcentaje: { type: Number, require: true },
       resultado: { type: Number, require: true },

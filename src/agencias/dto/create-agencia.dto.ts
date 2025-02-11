@@ -1,8 +1,10 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsOptional,
   IsPhoneNumber,
   IsString,
   Matches,
@@ -46,6 +48,11 @@ export class CreateAgenciaDto {
 
   @IsIn([0, 1], { message: 'Solo son permitidas categorias de 0 o 1' })
   category: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @IsNotEmpty()
+  empresa: boolean;
 
   @ValidateNested()
   @IsNotEmpty()

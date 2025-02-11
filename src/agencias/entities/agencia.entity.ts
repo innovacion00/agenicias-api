@@ -75,6 +75,12 @@ export class Agencia extends Document {
 
   @Prop({
     type: Boolean,
+    default: false,
+  })
+  empresa: boolean;
+
+  @Prop({
+    type: Boolean,
     required: true,
     default: true,
   })

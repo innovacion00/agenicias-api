@@ -253,10 +253,10 @@ export class AuthService {
     const user = await this.userModel
       .findOne({ email })
       .lean()
-      .populate('agencia', 'fullName saldo documentInfo firstLog')
       .select(
-        'email password fullName telefonopassword isActive changePassword firstLog role agencia',
+        'email password fullName telefono password isActive changePassword role agencia',
       );
+      // .populate('agencia', 'fullName saldo documentInfo firstLog empresa')
 
     // *User
     if (!user || !user.isActive) {
@@ -297,7 +297,7 @@ export class AuthService {
         .select(
           'email telefono fullName firstLog role agencia isActive changePassword otpRef',
         )
-        .populate('agencia', 'category fullName')
+        .populate('agencia', 'category fullName empresa')
         .exec();
 
       const validacionDb = await this.otpVerificationModel.findById(
