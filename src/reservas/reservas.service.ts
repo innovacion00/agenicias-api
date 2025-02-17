@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
 
-import { addDay, format, diffDays, addHour } from '@formkit/tempo';
+import { addDay, format, diffDays, addHour, addMinute } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
 
 import { ErrorManager, getCellInfo } from 'src/common/helpers';
@@ -201,7 +201,7 @@ export class ReservasService {
         amount: generateLinkDto.pagoTotal
           ? reservaInfo.total
           : reservaInfo.totalMitad,
-        available_hours: 24,
+        available_hours: 0.1666,
         booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
         description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
         email: agenciaInfo.emailContacto,
@@ -220,7 +220,7 @@ export class ReservasService {
 
       const linkInfo = {
         link: linkAutocore.url,
-        expirationDate: addHour(new Date(), 1),
+        expirationDate: addMinute(new Date(), 5),
         idLinkPago: linkAutocore.code,
       };
 
@@ -234,29 +234,29 @@ export class ReservasService {
         });
       }
 
-      setTimeout(
-        async () => {
-          const reserva = await this.reservasModel.findById(
-            generateLinkDto.reservaId,
-          );
+      // setTimeout(
+      //   async () => {
+      //     const reserva = await this.reservasModel.findById(
+      //       generateLinkDto.reservaId,
+      //     );
 
-          if (
-            reserva.status === 3 ||
-            reserva.status === 2 ||
-            reserva.status === 4
-          ) {
-            return;
-          }
+      //     if (
+      //       reserva.status === 3 ||
+      //       reserva.status === 2 ||
+      //       reserva.status === 4
+      //     ) {
+      //       return;
+      //     }
 
-          if (generateLinkDto.pagoTotal) {
-            await this.cambiarEstadoPagoAutocore({
-              external_ref_id: `${reserva._id} pagoTotal`,
-              payment_status: 'rechazado',
-            });
-          }
-        },
-        2 * 60 * 1000,
-      );
+      //     if (generateLinkDto.pagoTotal) {
+      //       await this.cambiarEstadoPagoAutocore({
+      //         external_ref_id: `${reserva._id} pagoTotal`,
+      //         payment_status: 'rechazado',
+      //       });
+      //     }
+      //   },
+      //   2 * 60 * 1000,
+      // );
 
       return { linkInfo };
     } catch (error) {
@@ -308,7 +308,7 @@ export class ReservasService {
           amount: generateLinkDto.pagoTotal
             ? reservaInfo.total
             : reservaInfo.totalMitad,
-          available_hours: 24,
+          available_hours: 0.1666,
           booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
           description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
           email: agenciaInfo.emailContacto,
@@ -327,7 +327,7 @@ export class ReservasService {
 
       const linkInfo = {
         link: linkAutocore.url,
-        expirationDate: addHour(new Date(), 24),
+        expirationDate: addMinute(new Date(), 5),
         idLinkPago: linkAutocore.code,
       };
 
