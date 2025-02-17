@@ -220,7 +220,7 @@ export class ReservasService {
 
       const linkInfo = {
         link: linkAutocore.url,
-        expirationDate: addHour(new Date(), 24),
+        expirationDate: addHour(new Date(), 1),
         idLinkPago: linkAutocore.code,
       };
 
@@ -233,6 +233,30 @@ export class ReservasService {
           $set: { linkInfo },
         });
       }
+
+      setTimeout(
+        async () => {
+          const reserva = await this.reservasModel.findById(
+            generateLinkDto.reservaId,
+          );
+
+          if (
+            reserva.status === 3 ||
+            reserva.status === 2 ||
+            reserva.status === 4
+          ) {
+            return;
+          }
+
+          if (generateLinkDto.pagoTotal) {
+            await this.cambiarEstadoPagoAutocore({
+              external_ref_id: `${reserva._id} pagoTotal`,
+              payment_status: 'rechazado',
+            });
+          }
+        },
+        2 * 60 * 1000,
+      );
 
       return { linkInfo };
     } catch (error) {
