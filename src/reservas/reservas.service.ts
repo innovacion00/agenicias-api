@@ -494,7 +494,7 @@ export class ReservasService {
       const reserva = await this.reservasModel.findById(reservaId);
       await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
       reserva.status = 4;
-      reserva.save();
+      await reserva.save();
       return reserva;
     } catch (error) {
       this.logger.error(error);
