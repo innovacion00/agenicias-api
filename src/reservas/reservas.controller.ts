@@ -125,8 +125,7 @@ export class ReservasController {
 
   // @Post('prueba')
   // prueba(
-  //   @Body() borrarDto: BorrarDto,
   // ) {
-  //   return this.reservasService.prueba(borrarDto);
+  //   return this.reservasService.prueba();
   // }
 }

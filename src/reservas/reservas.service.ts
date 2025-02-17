@@ -69,6 +69,8 @@ export class ReservasService {
 
       const fechaActual = new Date();
 
+      let planAlimentario = '';
+
       const actualDiffDays = diffDays(
         createReservaDto.reservaInfo.reservation.checkin,
         fechaActual,
@@ -136,6 +138,10 @@ export class ReservasService {
       if (createReservaDto.reteIva) {
         retenciones.reteIva = createReservaDto.reteIva;
       }
+
+      if (createReservaDto.planAlimentario) {
+        planAlimentario = createReservaDto.planAlimentario;
+      }
       const reserva = await this.reservasModel.create({
         hotel: hotelesAutocore[hotelId],
         agenciaId: userInfo.agencia._id,
@@ -153,6 +159,7 @@ export class ReservasService {
           ? createReservaDto.exentoIva
           : false,
         ...retenciones,
+        planAlimentario,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
@@ -327,14 +334,18 @@ export class ReservasService {
 
       if (
         !user.role.includes('admin') &&
-        !user.reservas.includes(cancelReservaDto.reservaId)
+        !user.reservas.includes(cancelReservaDto.reservaId) &&
+        !user.role.includes('super-admin')
       ) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
         );
       }
 
-      if (reserva.agenciaId.toString() !== user.agencia.toString()) {
+      if (
+        reserva.agenciaId.toString() !== user.agencia.toString() &&
+        !user.role.includes('super-admin')
+      ) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
         );
@@ -492,12 +503,17 @@ export class ReservasService {
   }
 
   // ? Pruebas
-  // async prueba(borrarDto: BorrarDto) {
+  // async prueba() {
   //   try {
-  //     const user = await this.userModel.findById(borrarDto.userId);
-  //     const reserva = await this.reservasModel.findById(borrarDto.reservaId);
+  //     const agencia = await this.userModel
+  //       .findById('677d7753155954115cea20aa')
+  //       .populate('agencia', 'empresa');
 
-  //     return user.reservas.includes(borrarDto.reservaId);
+  //     const user = agencia.toJSON();
+
+  //     return {
+  //       terminado: user,
+  //     };
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);
