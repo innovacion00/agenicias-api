@@ -258,6 +258,9 @@ export class ReservasService {
       //   2 * 60 * 1000,
       // );
 
+      reservaInfo.status = 1;
+      await reservaInfo.save();
+
       return { linkInfo };
     } catch (error) {
       this.logger.error(error);
