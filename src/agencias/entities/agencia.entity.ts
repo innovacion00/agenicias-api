@@ -107,6 +107,12 @@ export class Agencia extends Document {
     type: Number,
   })
   userLimit: number;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  permisoCartera: boolean;
 }
 
 export const AgenciaSchema = SchemaFactory.createForClass(Agencia);

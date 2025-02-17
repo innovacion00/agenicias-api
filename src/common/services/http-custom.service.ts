@@ -260,9 +260,9 @@ export class HttpCustomService {
   public async crearAgenciaAutocore(createAgenciaBody: ICreateAgenciaBody) {
     try {
       const { data } = await axios.post<ICreateAgenciaResponce>(
-        envs.autocoreUrlDev.concat('/v2/agencies'),
+        envs.autocoreUrl.concat('/v2/agencies'),
         createAgenciaBody,
-        autocoreHeadersDev,
+        autocoreHeaders,
       );
 
       return data;
@@ -279,11 +279,9 @@ export class HttpCustomService {
   ) {
     try {
       const { data } = await axios.put<{ msg: string }>(
-        envs.autocoreUrlDev.concat(
-          `/v2/preloaded-balance/agencies/${id}/limits`,
-        ),
+        envs.autocoreUrl.concat(`/v2/preloaded-balance/agencies/${id}/limits`),
         { min_recharge_amount, max_recharge_amount },
-        autocoreHeadersDev,
+        autocoreHeaders,
       );
 
       return data;
@@ -298,9 +296,9 @@ export class HttpCustomService {
   ) {
     try {
       const { data } = await axios.post<ICreatePaymentLinkResponse>(
-        envs.autocoreUrlDev.concat('/v2/links/schedule/'),
+        envs.autocoreUrl.concat('/v2/links/schedule/'),
         createPaymentLinkBody,
-        autocoreHeadersDev,
+        autocoreHeaders,
       );
 
       return data;
@@ -313,14 +311,33 @@ export class HttpCustomService {
   public async pagoBalanceAutocore(code: string) {
     try {
       const { data } = await axios.post<IPagoBilletera>(
-        envs.autocoreUrlDev.concat('/v2/links/preloaded-balance'),
+        envs.autocoreUrl.concat('/v2/links/preloaded-balance'),
         { code },
-        autocoreHeadersDev,
+        autocoreHeaders,
       );
 
       return data;
     } catch (error) {
       this.axiosError(error, this.pagoBalanceAutocore.name);
+    }
+  }
+
+  //? Pagar reserva con balance Agencia
+  public async pagoReservaBalanceAutocore(
+    createPaymentLinkBody: ICreatePaymentLinkBody,
+  ) {
+    try {
+      const { data } = await axios.post<ICreatePaymentLinkResponse>(
+        envs.autocoreUrl.concat('/v2/links/schedule/'),
+        createPaymentLinkBody,
+        autocoreHeaders,
+      );
+
+      await this.pagoBalanceAutocore(data.code);
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.pagoReservaBalanceAutocore.name);
     }
   }
 
@@ -332,11 +349,9 @@ export class HttpCustomService {
   ) {
     try {
       const { data } = await axios.post<ICreateLinkRecarga>(
-        envs.autocoreUrlDev.concat(
-          `/v2/preloaded-balance/agencies/${agency_id}`,
-        ),
+        envs.autocoreUrl.concat(`/v2/preloaded-balance/agencies/${agency_id}`),
         { amount, currency },
-        autocoreHeadersDev,
+        autocoreHeaders,
       );
 
       return data;
@@ -349,10 +364,8 @@ export class HttpCustomService {
   public async obtenerSaldoCartera(agency_id: number) {
     try {
       const { data } = await axios.get<IGetSaldoAgencia>(
-        envs.autocoreUrlDev.concat(
-          `/v2/preloaded-balance/agencies/${agency_id}`,
-        ),
-        autocoreHeadersDev,
+        envs.autocoreUrl.concat(`/v2/preloaded-balance/agencies/${agency_id}`),
+        autocoreHeaders,
       );
 
       return data;

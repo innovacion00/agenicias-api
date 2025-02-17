@@ -87,12 +87,24 @@ export class ReservasController {
     return this.reservasService.generarLinkPago(generateLinkDto, agencia);
   }
 
-  @Post('generate-link')
+  @Post('pago-billetera-single')
   @Auth()
   pagarSaldoBilletera(
     @Body() pagoReservaBilleteraDto: PagoReservaBilleteraDto,
   ) {
     return this.reservasService.realizarPagoBilletera(pagoReservaBilleteraDto);
+  }
+
+  @Post('pago-billetera-single')
+  @Auth()
+  pagarAutocoreBalanceReserva(
+    @Body() generateLinkDto: GenerateLinkDto,
+    @GetUser('agencia') agencia: Types.ObjectId,
+  ) {
+    return this.reservasService.pagarAutocoreBalanceReserva(
+      generateLinkDto,
+      agencia,
+    );
   }
 
   @Post('disponibilidad')

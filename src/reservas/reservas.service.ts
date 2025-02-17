@@ -13,7 +13,7 @@ import { Model, Types } from 'mongoose';
 import { addDay, format, diffDays, addHour } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
 
-import { ErrorManager } from 'src/common/helpers';
+import { ErrorManager, getCellInfo } from 'src/common/helpers';
 import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
@@ -250,6 +250,74 @@ export class ReservasService {
         pagoReservaBilleteraDto.code,
       );
       return data;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async pagarAutocoreBalanceReserva(
+    generateLinkDto: GenerateLinkDto,
+    agencia: Types.ObjectId,
+  ) {
+    try {
+      const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
+      const reservaInfo = await this.reservasModel.findById(
+        generateLinkDto.reservaId,
+      );
+
+      if (
+        !reservaInfo ||
+        reservaInfo.status === 4 ||
+        reservaInfo.status === 3
+      ) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      const hotel = reservaInfo.hotel;
+
+      const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
+
+      const linkAutocore =
+        await this.httpCustomService.pagoReservaBalanceAutocore({
+          agency_id: agenciaInfo.autocoreInfo.id,
+          amount: generateLinkDto.pagoTotal
+            ? reservaInfo.total
+            : reservaInfo.totalMitad,
+          available_hours: 24,
+          booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
+          description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
+          email: agenciaInfo.emailContacto,
+          external_ref_id: external_id,
+          guest_name: agenciaInfo.fullName,
+          hotel_id: hotelesAutocorePaymenLink[hotel],
+          phone: agenciaInfo.telefonoContacto,
+          redirect: {
+            failure_url: 'https://agencia.gehsuites.com/misreservas',
+            success_url: 'https://agencia.gehsuites.com/misreservas',
+          },
+          source: 'Booking Connect',
+          temp_webhook_url:
+            'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
+        });
+
+      const linkInfo = {
+        link: linkAutocore.url,
+        expirationDate: addHour(new Date(), 24),
+        idLinkPago: linkAutocore.code,
+      };
+
+      if (generateLinkDto.pagoTotal) {
+        await reservaInfo.updateOne({
+          $set: { linkInfo, pagadoPrimeraMitad: generateLinkDto.pagoTotal },
+        });
+      } else {
+        await reservaInfo.updateOne({
+          $set: { linkInfo },
+        });
+      }
+
+      return { linkInfo };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -503,20 +571,36 @@ export class ReservasService {
   }
 
   // ? Pruebas
-  // async prueba() {
-  //   try {
-  //     const agencia = await this.userModel
-  //       .findById('677d7753155954115cea20aa')
-  //       .populate('agencia', 'empresa');
+  //   async prueba() {
+  //     try {
+  //       const agencias = await this.agenciaModel.find({
+  //         $or: [
+  //           { autocoreInfo: { $exists: false } },
+  //           { 'autocoreInfo.id': { $exists: false } },
+  //         ],
+  //       });
 
-  //     const user = agencia.toJSON();
+  //       for (const agencia of agencias) {
+  //         const cellInfo = getCellInfo(agencia.telefonoContacto);
+  //         const autocoredata = await this.httpCustomService.crearAgenciaAutocore({
+  //           cobre_account_id: agencia.cobreInfo.bolcilloId,
+  //           country_code: cellInfo.countryCode,
+  //           phone: cellInfo.tel,
+  //           document_number: agencia.documentInfo.document,
+  //           document_type: agencia.documentInfo.tipo,
+  //           email_for_notifications: agencia.emailContacto,
+  //           is_preloaded: true,
+  //           name: agencia.fullName,
+  //         });
 
-  //     return {
-  //       terminado: user,
-  //     };
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.errorManager.handle(error);
+  //         agencia.autocoreInfo = { id: autocoredata.id };
+  //         await agencia.save();
+  //       }
+
+  //       return agencias.length;
+  //     } catch (error) {
+  //       this.logger.error(error);
+  //       this.errorManager.handle(error);
+  //     }
   //   }
-  // }
 }
