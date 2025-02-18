@@ -220,7 +220,7 @@ export class ReservasService {
 
       const linkInfo = {
         link: linkAutocore.url,
-        expirationDate: addMinute(new Date(), 5),
+        expirationDate: addMinute(new Date(), 5).toString(),
         idLinkPago: linkAutocore.code,
       };
 
@@ -233,30 +233,6 @@ export class ReservasService {
           $set: { linkInfo },
         });
       }
-
-      // setTimeout(
-      //   async () => {
-      //     const reserva = await this.reservasModel.findById(
-      //       generateLinkDto.reservaId,
-      //     );
-
-      //     if (
-      //       reserva.status === 3 ||
-      //       reserva.status === 2 ||
-      //       reserva.status === 4
-      //     ) {
-      //       return;
-      //     }
-
-      //     if (generateLinkDto.pagoTotal) {
-      //       await this.cambiarEstadoPagoAutocore({
-      //         external_ref_id: `${reserva._id} pagoTotal`,
-      //         payment_status: 'rechazado',
-      //       });
-      //     }
-      //   },
-      //   2 * 60 * 1000,
-      // );
 
       reservaInfo.status = 1;
       await reservaInfo.save();
@@ -288,63 +264,13 @@ export class ReservasService {
     agencia: Types.ObjectId,
   ) {
     try {
-      const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
-      const reservaInfo = await this.reservasModel.findById(
-        generateLinkDto.reservaId,
-      );
+      const linkDoc = await this.generarLinkPago(generateLinkDto, agencia);
 
-      if (
-        !reservaInfo ||
-        reservaInfo.status === 4 ||
-        reservaInfo.status === 3
-      ) {
-        throw new NotFoundException('Reserva no encontrada');
-      }
+      const pagoBalanceInfo = await this.realizarPagoBilletera({
+        code: linkDoc.linkInfo.idLinkPago,
+      });
 
-      const hotel = reservaInfo.hotel;
-
-      const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
-
-      const linkAutocore =
-        await this.httpCustomService.pagoReservaBalanceAutocore({
-          agency_id: agenciaInfo.autocoreInfo.id,
-          amount: generateLinkDto.pagoTotal
-            ? reservaInfo.total
-            : reservaInfo.totalMitad,
-          available_hours: 0.1666,
-          booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
-          description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
-          email: agenciaInfo.emailContacto,
-          external_ref_id: external_id,
-          guest_name: agenciaInfo.fullName,
-          hotel_id: hotelesAutocorePaymenLink[hotel],
-          phone: agenciaInfo.telefonoContacto,
-          redirect: {
-            failure_url: 'https://agencia.gehsuites.com/misreservas',
-            success_url: 'https://agencia.gehsuites.com/misreservas',
-          },
-          source: 'Booking Connect',
-          temp_webhook_url:
-            'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
-        });
-
-      const linkInfo = {
-        link: linkAutocore.url,
-        expirationDate: addMinute(new Date(), 5),
-        idLinkPago: linkAutocore.code,
-      };
-
-      if (generateLinkDto.pagoTotal) {
-        await reservaInfo.updateOne({
-          $set: { linkInfo, pagadoPrimeraMitad: generateLinkDto.pagoTotal },
-        });
-      } else {
-        await reservaInfo.updateOne({
-          $set: { linkInfo },
-        });
-      }
-
-      return { linkInfo };
+      return pagoBalanceInfo;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
