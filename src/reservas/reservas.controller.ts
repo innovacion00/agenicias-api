@@ -95,7 +95,7 @@ export class ReservasController {
     return this.reservasService.realizarPagoBilletera(pagoReservaBilleteraDto);
   }
 
-  @Post('pago-billetera-single')
+  @Post('pago-billetera-compuesto')
   @Auth()
   pagarAutocoreBalanceReserva(
     @Body() generateLinkDto: GenerateLinkDto,
