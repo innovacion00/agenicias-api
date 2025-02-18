@@ -127,7 +127,7 @@ export class AgenciasService {
 
   async obtenerSaldoBilletera(agencia: Types.ObjectId) {
     try {
-      const agenciaInfo = await this.agenciaModel.findByIdAndDelete(agencia);
+      const agenciaInfo = await this.agenciaModel.findById(agencia);
       
       const agenciaSaldo = await this.httpCustomService.obtenerSaldoCartera(
         agenciaInfo.autocoreInfo.id,

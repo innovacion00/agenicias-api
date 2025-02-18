@@ -34,6 +34,7 @@ export class AgenciasController {
     return this.agenciasService.recargarBilletera(rechargeWalletDto, agencia);
   }
 
+  //? Obtener saldo de agencia
   @Get('obtener-saldo')
   @Auth()
   obtenerSaldoBilletera(@GetUser('agencia') agencia: Types.ObjectId) {
