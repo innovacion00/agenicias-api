@@ -15,6 +15,11 @@ interface EnvVars {
   COBRE_AUTH_STRING: string;
   COBRE_API_KEY: string;
 
+  // ? Cloudinary
+  CLOUDINARY_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
+
   // ? Node_Mailer
   SENDER_EMAIL: string;
   EMAIL_APP_PASSWORD: string;
@@ -60,6 +65,11 @@ const envSchema = joi
     COBRE_SECRET: joi.string().required(),
     COBRE_AUTH_STRING: joi.string().required(),
     COBRE_API_KEY: joi.string().required(),
+
+    // ? Cloudinary
+    CLOUDINARY_NAME: joi.string().required(),
+    CLOUDINARY_API_KEY: joi.string().required(),
+    CLOUDINARY_API_SECRET: joi.string().required(),
 
     // ? Node_Mailer
     EMAIL_APP_PASSWORD: joi.string().required(),
@@ -113,6 +123,11 @@ export const envs = {
   cobreSecret: envVars.COBRE_SECRET,
   cobreAuthString: envVars.COBRE_AUTH_STRING,
   cobreApiKey: envVars.COBRE_API_KEY,
+
+  // ? Cloudinary
+  cloudinaryName: envVars.CLOUDINARY_NAME,
+  cloudinaryApiKey: envVars.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: envVars.CLOUDINARY_API_SECRET,
 
   // ? Node_Mailer
   senderEmail: envVars.SENDER_EMAIL,

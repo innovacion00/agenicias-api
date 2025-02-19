@@ -53,6 +53,11 @@ export class User extends Document {
   })
   role: string[];
 
+  @Prop({
+    type: String,
+  })
+  imageUrl: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true })
   agencia: Types.ObjectId;
 
