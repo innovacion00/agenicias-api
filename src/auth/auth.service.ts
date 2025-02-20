@@ -295,7 +295,7 @@ export class AuthService {
       const userData = await this.userModel
         .findOne({ email })
         .select(
-          'email telefono fullName firstLog role agencia isActive changePassword otpRef',
+          'email telefono fullName firstLog role agencia isActive changePassword otpRef imageUrl',
         )
         .populate('agencia', 'category fullName empresa')
         .exec();
