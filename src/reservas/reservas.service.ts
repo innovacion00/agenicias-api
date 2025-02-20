@@ -410,6 +410,10 @@ export class ReservasService {
 
     const reserva = await this.reservasModel.findById(valores[0]);
 
+    if (reserva.status === 3) {
+      return true;
+    }
+
     const status = payload.payment_status as string;
     switch (status.toLowerCase()) {
       case 'en proceso':
