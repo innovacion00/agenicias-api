@@ -465,7 +465,9 @@ export class ReservasService {
   // #region Obtener reservas por agencia
   async getReservasByAgencia(agenciaId: Types.ObjectId) {
     try {
-      const reservas = await this.reservasModel.find({ agenciaId });
+      const reservas = await this.reservasModel
+        .find({ agenciaId })
+        .populate('userId', 'fullName');
       return reservas;
     } catch (error) {
       this.logger.error(error);
