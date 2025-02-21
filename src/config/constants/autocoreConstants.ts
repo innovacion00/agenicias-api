@@ -6,7 +6,7 @@ export const tiposAgencia = {
 };
 
 export const agenciaRecargaLimit = {
-  minLimitValue: 2000000,
+  minLimitValue: 50000,
   maxLimitValue: 50000000,
 };
 

@@ -20,6 +20,7 @@ import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
 
 import {
+  agenciaRecargaLimit,
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
@@ -528,36 +529,22 @@ export class ReservasService {
   }
 
   // ? Pruebas
-  //   async prueba() {
-  //     try {
-  //       const agencias = await this.agenciaModel.find({
-  //         $or: [
-  //           { autocoreInfo: { $exists: false } },
-  //           { 'autocoreInfo.id': { $exists: false } },
-  //         ],
-  //       });
+  // async prueba() {
+  //   try {
+  //     const agencias = await this.agenciaModel.find();
 
-  //       for (const agencia of agencias) {
-  //         const cellInfo = getCellInfo(agencia.telefonoContacto);
-  //         const autocoredata = await this.httpCustomService.crearAgenciaAutocore({
-  //           cobre_account_id: agencia.cobreInfo.bolcilloId,
-  //           country_code: cellInfo.countryCode,
-  //           phone: cellInfo.tel,
-  //           document_number: agencia.documentInfo.document,
-  //           document_type: agencia.documentInfo.tipo,
-  //           email_for_notifications: agencia.emailContacto,
-  //           is_preloaded: true,
-  //           name: agencia.fullName,
-  //         });
-
-  //         agencia.autocoreInfo = { id: autocoredata.id };
-  //         await agencia.save();
-  //       }
-
-  //       return agencias.length;
-  //     } catch (error) {
-  //       this.logger.error(error);
-  //       this.errorManager.handle(error);
+  //     for (const agencia of agencias) {
+  //       await this.httpCustomService.setLimiteRecargaAgencia(
+  //         agencia.autocoreInfo.id,
+  //         agenciaRecargaLimit.minLimitValue,
+  //         agenciaRecargaLimit.maxLimitValue,
+  //       );
   //     }
+
+  //     return agencias.length;
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     this.errorManager.handle(error);
   //   }
+  // }
 }
