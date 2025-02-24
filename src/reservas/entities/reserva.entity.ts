@@ -210,6 +210,12 @@ export class Reserva extends Document {
   fechaLimitePago2: string;
 
   @Prop({
+    type: String,
+    default: '',
+  })
+  notasSuperAdmin: string;
+
+  @Prop({
     type: {
       link: { type: String, default: '' },
       expirationDate: { type: String, default: '' },
