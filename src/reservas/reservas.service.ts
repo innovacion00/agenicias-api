@@ -325,6 +325,9 @@ export class ReservasService {
         $set: {
           titularInfo: titularInfoUpdates,
           reservation: reservationUpdates,
+          notasSuperAdmin: updateReservaDto.notasSuperAdmin
+            ? updateReservaDto.notasSuperAdmin
+            : reserva.notasSuperAdmin,
         },
       });
 

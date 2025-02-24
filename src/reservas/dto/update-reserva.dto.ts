@@ -1,6 +1,5 @@
 import {
   IsEmail,
-  IsNotEmptyObject,
   IsOptional,
   IsPhoneNumber,
   IsString,
@@ -8,7 +7,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-
 
 export class UpdateReservaDto {
   @IsEmail()
@@ -42,4 +40,8 @@ export class UpdateReservaDto {
   })
   @IsOptional()
   documento?: string;
+
+  @IsString()
+  @IsOptional()
+  notasSuperAdmin?: string;
 }
