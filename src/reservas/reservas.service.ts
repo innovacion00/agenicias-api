@@ -508,6 +508,7 @@ export class ReservasService {
       const allReservas = await this.reservasModel
         .find()
         .populate('agenciaId', 'fullName _id')
+        .populate('userId', 'fullName')
         .sort({ createdAt: -1 });
 
       return allReservas;
