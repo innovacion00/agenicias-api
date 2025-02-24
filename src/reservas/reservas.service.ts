@@ -467,7 +467,8 @@ export class ReservasService {
     try {
       const reservas = await this.reservasModel
         .find({ agenciaId })
-        .populate('userId', 'fullName');
+        .populate('userId', 'fullName')
+        .populate('agenciaId', 'fullName _id');
       return reservas;
     } catch (error) {
       this.logger.error(error);
