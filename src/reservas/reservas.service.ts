@@ -295,7 +295,10 @@ export class ReservasService {
         throw new NotFoundException('Reserva no encontrada');
       }
 
-      if (!user.reservas.includes(reservaId)) {
+      if (
+        !user.reservas.includes(reservaId) &&
+        !user.role.includes('super-admin')
+      ) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para editar esta reserva',
         );
