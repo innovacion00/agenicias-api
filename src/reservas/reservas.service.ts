@@ -161,8 +161,8 @@ export class ReservasService {
           : false,
         ...retenciones,
         planAlimentario,
-        adicionCena: createReservaDto.adicionCena,
-        aducionAlmuerzo: createReservaDto.adicionAlmuerzo
+        adicionCena: createReservaDto.adicionCena || false,
+        aducionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
