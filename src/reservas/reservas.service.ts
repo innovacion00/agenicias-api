@@ -161,6 +161,8 @@ export class ReservasService {
           : false,
         ...retenciones,
         planAlimentario,
+        adicionCena: createReservaDto.adicionCena,
+        aducionAlmuerzo: createReservaDto.adicionAlmuerzo
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
@@ -221,7 +223,7 @@ export class ReservasService {
 
       const linkInfo = {
         link: linkAutocore.url,
-        expirationDate: addMinute(new Date(), 5).toString(),
+        expirationDate: addMinute(new Date(), 5),
         idLinkPago: linkAutocore.code,
       };
 

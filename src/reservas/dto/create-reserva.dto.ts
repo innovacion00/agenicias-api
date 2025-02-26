@@ -276,6 +276,14 @@ export class CreateReservaDto {
   @IsNotEmpty()
   total: number;
 
+  @IsBoolean()
+  @IsOptional()
+  adicionCena: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  adicionAlmuerzo: boolean;
+
   @ValidateNested()
   @Type(() => RetencionesDto)
   @IsOptional()

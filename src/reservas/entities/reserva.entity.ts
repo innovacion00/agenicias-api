@@ -36,6 +36,18 @@ export class Reserva extends Document {
     type: Boolean,
     default: false,
   })
+  adicionCena: boolean;
+  
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  adicionAlmuerzo: boolean;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
   pagadoPrimeraMitad: boolean;
 
   @Prop({
