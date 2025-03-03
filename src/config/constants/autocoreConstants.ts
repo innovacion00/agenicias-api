@@ -60,7 +60,7 @@ export const hotelesAutocorePaymenLink = {
   'Hotel Madisson': 3,
 
   //? Santa marta
-  'Hotel Rodadero': 9,
+  'Hotel Rodadero': 8,
   'Hotel 1525': 2,
   'Hotel Axis': 48,
   'Hotel Sansiraka': 44,
