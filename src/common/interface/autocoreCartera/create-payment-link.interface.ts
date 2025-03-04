@@ -9,7 +9,7 @@ export interface ICreatePaymentLinkBody {
   available_hours: number;
   source: string;
   external_ref_id: string;
-  reservation_id?: string;
+  reservation_id: string;
   temp_webhook_url: string;
   redirect: Redirect;
   agency_id: number;

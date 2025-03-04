@@ -484,7 +484,7 @@ export class ReservasService {
     }
   }
 
-  // #region Obtener disponibilidad
+  // #region Disponibilidad
   async getDisponibilidad(
     agenciaId: Types.ObjectId,
     disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
