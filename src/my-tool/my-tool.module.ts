@@ -6,6 +6,6 @@ import { CommonModule } from 'src/common/common.module';
 @Module({
   controllers: [MyToolController],
   providers: [MyToolService],
-  imports:[CommonModule]
+  imports: [CommonModule],
 })
 export class MyToolModule {}

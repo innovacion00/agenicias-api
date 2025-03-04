@@ -10,5 +10,4 @@ export class MyToolController {
   getReservaInfo(@Query() reservaInfo: ReservaInfoDto) {
     return this.myToolService.getReservaInfo(reservaInfo);
   }
-
 }
