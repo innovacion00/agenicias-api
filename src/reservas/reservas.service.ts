@@ -10,17 +10,16 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
 
-import { addDay, format, diffDays, addHour, addMinute } from '@formkit/tempo';
+import { addDay, format, diffDays, addMinute } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
 
-import { ErrorManager, getCellInfo } from 'src/common/helpers';
+import { ErrorManager } from 'src/common/helpers';
 import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
 
 import {
-  agenciaRecargaLimit,
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
@@ -219,6 +218,7 @@ export class ReservasService {
         source: 'Booking Connect',
         temp_webhook_url:
           'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
+        reservation_id: reservaInfo.reservaChatbotId,
       });
 
       const linkInfo = {

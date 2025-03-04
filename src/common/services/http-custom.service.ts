@@ -7,7 +7,7 @@ import {
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
-import { autocoreHeaders, autocoreHeadersDev, envs } from 'src/config';
+import { autocoreHeaders, envs } from 'src/config';
 
 import {
   Iavailability,
