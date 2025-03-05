@@ -13,6 +13,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { FilesModule } from './files/files.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { EventosModule } from './eventos/eventos.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     NotificacionesModule,
     ReservasModule,
     CloudinaryModule,
+    EventosModule,
   ],
   controllers: [],
   providers: [],
