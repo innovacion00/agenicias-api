@@ -73,6 +73,12 @@ export class User extends Document {
     default: [],
   })
   reservas: Types.ObjectId[];
+
+  @Prop({
+    type: [{ type: Types.ObjectId, ref: 'Evento' }],
+    default: [],
+  })
+  eventos: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

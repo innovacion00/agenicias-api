@@ -37,7 +37,7 @@ export class Reserva extends Document {
     default: false,
   })
   adicionCena: boolean;
-  
+
   @Prop({
     type: Boolean,
     default: false,
@@ -230,7 +230,7 @@ export class Reserva extends Document {
   @Prop({
     type: {
       link: { type: String, default: '' },
-      expirationDate: { type: String, default: '' },
+      expirationDate: { type: Date, default: '' },
       idLinkPago: { type: String, default: '' },
     },
 
