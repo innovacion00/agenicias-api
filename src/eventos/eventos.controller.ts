@@ -3,6 +3,7 @@ import { EventosService } from './eventos.service';
 import { CreateReservaEventoDto } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { Types } from 'mongoose';
+import { ValidRoles } from 'src/auth/interfaces';
 
 @Controller('eventos')
 export class EventosController {
@@ -18,7 +19,8 @@ export class EventosController {
   }
 
   @Get()
-  getEventod() {
+  @Auth(ValidRoles.eventosSuperAdmin)
+  getEventos() {
     return this.eventosService.getEventos();
   }
 }

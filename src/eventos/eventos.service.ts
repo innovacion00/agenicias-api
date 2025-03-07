@@ -7,7 +7,6 @@ import { CreateReservaEventoDto } from './dto';
 import { ErrorManager } from 'src/common/helpers';
 import { Evento } from './entities';
 import { User } from 'src/auth/entities';
-import { ValidRoles } from 'src/auth/interfaces';
 
 @Injectable()
 export class EventosService {
@@ -42,11 +41,11 @@ export class EventosService {
 
   async getEventos() {
     try {
+    
+      const eventos = await this.eventoModel.find();
       
-      return Object.values(ValidRoles);
-
-      // const eventos = await this.eventoModel.find();
-      // return eventos;
+      return eventos;
+    
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
