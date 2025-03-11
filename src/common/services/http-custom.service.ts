@@ -7,7 +7,7 @@ import {
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
 
-import { autocoreHeaders, envs } from 'src/config';
+import { autocoreHeaders, envs, tiposAgencia } from 'src/config';
 
 import {
   Iavailability,
@@ -193,7 +193,7 @@ export class HttpCustomService {
   ) {
     try {
       const { data } = await axios.post<Iavailability[]>(
-        `${envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia ? 'wholesale' : 'retailer'}/availability?checkin=${checkin}&nights=${night}&city=${city}`,
+        `${envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista}/availability?checkin=${checkin}&nights=${night}&city=${city}`,
         { layout },
         autocoreHeaders,
       );

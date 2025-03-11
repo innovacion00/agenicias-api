@@ -2,7 +2,6 @@ import { envs } from '../envs';
 
 export const hotelesIps = [
   envs.api1525,
-  envs.apiAixo,
   envs.apiWindsor,
   envs.apiBocagrande,
   envs.apiMadisson,
@@ -12,4 +11,5 @@ export const hotelesIps = [
   envs.apiAvexi,
   envs.apiAzuan,
   envs.apiAxis,
+  envs.apiAixo,
 ];

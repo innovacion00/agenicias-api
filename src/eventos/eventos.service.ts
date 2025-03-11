@@ -22,17 +22,19 @@ export class EventosService {
     _id: Types.ObjectId,
   ) {
     try {
-      const user = await this.userModel.findById(_id);
-      const evento = await this.eventoModel.create({
-        ...createReservaEventoDto,
-        userId: user._id,
-        agenciaId: user.agencia,
-      });
+      // const user = await this.userModel.findById(_id);
+      // const evento = await this.eventoModel.create({
+      //   ...createReservaEventoDto,
+      //   userId: user._id,
+      //   agenciaId: user.agencia,
+      // });
 
-      user.eventos.push(evento._id as Types.ObjectId);
-      await user.save();
+      // user.eventos.push(evento._id as Types.ObjectId);
+      // await user.save();
 
-      return evento;
+      // return evento;
+
+      return createReservaEventoDto;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -41,11 +43,9 @@ export class EventosService {
 
   async getEventos() {
     try {
-    
       const eventos = await this.eventoModel.find();
-      
+
       return eventos;
-    
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

@@ -4,6 +4,7 @@ import { CreateReservaEventoDto } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { Types } from 'mongoose';
 import { ValidRoles } from 'src/auth/interfaces';
+import { ParseCreateEventoPipe } from './pipes';
 
 @Controller('eventos')
 export class EventosController {
@@ -12,7 +13,8 @@ export class EventosController {
   @Post('create')
   @Auth()
   createEventoReserva(
-    @Body() createEventoReservaDto: CreateReservaEventoDto,
+    @Body(new ParseCreateEventoPipe())
+    createEventoReservaDto: CreateReservaEventoDto,
     @GetUser('_id') _id: Types.ObjectId,
   ) {
     return this.eventosService.createEventoReserva(createEventoReservaDto, _id);
