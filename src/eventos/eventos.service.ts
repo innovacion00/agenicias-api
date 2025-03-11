@@ -22,19 +22,17 @@ export class EventosService {
     _id: Types.ObjectId,
   ) {
     try {
-      // const user = await this.userModel.findById(_id);
-      // const evento = await this.eventoModel.create({
-      //   ...createReservaEventoDto,
-      //   userId: user._id,
-      //   agenciaId: user.agencia,
-      // });
+      const user = await this.userModel.findById(_id);
+      const evento = await this.eventoModel.create({
+        ...createReservaEventoDto,
+        userId: user._id,
+        agenciaId: user.agencia,
+      });
 
-      // user.eventos.push(evento._id as Types.ObjectId);
-      // await user.save();
+      user.eventos.push(evento._id as Types.ObjectId);
+      await user.save();
 
-      // return evento;
-
-      return createReservaEventoDto;
+      return evento;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
