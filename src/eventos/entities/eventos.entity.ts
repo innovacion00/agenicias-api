@@ -136,7 +136,7 @@ export class Evento extends Document {
     type: Boolean,
     default: false,
   })
-  decaracion: boolean;
+  decoracion: boolean;
 
   @Prop({
     type: String,
