@@ -199,6 +199,7 @@ export class ReservasService {
       const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
 
       const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
+        currency: reservaInfo.reservation.currency,
         agency_id: agenciaInfo.autocoreInfo.id,
         amount: generateLinkDto.pagoTotal
           ? reservaInfo.total

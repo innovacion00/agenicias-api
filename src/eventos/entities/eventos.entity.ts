@@ -142,7 +142,7 @@ export class Evento extends Document {
     type: String,
     default: '',
   })
-  decaracionDescripcion: string;
+  decoracionDescripcion: string;
 
   @Prop({
     type: Boolean,

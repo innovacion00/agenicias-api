@@ -27,7 +27,7 @@ export class ParseCreateEventoPipe implements PipeTransform {
     }
 
     if (!decoracion) {
-      delete createReservaEventoDto.decaracionDescripcion;
+      delete createReservaEventoDto.decoracionDescripcion;
     }
 
     return createReservaEventoDto;

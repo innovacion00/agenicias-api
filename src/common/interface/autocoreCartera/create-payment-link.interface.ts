@@ -7,6 +7,7 @@ export interface ICreatePaymentLinkBody {
   booking_dates: string;
   description: string;
   available_hours: number;
+  currency?: string;
   source: string;
   external_ref_id: string;
   reservation_id: string;

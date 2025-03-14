@@ -144,7 +144,7 @@ export class CreateReservaEventoDto {
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  decaracionDescripcion?: string;
+  decoracionDescripcion?: string;
 
   @IsBoolean()
   @IsNotEmpty()
