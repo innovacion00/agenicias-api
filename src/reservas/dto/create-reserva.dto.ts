@@ -89,7 +89,6 @@ class RoomsDatumDto {
   @IsNotEmpty()
   rateId: string;
 
-  @Min(10000)
   @IsNumber()
   @IsNotEmpty()
   unitaryPrice: number;
