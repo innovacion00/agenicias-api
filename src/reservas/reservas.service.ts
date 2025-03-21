@@ -23,6 +23,7 @@ import {
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
+  notificaiconReservaGrupo,
   tiposAgencia,
 } from 'src/config';
 
@@ -61,6 +62,8 @@ export class ReservasService {
     hotelId: string,
     userId: string,
   ) {
+    const cantidadHabitacion =
+      createReservaDto.reservaInfo.reservation.roomsData.length;
     try {
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
@@ -107,7 +110,9 @@ export class ReservasService {
         );
       }
 
-      const userInfo = await this.userModel.findById(userId);
+      const userInfo = await this.userModel
+        .findById(userId)
+        .populate('agencia', 'fullName');
 
       if (!createReservaDto.reservaInfo.reservation.source_of_bussiness) {
         const agenciasInfo = await this.agenciaModel.findById(userInfo.agencia);
@@ -167,6 +172,27 @@ export class ReservasService {
       userInfo.reservas.push(reserva._id as Types.ObjectId);
 
       await userInfo.save();
+
+      if (cantidadHabitacion >= 10) {
+        await this.emailService
+          .sendEmail(
+            'reservas@gehsuites.com',
+            // @ts-ignore
+            `Reserva para grupo de ${cantidadHabitacion} para agencia ${userInfo.agencia.fullName}`,
+            '',
+            notificaiconReservaGrupo(
+              // @ts-ignore
+              userInfo.agencia.fullName,
+              cantidadHabitacion,
+              hotelesAutocore[hotelId],
+              createReservaDto.reservaInfo.reservation.checkin,
+              createReservaDto.reservaInfo.reservation.checkout,
+            ),
+          )
+          .catch((error) => {
+            this.logger.error(error);
+          });
+      }
 
       return createReservaDto;
     } catch (error) {
