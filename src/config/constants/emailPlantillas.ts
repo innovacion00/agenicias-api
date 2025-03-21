@@ -2,6 +2,86 @@ import { format } from '@formkit/tempo';
 import { convertidorMoneda } from 'src/common/helpers';
 
 // #region Notificaciones reservas
+
+export const notificaiconReservaGrupo = (
+  agencia: string,
+  habitacionNum: number,
+  hotel: string,
+  checkin: string,
+  checkout: string,
+) => {
+  return `
+  <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva Reserva de Grupo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #28a745;
+      color: #ffffff;
+      text-align: center;
+      padding: 20px;
+    }
+    .email-header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .email-body {
+      padding: 20px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>Nueva Reserva de Grupo</h1>
+    </div>
+    <div class="email-body">
+      <p>Estimado equipo de reservas,</p>
+      <p>La agencia <strong>${agencia}</strong> ha realizado una nueva reserva de grupo con los siguientes detalles:</p>
+      <ul>
+        <li><strong>Número de habitaciones:</strong> ${habitacionNum}</li>
+        <li><strong>Hotel:</strong> ${hotel}</li>
+        <li><strong>Check-in:</strong> ${checkin}</li>
+        <li><strong>Check-out:</strong> ${checkout}</li>
+      </ul>
+      <p>Por favor, gestionen la reserva en el sistema y realicen el seguimiento correspondiente.</p>
+      <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
 export const notificacionEmail7Dias = (
   reserva: string,
   checkin: string,
@@ -576,7 +656,6 @@ export const notificacionEmailCancelacionReserva = (
 </html>
 `;
 };
-
 
 // #region Cancelacion
 // ? Mensaje para el equipo de reservas
