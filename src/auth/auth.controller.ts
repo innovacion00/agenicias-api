@@ -11,12 +11,13 @@ import {
 import { Auth, GetUser } from './decorators';
 
 import {
-  CreateUSerDto,
+  CreateUserDto,
   NewPasswordDto,
   SignInDto,
   RefreshTokenDto,
   OtpValidationDto,
   RequestPasswordChangeDto,
+  RegisterUserDto,
 } from './dto';
 
 import { AuthService } from './auth.service';
@@ -32,9 +33,18 @@ export class AuthController {
   @Post('sign-up/:id')
   createUser(
     @Param('id', ParseMongoIdPipe) id: string,
-    @Body() createUserDto: CreateUSerDto,
+    @Body() createUserDto: CreateUserDto,
   ) {
     return this.authService.createUser(createUserDto, id);
+  }
+
+  @Post('register-user')
+  @Auth(ValidRoles.admin)
+  registerUserToAgency(
+    @Body() registerUserDto: RegisterUserDto,
+    @GetUser('_id') _id: string,
+  ) {
+    return this.authService.registerUserToAgency(registerUserDto, _id);
   }
 
   @Post('sign-in')

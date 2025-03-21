@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ValidRoles } from '../interfaces';
+import { IUserSettings, ValidRoles } from '../interfaces';
 
 @Schema({ timestamps: true })
 export class User extends Document {
@@ -41,6 +41,16 @@ export class User extends Document {
   isActive: boolean;
 
   @Prop({
+    type: {
+      omitirOtp: { type: Boolean, default: false },
+    },
+    default: {
+      omitirOtp: false,
+    },
+  })
+  settings: IUserSettings;
+
+  @Prop({
     type: Boolean,
     default: true,
   })
@@ -56,6 +66,7 @@ export class User extends Document {
 
   @Prop({
     type: String,
+    default: '',
   })
   imageUrl: string;
 

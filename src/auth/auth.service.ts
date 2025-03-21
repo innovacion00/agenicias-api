@@ -18,12 +18,13 @@ import { ErrorManager } from 'src/common/helpers';
 import { JwtPayload } from './interfaces';
 import { User } from './entities/user.entity';
 import {
-  CreateUSerDto,
+  CreateUserDto,
   RequestPasswordChangeDto,
   NewPasswordDto,
   OtpValidationDto,
   RefreshTokenDto,
   SignInDto,
+  RegisterUserDto,
 } from './dto';
 import { OtpVerification } from './entities';
 import { SendEmailCustomService } from 'src/common/services';
@@ -32,6 +33,9 @@ import { SendEmailCustomService } from 'src/common/services';
 export class AuthService {
   private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(AuthService.name);
+
+  private readonly userAttributes =
+    'email telefono fullName firstLog role agencia isActive changePassword otpRef imageUrl settings password';
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
@@ -186,7 +190,7 @@ export class AuthService {
   }
 
   // #region Sign Up
-  async createUser(createUserDto: CreateUSerDto, id: string) {
+  async createUser(createUserDto: CreateUserDto, id: string) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
     try {
       const { password, ...userData } = createUserDto;
@@ -247,16 +251,62 @@ export class AuthService {
     }
   }
 
+  // #region Registrar usuario
+  async registerUserToAgency(registerUserDto: RegisterUserDto, id: string) {
+    registerUserDto.fullName = registerUserDto.fullName.toLowerCase();
+    try {
+      const { password, adminRole, ...userData } = registerUserDto;
+
+      const agenciaDoc = await this.agenciaModel.findById(id);
+
+      const usuariosActivos = await this.userModel.countDocuments({
+        agencia: agenciaDoc._id,
+        isActive: true,
+      });
+      if (usuariosActivos >= agenciaDoc.userLimit) {
+        throw new BadRequestException(
+          'No se pueden crear más usuarios en esta agencia.',
+        );
+      }
+
+      const user = await this.userModel.create({
+        ...userData,
+        role: adminRole ? ['user'] : ['admin'],
+        agencia: new Types.ObjectId(id),
+        password: bcrypt.hashSync(password, 10),
+      });
+
+      agenciaDoc.usuarios.push(user._id as User);
+      await agenciaDoc.save();
+
+      const { password: hashedPassword, ...userDbData } = user.toObject();
+
+      const verification = await this.createOtpVerfication(
+        userDbData._id as Types.ObjectId,
+      );
+
+      user.otpRef = verification._id as Types.ObjectId;
+      await user.save();
+
+      return {
+        status: 'Ok',
+        msg: 'Usuario creado con exito',
+        cuposAgencia: agenciaDoc.userLimit - agenciaDoc.usuarios.length,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
   // #region Sign in
   async signIn(signInDto: SignInDto) {
     const { email, password } = signInDto;
     const user = await this.userModel
       .findOne({ email })
-      .lean()
-      .select(
-        'email password fullName telefono password isActive changePassword role agencia',
-      );
-      // .populate('agencia', 'fullName saldo documentInfo firstLog empresa')
+      .populate('agencia', 'category fullName empresa')
+      .select(this.userAttributes)
+      .exec();
 
     // *User
     if (!user || !user.isActive) {
@@ -274,6 +324,13 @@ export class AuthService {
 
     if (!bcrypt.compareSync(password, user.password)) {
       throw new UnauthorizedException('Non valid credential');
+    }
+
+    if (user.settings.omitirOtp) {
+      return {
+        ...user.toJSON(),
+        token: this.generateJwt({ _id: user._id as string }),
+      };
     }
 
     const verification = await this.createOtpVerfication(
@@ -294,9 +351,7 @@ export class AuthService {
     try {
       const userData = await this.userModel
         .findOne({ email })
-        .select(
-          'email telefono fullName firstLog role agencia isActive changePassword otpRef imageUrl',
-        )
+        .select(this.userAttributes)
         .populate('agencia', 'category fullName empresa')
         .exec();
 

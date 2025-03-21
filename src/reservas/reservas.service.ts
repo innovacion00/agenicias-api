@@ -541,23 +541,18 @@ export class ReservasService {
     }
   }
 
-  // ? Pruebas
-  // async prueba() {
-  //   try {
-  //     const agencias = await this.agenciaModel.find();
+  // TODO: Hace un update many antes de pasar a produccion
 
-  //     for (const agencia of agencias) {
-  //       await this.httpCustomService.setLimiteRecargaAgencia(
-  //         agencia.autocoreInfo.id,
-  //         agenciaRecargaLimit.minLimitValue,
-  //         agenciaRecargaLimit.maxLimitValue,
-  //       );
-  //     }
-
-  //     return agencias.length;
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.errorManager.handle(error);
-  //   }
-  // }
+  //? Pruebas
+  async prueba() {
+    try {
+      await this.userModel.updateMany(
+        { settings: { $exists: false } },
+        { $set: { settings: { omitirOtp: false } } },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 }
