@@ -400,9 +400,6 @@ export class AuthService {
     }
   }
 
-  // #region Refrescar token
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {}
-
   // #region Solicitar Cambio de contraseña
   async requestPasswordChange(
     requestPasswordChangeDto: RequestPasswordChangeDto,

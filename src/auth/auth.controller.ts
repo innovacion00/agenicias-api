@@ -14,7 +14,6 @@ import {
   CreateUserDto,
   NewPasswordDto,
   SignInDto,
-  RefreshTokenDto,
   OtpValidationDto,
   RequestPasswordChangeDto,
   RegisterUserDto,
@@ -57,11 +56,6 @@ export class AuthController {
   @HttpCode(200)
   validarToken(@Body() token: string) {
     return this.authService.validarToken(token);
-  }
-
-  @Post('refresh-token')
-  refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    this.authService.refreshToken(refreshTokenDto);
   }
 
   // #region otp code
