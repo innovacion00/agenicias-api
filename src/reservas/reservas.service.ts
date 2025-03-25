@@ -526,7 +526,9 @@ export class ReservasService {
         checkingDate,
         nights,
         ciudad,
-        agenciaInfo.category,
+        disponibilidadAutoCoreDto.category
+          ? disponibilidadAutoCoreDto.category
+          : agenciaInfo.category,
       );
 
       return data;
