@@ -520,16 +520,28 @@ export class ReservasService {
       const { layout, checkingDate, ciudad, nights } =
         disponibilidadAutoCoreDto;
 
-      const agenciaInfo = await this.agenciaModel.findById(agenciaId);
-      const data = await this.httpCustomService.getDisponibilidadAutocore(
-        layout,
-        checkingDate,
-        nights,
-        ciudad,
-        agenciaInfo.category,
-      );
+      if (disponibilidadAutoCoreDto.category) {
+        const data = await this.httpCustomService.getDisponibilidadAutocore(
+          layout,
+          checkingDate,
+          nights,
+          ciudad,
+          disponibilidadAutoCoreDto.category,
+        );
 
-      return data;
+        return data;
+      } else {
+        const agenciaInfo = await this.agenciaModel.findById(agenciaId);
+        const data = await this.httpCustomService.getDisponibilidadAutocore(
+          layout,
+          checkingDate,
+          nights,
+          ciudad,
+          agenciaInfo.category,
+        );
+
+        return data;
+      }
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

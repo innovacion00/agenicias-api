@@ -57,4 +57,9 @@ export class DisponibilidadAutocoreDto {
   @ValidateNested({ each: true })
   @Type(() => DisponibilidadLayoutDto)
   layout: IdisponibilidadLayout[];
+
+  @IsOptional()
+  @IsNumber()
+  @IsIn([0, 1], { message: 'La propiedad category debe de ser 0 o 1' })
+  category?: 0 | 1;
 }
