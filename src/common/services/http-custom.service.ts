@@ -209,12 +209,24 @@ export class HttpCustomService {
     hotelId: string,
     reservaInfo: IreservaInfo,
   ) {
+    // Cambio debio a un problema de la propiedad source_of_bussiness de la base de datos y source_of_business de autocore
+    const { agency, reservation } = reservaInfo;
+
+    const reservationBody = {
+      reservation: {
+        ...reservation,
+        source_of_business: reservation.source_of_bussiness,
+      },
+      agency,
+    };
+
+    delete reservationBody.reservation.source_of_bussiness;
     try {
       const { data } = await axios.post(
         envs.autocoreUrl.concat(
           `/v2/bookings/hotel_id=${hotelId}?send_link=false`,
         ),
-        { ...reservaInfo },
+        { ...reservationBody },
         autocoreHeaders,
       );
 

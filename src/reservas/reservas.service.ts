@@ -114,12 +114,8 @@ export class ReservasService {
         .findById(userId)
         .populate('agencia', 'fullName');
 
-      if (!createReservaDto.reservaInfo.reservation.source_of_bussiness) {
-        const agenciasInfo = await this.agenciaModel.findById(userInfo.agencia);
-
-        createReservaDto.reservaInfo.reservation.source_of_bussiness =
-          agenciasInfo.fullName;
-      }
+      createReservaDto.reservaInfo.reservation.source_of_bussiness =
+        'Booking Connect';
 
       const reservaAutocoreInfo =
         await this.httpCustomService.createReservaAutocore(
@@ -579,18 +575,33 @@ export class ReservasService {
     }
   }
 
-  // TODO: Hace un update many antes de pasar a produccion
-
   //? Pruebas
-  async prueba() {
-    try {
-      await this.userModel.updateMany(
-        { settings: { $exists: false } },
-        { $set: { settings: { omitirOtp: false } } },
-      );
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
-  }
+  // async prueba() {
+  //   try {
+  //     const reservas = await this.reservasModel.find({
+  //       'reservation.source_of_bussiness': { $exists: true },
+  //     });
+
+  //     for (const reserva of reservas) {
+  //       reserva.reservation.source_of_business =
+  //         //@ts-ignore
+  //         reserva.reservation.source_of_bussiness;
+  //       //@ts-ignore
+
+  //       console.log(reserva.reservation.source_of_bussiness);
+  //       //@ts-ignore
+  //       delete reserva.reservation.source_of_bussiness;
+  //       await reserva.save(); // Guardar los cambios en cada documento
+  //     }
+
+  //     return reservas.length;
+  //     // const reservas = await this.reservasModel.find({
+  //     //   'reservation.source_of_bussiness': { $exists: false },
+  //     // });
+  //     // return reservas;
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     this.errorManager.handle(error);
+  //   }
+  // }
 }
