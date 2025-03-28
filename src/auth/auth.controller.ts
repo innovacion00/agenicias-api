@@ -41,9 +41,9 @@ export class AuthController {
   @Auth(ValidRoles.admin)
   registerUserToAgency(
     @Body() registerUserDto: RegisterUserDto,
-    @GetUser('_id') _id: string,
+    @GetUser('agencia') id: string,
   ) {
-    return this.authService.registerUserToAgency(registerUserDto, _id);
+    return this.authService.registerUserToAgency(registerUserDto, id);
   }
 
   @Post('sign-in')

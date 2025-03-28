@@ -263,6 +263,7 @@ export class AuthService {
         agencia: agenciaDoc._id,
         isActive: true,
       });
+
       if (usuariosActivos >= agenciaDoc.userLimit) {
         throw new BadRequestException(
           'No se pueden crear más usuarios en esta agencia.',
