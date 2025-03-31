@@ -440,9 +440,17 @@ export class ReservasService {
   async cambiarEstadoPagoAutocore(payload: any) {
     const valores = payload.external_ref_id.split(' ') as string[];
 
-    const reserva = await this.reservasModel.findById(valores[0]);
+    const id = valores[0].trim();
 
-    if (reserva.status === 3) {
+    const pagoValidator = valores[1].trim();
+
+    const reserva = await this.reservasModel.findById(id);
+
+    if (!reserva) {
+      throw new NotFoundException(`Reserva con id: ${id}`);
+    }
+
+    if (reserva.status === 3 || reserva.status === 4) {
       return true;
     }
 
@@ -455,7 +463,7 @@ export class ReservasService {
 
       case 'rechazado':
       case 'cancelado':
-        if (valores[1]) {
+        if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
           reserva.status = 2;
           await reserva.save();
