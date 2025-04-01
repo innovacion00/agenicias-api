@@ -198,13 +198,15 @@ export class AgenciasService {
     }
   }
 
+
+  // TODO: Combertir esto en un find by term
   //#region Get agencias by date
-  async getAgenciasByDate(date: string) {
+  async getAgenciasBySearch(search: string) {
     try {
-      const inicioDelDia = new Date(date);
+      const inicioDelDia = new Date(search);
       inicioDelDia.setUTCHours(0, 0, 0, 0);
 
-      const finDelDia = new Date(date);
+      const finDelDia = new Date(search);
       finDelDia.setUTCHours(23, 59, 59, 999);
 
       const agencias = await this.agenciaModel.find({

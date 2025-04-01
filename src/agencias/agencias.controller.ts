@@ -13,7 +13,6 @@ import { Types } from 'mongoose';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { ValidRoles } from 'src/auth/interfaces';
 import { CreateAgenciaDto, RechargeWalletDto, UpdateAgenciaDto } from './dto';
-import { ParseDatePipe } from './pipes';
 
 @Controller('agencias')
 export class AgenciasController {
@@ -76,8 +75,8 @@ export class AgenciasController {
   }
 
   //? Agencias creadas por dia
-  @Get('agencies-by-date')
-  getAgenciasByDate(@Query('date', ParseDatePipe) date: string) {
-    return this.agenciasService.getAgenciasByDate(date);
+  @Get('agencies-by-term')
+  getAgenciasBySearch(@Query('search') search: string) {
+    return this.agenciasService.getAgenciasBySearch(search);
   }
 }
