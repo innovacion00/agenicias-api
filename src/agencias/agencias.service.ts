@@ -128,7 +128,7 @@ export class AgenciasService {
   async obtenerSaldoBilletera(agencia: Types.ObjectId) {
     try {
       const agenciaInfo = await this.agenciaModel.findById(agencia);
-      
+
       const agenciaSaldo = await this.httpCustomService.obtenerSaldoCartera(
         agenciaInfo.autocoreInfo.id,
       );
@@ -198,8 +198,28 @@ export class AgenciasService {
     }
   }
 
-  // TODO Borrar
-  // async camiarUserLimits() {
-  //   return { hola: 'hola' };
-  // }
+  //#region Get agencias by date
+  async getAgenciasByDate(date: string) {
+    try {
+      const inicioDelDia = new Date(date);
+      inicioDelDia.setUTCHours(0, 0, 0, 0);
+
+      const finDelDia = new Date(date);
+      finDelDia.setUTCHours(23, 59, 59, 999);
+
+      const agencias = await this.agenciaModel.find({
+        createdAt: {
+          $gte: inicioDelDia,
+          $lte: finDelDia,
+        },
+      });
+
+      const cantidad = agencias.length;
+
+      return { agencias, cantidad };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 }

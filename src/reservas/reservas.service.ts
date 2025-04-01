@@ -440,6 +440,16 @@ export class ReservasService {
   async cambiarEstadoPagoAutocore(payload: any) {
     const valores = payload.external_ref_id.split(' ') as string[];
 
+    console.log(
+      `Valores: ${valores} - ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}`,
+    );
+    if (!valores[0].trim()) {
+      console.log(
+        `Error en valores a las ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}`,
+      );
+      return true;
+    }
+
     const id = valores[0].trim();
 
     const pagoValidator = valores[1].trim();
@@ -524,7 +534,10 @@ export class ReservasService {
       const { layout, checkingDate, ciudad, nights } =
         disponibilidadAutoCoreDto;
 
-      if (disponibilidadAutoCoreDto.category) {
+      if (
+        disponibilidadAutoCoreDto.category === 0 ||
+        disponibilidadAutoCoreDto.category === 1
+      ) {
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
           checkingDate,
