@@ -452,7 +452,11 @@ export class ReservasService {
 
     const id = valores[0].trim();
 
-    const pagoValidator = valores[1].trim();
+    let pagoValidator = null;
+
+    if (valores[1]) {
+      pagoValidator = valores[1].trim();
+    }
 
     const reserva = await this.reservasModel.findById(id);
 
