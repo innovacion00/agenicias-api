@@ -445,7 +445,7 @@ export class ReservasService {
     );
     if (!valores[0].trim()) {
       console.log(
-        `Error en valores a las ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}`,
+        `Error en valores a las ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}, Intencion: ${payload.payment_status}`,
       );
       return true;
     }
