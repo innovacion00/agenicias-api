@@ -441,11 +441,11 @@ export class ReservasService {
     const valores = payload.external_ref_id.split(' ') as string[];
 
     console.log(
-      `Valores: ${valores} - ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}, Intencion: ${payload.payment_status}`,
+      `Valores: ${valores} - ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')}, Intencion: ${payload.payment_status}, id: ${payload.transaction_id}`,
     );
     if (!valores[0].trim()) {
       console.log(
-        `Error en valores a las ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}, Intencion: ${payload.payment_status}`,
+        `Error en valores a las ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')}, Intencion: ${payload.payment_status}, id: ${payload.transaction_id}`,
       );
       return true;
     }
