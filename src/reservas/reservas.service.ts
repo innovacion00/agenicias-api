@@ -441,7 +441,7 @@ export class ReservasService {
     const valores = payload.external_ref_id.split(' ') as string[];
 
     console.log(
-      `Valores: ${valores} - ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}`,
+      `Valores: ${valores} - ${format(new Date(), '[M/D/YY - h:mm a]', 'es')}, Intencion: ${payload.payment_status}`,
     );
     if (!valores[0].trim()) {
       console.log(
