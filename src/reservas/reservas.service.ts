@@ -449,16 +449,14 @@ export class ReservasService {
     ];
     const autocoreId = payload.transaction_id;
     console.log(
-      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Valores: ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
+      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - ${JSON.stringify(payload)}`,
     );
     if (!valores[0].trim()) {
       console.log(
-        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error en valores ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
+        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
       );
       return true;
     }
-
-    console.log({ payload });
 
     const id = valores[0].trim();
 
