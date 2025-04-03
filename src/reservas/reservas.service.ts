@@ -439,16 +439,18 @@ export class ReservasService {
   // #region Cambiar estado de la reserva autocore
   async cambiarEstadoPagoAutocore(payload: any) {
     const valores = payload.external_ref_id.split(' ') as string[];
-
+    const autocoreId = payload.transaction_id;
     console.log(
-      `Valores: ${valores} - ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')}, Intencion: ${payload.payment_status}, id: ${payload.transaction_id}`,
+      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Valores: ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
     );
     if (!valores[0].trim()) {
       console.log(
-        `Error en valores a las ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')}, Intencion: ${payload.payment_status}, id: ${payload.transaction_id}`,
+        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error en valores ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
       );
       return true;
     }
+
+    console.log({ payload });
 
     const id = valores[0].trim();
 
