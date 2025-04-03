@@ -439,6 +439,14 @@ export class ReservasService {
   // #region Cambiar estado de la reserva autocore
   async cambiarEstadoPagoAutocore(payload: any) {
     const valores = payload.external_ref_id.split(' ') as string[];
+    const problemas = [
+      '67ab755cedb19b9bad39f22d',
+      '67ab7863edb19b9bad3a4471',
+      '67cefa09a0c53ce8c5e1fb9b',
+      '67bf4b1a7b358f891dce8926',
+      '67c084a87b358f891dd07448',
+      '67c761d2be7b7404574c2513',
+    ];
     const autocoreId = payload.transaction_id;
     console.log(
       ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Valores: ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
@@ -454,6 +462,10 @@ export class ReservasService {
 
     const id = valores[0].trim();
 
+    if (problemas.includes(id)) {
+      return true;
+    }
+
     let pagoValidator = null;
 
     if (valores[1]) {
@@ -462,12 +474,22 @@ export class ReservasService {
 
     const reserva = await this.reservasModel.findById(id);
 
+    if (!reserva.paymenIds) {
+      reserva.paymenIds = [];
+    }
+
     if (!reserva) {
       throw new NotFoundException(`Reserva con id: ${id}`);
     }
 
     if (reserva.status === 3 || reserva.status === 4) {
       return true;
+    }
+
+    if (reserva.paymenIds.includes(autocoreId)) {
+      return true;
+    } else if (autocoreId) {
+      reserva.paymenIds.push(autocoreId);
     }
 
     const status = payload.payment_status as string;

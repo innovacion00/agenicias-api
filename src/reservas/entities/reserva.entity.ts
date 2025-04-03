@@ -208,6 +208,9 @@ export class Reserva extends Document {
   })
   reservaChatbotId: string;
 
+  @Prop({ type: [String], default: [] })
+  paymenIds: string[];
+
   @Prop({
     type: String,
     index: true,
