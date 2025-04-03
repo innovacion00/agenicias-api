@@ -447,6 +447,9 @@ export class ReservasService {
       '67c084a87b358f891dd07448',
       '67c761d2be7b7404574c2513',
     ];
+    if (problemas.includes(valores[0].trim())) {
+      return true;
+    }
     const autocoreId = payload.transaction_id;
     console.log(
       ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - ${JSON.stringify(payload)}`,
@@ -460,9 +463,6 @@ export class ReservasService {
 
     const id = valores[0].trim();
 
-    if (problemas.includes(id)) {
-      return true;
-    }
 
     let pagoValidator = null;
 
