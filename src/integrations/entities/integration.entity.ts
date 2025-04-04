@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { ValidIntegrationsRoles } from 'src/auth/interfaces';
 
 @Schema({ timestamps: true })
 export class Integration extends Document {
@@ -36,8 +37,8 @@ export class Integration extends Document {
   @Prop({
     type: [String],
     required: true,
-    enum: ['admin', 'user', 'super-admin'],
-    default: ['admin'],
+    enum: Object.values(ValidIntegrationsRoles),
+    default: [],
   })
   roles: string[];
 }

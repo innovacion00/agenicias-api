@@ -8,6 +8,8 @@ import { ErrorManager } from 'src/common/helpers';
 import { InjectModel } from '@nestjs/mongoose';
 import { Integration } from './entities';
 import { Model } from 'mongoose';
+import { HttpCustomService } from 'src/common/services';
+import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 
 @Injectable()
 export class IntegrationsService {
@@ -16,6 +18,8 @@ export class IntegrationsService {
   constructor(
     @InjectModel(Integration.name)
     private readonly integrationModel: Model<Integration>,
+
+    private readonly httpCustomService: HttpCustomService,
   ) {
     this.errorManager = new ErrorManager(IntegrationsService.name);
   }
@@ -37,5 +41,11 @@ export class IntegrationsService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  async getDisponibilidad(disponibilidadAutoCoreDto: DisponibilidadAutocoreDto) {
+    
+    // this.httpCustomService.getDisponibilidadAutocore()
+    return 'hello world';
   }
 }

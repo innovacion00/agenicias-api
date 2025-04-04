@@ -452,8 +452,9 @@ export class ReservasService {
     }
     const autocoreId = payload.transaction_id;
     console.log(
-      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - ${JSON.stringify(payload)}`,
+      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Valores: ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
     );
+    console.log(`${JSON.stringify(payload)}`);
     if (!valores[0].trim()) {
       console.log(
         `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
@@ -462,7 +463,6 @@ export class ReservasService {
     }
 
     const id = valores[0].trim();
-
 
     let pagoValidator = null;
 

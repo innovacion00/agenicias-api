@@ -1,7 +1,9 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, HttpCode } from '@nestjs/common';
 import { IntegrationsService } from './integrations.service';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
 import { ApiKeyProtected } from 'src/auth/decorators';
+import { ValidIntegrationsRoles } from 'src/auth/interfaces';
+import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 
 @Controller('integrations')
 export class IntegrationsController {
@@ -12,11 +14,14 @@ export class IntegrationsController {
     return this.integrationsService.create(createIntegrationDto);
   }
 
-  @Get('disponibilidad')
-  @ApiKeyProtected()
-  getDisponibilidad() {
-    return {
-      hola: 'mundo',
-    };
+  @Post('disponibilidad')
+  @HttpCode(200)
+  @ApiKeyProtected(ValidIntegrationsRoles.autodoreDev)
+  getDisponibilidad(
+    @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
+  ) {
+    return this.integrationsService.getDisponibilidad(
+      disponibilidadAutoCoreDto,
+    );
   }
 }
