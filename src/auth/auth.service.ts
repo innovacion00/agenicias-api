@@ -269,10 +269,10 @@ export class AuthService {
           'No se pueden crear más usuarios en esta agencia.',
         );
       }
-
+      
       const user = await this.userModel.create({
         ...userData,
-        role: adminRole ? ['user'] : ['admin'],
+        role: adminRole ? ['admin'] : ['user'],
         agencia: new Types.ObjectId(id),
         password: bcrypt.hashSync(password, 10),
       });
