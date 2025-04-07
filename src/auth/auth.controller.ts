@@ -38,7 +38,7 @@ export class AuthController {
   }
 
   @Post('register-user')
-  @Auth(ValidRoles.admin)
+  @Auth(ValidRoles.admin, ValidRoles.superAdmin)
   registerUserToAgency(
     @Body() registerUserDto: RegisterUserDto,
     @GetUser('agencia') id: string,
