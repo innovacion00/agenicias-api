@@ -67,7 +67,7 @@ export class ReservasController {
   cambiarEstadoPagoReserva(@Body() payload: any) {
     return this.reservasService.cambiarEstadoPagoAutocore(payload);
   }
-  
+
   @Get('/reservas-by-user')
   @Auth()
   getReservasByUser(@GetUser('_id') _id: Types.ObjectId) {

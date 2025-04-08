@@ -451,10 +451,7 @@ export class ReservasService {
       return true;
     }
     const autocoreId = payload.transaction_id;
-    console.log(
-      ` ${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Valores: ${valores}, Intencion: ${payload.payment_status}, id: ${autocoreId}`,
-    );
-    console.log(`${JSON.stringify(payload)}`);
+    this.logger.log(payload);
     if (!valores[0].trim()) {
       console.log(
         `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
@@ -625,27 +622,23 @@ export class ReservasService {
   //? Pruebas
   // async prueba() {
   //   try {
-  //     const reservas = await this.reservasModel.find({
-  //       'reservation.source_of_bussiness': { $exists: true },
-  //     });
+  //     const body = {
+  //       payment_status: 'Aplicado',
+  //       amount: 618502.5,
+  //       payment_date: '2025-04-07 19:43:35.380411',
+  //       company: 'SMART STAY SAS',
+  //       hotel: 'Hotel Sansiraka',
+  //       voucher_url:
+  //         'https://api.autocore.pro/v1/bookings/6527/vouchers?type=payment_link',
+  //       transaction_id: 'RB-223471773',
+  //       external_ref_id: '679d539a6418aab191b3ed37',
+  //     };
 
-  //     for (const reserva of reservas) {
-  //       reserva.reservation.source_of_business =
-  //         //@ts-ignore
-  //         reserva.reservation.source_of_bussiness;
-  //       //@ts-ignore
+  //     const valores = body.external_ref_id.split(' ') as string[];
+  //     const autocoreId = body.transaction_id;
 
-  //       console.log(reserva.reservation.source_of_bussiness);
-  //       //@ts-ignore
-  //       delete reserva.reservation.source_of_bussiness;
-  //       await reserva.save(); // Guardar los cambios en cada documento
-  //     }
-
-  //     return reservas.length;
-  //     // const reservas = await this.reservasModel.find({
-  //     //   'reservation.source_of_bussiness': { $exists: false },
-  //     // });
-  //     // return reservas;
+  //     this.logger.log(body);
+  //     return true;
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);
