@@ -10,6 +10,7 @@ import { Integration } from './entities';
 import { Model } from 'mongoose';
 import { HttpCustomService } from 'src/common/services';
 import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
+import { ValidIntegrationsRoles } from 'src/auth/interfaces';
 
 @Injectable()
 export class IntegrationsService {
@@ -43,9 +44,45 @@ export class IntegrationsService {
     }
   }
 
-  async getDisponibilidad(disponibilidadAutoCoreDto: DisponibilidadAutocoreDto) {
-    
-    // this.httpCustomService.getDisponibilidadAutocore()
-    return 'hello world';
+  async getDisponibilidad(
+    disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
+    roles: string[],
+  ) {
+    try {
+      const { layout, checkingDate, ciudad, nights } =
+        disponibilidadAutoCoreDto;
+
+      const dev = roles.includes(ValidIntegrationsRoles.autodoreDev);
+      
+      if (
+        disponibilidadAutoCoreDto.category === 0 ||
+        disponibilidadAutoCoreDto.category === 1
+      ) {
+        const data = await this.httpCustomService.getDisponibilidadAutocore(
+          layout,
+          checkingDate,
+          nights,
+          ciudad,
+          disponibilidadAutoCoreDto.category,
+          dev,
+        );
+
+        return data;
+      } else {
+        const data = await this.httpCustomService.getDisponibilidadAutocore(
+          layout,
+          checkingDate,
+          nights,
+          ciudad,
+          0,
+          dev,
+        );
+
+        return data;
+      }
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 }

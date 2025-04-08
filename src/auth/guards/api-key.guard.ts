@@ -50,6 +50,9 @@ export class ApiKeyGuard implements CanActivate {
       secretKey,
       integration.secretKey,
     );
+
+    request.integration = integration;
+
     if (!isSecretValid) {
       throw new UnauthorizedException('Secret Key inválida');
     }
