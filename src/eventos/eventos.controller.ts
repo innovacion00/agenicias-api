@@ -21,7 +21,7 @@ export class EventosController {
   }
 
   @Get()
-  @Auth(ValidRoles.eventosSuperAdmin)
+  @Auth(ValidRoles.eventosSuperAdmin, ValidRoles.superAdmin)
   getEventos() {
     return this.eventosService.getEventos();
   }
