@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  ImATeapotException,
   Injectable,
   Logger,
+  MisdirectedException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -622,23 +624,7 @@ export class ReservasService {
   //? Pruebas
   // async prueba() {
   //   try {
-  //     const body = {
-  //       payment_status: 'Aplicado',
-  //       amount: 618502.5,
-  //       payment_date: '2025-04-07 19:43:35.380411',
-  //       company: 'SMART STAY SAS',
-  //       hotel: 'Hotel Sansiraka',
-  //       voucher_url:
-  //         'https://api.autocore.pro/v1/bookings/6527/vouchers?type=payment_link',
-  //       transaction_id: 'RB-223471773',
-  //       external_ref_id: '679d539a6418aab191b3ed37',
-  //     };
-
-  //     const valores = body.external_ref_id.split(' ') as string[];
-  //     const autocoreId = body.transaction_id;
-
-  //     this.logger.log(body);
-  //     return true;
+  //     throw new ImATeapotException();
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);

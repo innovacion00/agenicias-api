@@ -138,8 +138,7 @@ export class ReservasController {
   }
 
   // @Post('prueba')
-  // prueba(
-  // ) {
+  // prueba() {
   //   return this.reservasService.prueba();
   // }
 }

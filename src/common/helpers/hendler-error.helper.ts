@@ -1,12 +1,11 @@
 import {
   BadRequestException,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
+  ConflictException,
   ForbiddenException,
   ImATeapotException,
-  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 export class ErrorManager {
@@ -20,12 +19,12 @@ export class ErrorManager {
     }
 
     if (
-      error instanceof NotFoundException ||
       error instanceof BadRequestException ||
-      error instanceof UnauthorizedException ||
+      error instanceof ConflictException ||
       error instanceof ForbiddenException ||
       error instanceof ImATeapotException ||
-      error instanceof ConflictException
+      error instanceof NotFoundException ||
+      error instanceof UnauthorizedException
     ) {
       throw error;
     }
