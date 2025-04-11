@@ -11,13 +11,14 @@ import {
   IsPositive,
   IsString,
   Matches,
+  Max,
   MaxLength,
   Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
 
-import { Type } from 'class-transformer';
+import { Type, Exclude } from 'class-transformer';
 import {
   Agency,
   IreservaInfo,
@@ -25,7 +26,7 @@ import {
   RoomsDatum,
   ValidCities,
 } from 'src/common/interface';
-import { IAsistente, ITitularInfo } from '../interfaces';
+import { IAsistente, ITitularInfo, ValidTipoRecogida } from '../interfaces';
 import { IsNotFutureDate } from '../decorators';
 
 class AgencyDto {
@@ -270,6 +271,44 @@ class RetencionesDto {
   resultado: number;
 }
 
+class InfoTransporteDto {
+  @IsString()
+  @MinLength(2)
+  numeroVuelo: string;
+
+  @IsString()
+  @MinLength(2)
+  aerolinea: string;
+
+  @IsEnum(ValidTipoRecogida, {
+    message: `tipoRecogida debe ser uno de: ${Object.values(ValidTipoRecogida)
+      .filter((val) => typeof val === 'number')
+      .join(' ,')}`,
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  tipoRecogida: ValidTipoRecogida;
+
+  @IsArray()
+  @IsString({ each: true })
+  personas: string[];
+
+  @IsString()
+  @IsPhoneNumber()
+  firstContactNumber: string;
+
+  @IsString()
+  @IsPhoneNumber()
+  @IsOptional()
+  secondContacNumber: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Min(1)
+  @Max(50)
+  cantidadPersonas: number;
+}
+
 export class CreateReservaDto {
   @IsNumber()
   @IsNotEmpty()
@@ -282,6 +321,12 @@ export class CreateReservaDto {
   @IsBoolean()
   @IsOptional()
   adicionAlmuerzo: boolean;
+
+  @ValidateNested()
+  @Type(() => InfoTransporteDto)
+  @IsOptional()
+  @IsNotEmpty()
+  infoTransporte?: InfoTransporteDto;
 
   @ValidateNested()
   @Type(() => RetencionesDto)

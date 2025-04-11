@@ -165,6 +165,7 @@ export class ReservasService {
         planAlimentario,
         adicionCena: createReservaDto.adicionCena || false,
         adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
+        infoTransporte: createReservaDto.infoTransporte,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
