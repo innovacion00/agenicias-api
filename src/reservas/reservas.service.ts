@@ -622,10 +622,22 @@ export class ReservasService {
     }
   }
 
+
   //? Pruebas
   // async prueba() {
   //   try {
-  //     throw new ImATeapotException();
+  //     const agencias = await this.reservasModel.aggregate([
+  //       {
+  //         $group: {
+  //           _id: '$agenciaId',
+  //           reserva: { $first: '$$ROOT' },
+  //         },
+  //       },
+  //       {
+  //         $count: 'agenciasConReserva',
+  //       },
+  //     ]);
+  //     return agencias;
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);

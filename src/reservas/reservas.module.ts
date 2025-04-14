@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { ReservasController } from './reservas.controller';
@@ -13,7 +13,7 @@ import { AgenciasModule } from 'src/agencias/agencias.module';
   controllers: [ReservasController],
   providers: [ReservasService],
   imports: [
-    AgenciasModule,
+    forwardRef(() => AgenciasModule),
     AuthModule,
     CommonModule,
     MongooseModule.forFeature([

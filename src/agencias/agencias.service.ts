@@ -12,6 +12,7 @@ import { UpdateAgenciaDto } from './dto/update-agencia.dto';
 import { HttpCustomService } from 'src/common/services';
 import { agenciaRecargaLimit } from 'src/config';
 import { RechargeWalletDto } from './dto';
+import { Reserva } from 'src/reservas/entities';
 
 @Injectable()
 export class AgenciasService {
@@ -21,6 +22,8 @@ export class AgenciasService {
   constructor(
     @InjectModel(Agencia.name)
     private readonly agenciaModel: Model<Agencia>,
+
+    @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
 
     private readonly httpCustomService: HttpCustomService,
   ) {
@@ -198,6 +201,26 @@ export class AgenciasService {
     }
   }
 
+  // #region Cantidad de agencias con reservas
+  async getCountOfAgenciasReservas() {
+    try {
+      const agencias = await this.reservasModel.aggregate([
+        {
+          $group: {
+            _id: '$agenciaId',
+            reserva: { $first: '$$ROOT' },
+          },
+        },
+        {
+          $count: 'agenciasConReserva',
+        },
+      ]);
+      return agencias;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 
   // TODO: Combertir esto en un find by term
   //#region Get agencias by date

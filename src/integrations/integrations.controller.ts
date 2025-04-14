@@ -16,7 +16,7 @@ export class IntegrationsController {
 
   @Post('disponibilidad')
   @HttpCode(200)
-  @ApiKeyProtected(ValidIntegrationsRoles.autodoreDev)
+  @ApiKeyProtected(ValidIntegrationsRoles.autodoreDev, ValidIntegrationsRoles.autocoreProd)
   getDisponibilidad(
     @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
     @GetIntegration('roles') roles: string[],
