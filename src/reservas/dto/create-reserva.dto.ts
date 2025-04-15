@@ -272,6 +272,10 @@ class RetencionesDto {
 }
 
 class InfoTransporteDto {
+  // @IsArray()
+  // @IsString({ each: true })
+  // personas: string[];
+
   @IsString()
   @MinLength(2)
   numeroVuelo: string;
@@ -287,11 +291,8 @@ class InfoTransporteDto {
   })
   @IsNumber()
   @IsNotEmpty()
+  @IsEnum(ValidTipoRecogida)
   tipoRecogida: ValidTipoRecogida;
-
-  @IsArray()
-  @IsString({ each: true })
-  personas: string[];
 
   @IsString()
   @IsPhoneNumber()
