@@ -9,7 +9,7 @@ interface EnvVars {
   JWT_SECRET: string;
 
   // ? Ocean flight
-  OCEAN_FLIGHT_URL_DEV: string;
+  // OCEAN_FLIGHT_URL_DEV: string;
 
   // ? Cobre
   COBRE_API_URL: string;
@@ -63,7 +63,7 @@ const envSchema = joi
     JWT_SECRET: joi.string().required(),
 
     // ? Ocean flight
-    OCEAN_FLIGHT_URL_DEV: joi.string().required(),
+    // OCEAN_FLIGHT_URL_DEV: joi.string().required(),
 
     // ? Cobre
     COBRE_API_URL: joi.string().required(),
@@ -123,7 +123,7 @@ export const envs = {
 
   jwtSecret: envVars.JWT_SECRET,
 
-  oceanFlightUrlDev: envVars.OCEAN_FLIGHT_URL_DEV,
+  // oceanFlightUrlDev: envVars.OCEAN_FLIGHT_URL_DEV,
 
   // ? Cobre
   cobreApiUrl: envVars.COBRE_API_URL,
