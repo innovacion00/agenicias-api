@@ -68,16 +68,6 @@ export class Reserva extends Document {
           (val) => typeof val === 'number',
         ),
       },
-      personas: {
-        type: [String],
-        required: true,
-        validate: {
-          validator: (val: string[]) =>
-            Array.isArray(val) &&
-            val.every((p) => typeof p === 'string' && p.trim() !== ''),
-          message: 'Todas las personas deben ser strings no vacíos',
-        },
-      },
       firstContactNumber: { type: String, require: true },
       secondContacNumber: { type: String },
       cantidadPersonas: { type: Number, require: true },
@@ -86,7 +76,6 @@ export class Reserva extends Document {
       numeroVuelo: '',
       aerolinea: '',
       tipoRecogida: 0,
-      personas: [],
       firstContactNumber: '',
       secondContacNumber: '',
       cantidadPersonas: 0,
@@ -94,12 +83,10 @@ export class Reserva extends Document {
   })
   infoTransporte: {
     numeroVuelo: string;
-    personas: string[];
     firstContactNumber: string;
     secondContacNumber: string;
     cantidadPersonas: number;
   };
-
 
   @Prop({
     type: {

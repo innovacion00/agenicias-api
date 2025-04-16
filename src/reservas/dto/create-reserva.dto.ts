@@ -271,7 +271,7 @@ class RetencionesDto {
   resultado: number;
 }
 
-class InfoTransporteDto {
+export class InfoTransporteDto {
   // @IsArray()
   // @IsString({ each: true })
   // personas: string[];
