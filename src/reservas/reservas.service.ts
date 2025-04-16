@@ -149,7 +149,7 @@ export class ReservasService {
 
       await userInfo.save();
 
-      if (createReservaDto.infoTransporte.firstContactNumber) {
+      if (createReservaDto.infoTransporte) {
         // TODO: Se necesita correo para cartagena
 
         const { name, city } = hotelesAutocore[hotelId];
