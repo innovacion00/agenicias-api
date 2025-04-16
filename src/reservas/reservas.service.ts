@@ -155,9 +155,7 @@ export class ReservasService {
         const { name, city } = hotelesAutocore[hotelId];
         const { tipoRecogida } = createReservaDto.infoTransporte;
         const email =
-          city === 'Santa marta'
-            ? 'reservasgocolombia@gmail.com'
-            : '';
+          city === 'Santa marta' ? 'reservasgocolombia@gmail.com' : 'operadortour2025@gmail.com';
 
         const textTipoRecogida =
           tipoRecogida === 0
@@ -169,7 +167,7 @@ export class ReservasService {
         await this.emailService
           .sendEmail(
             email,
-            `Se solicito transporte ${textTipoRecogida}`,
+            `Solictud de servicio de translado para Geh Suites hotels`,
             '',
             notificacionTransporte(
               textTipoRecogida,
