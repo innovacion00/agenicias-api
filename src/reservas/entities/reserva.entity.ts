@@ -100,49 +100,6 @@ export class Reserva extends Document {
     cantidadPersonas: number;
   };
 
-  @Prop({
-    type: {
-      numeroVuelo: { type: String, require: true },
-      aerolinea: { type: String, require: true },
-      tipoRecogida: {
-        type: Number,
-        require: true,
-        enum: Object.values(ValidTipoRecogida).filter(
-          (val) => typeof val === 'number',
-        ),
-      },
-      personas: {
-        type: [String],
-        required: true,
-        validate: {
-          validator: (val: string[]) =>
-            Array.isArray(val) &&
-            val.every((p) => typeof p === 'string' && p.trim() !== ''),
-          message: 'Todas las personas deben ser strings no vacíos',
-        },
-      },
-      firstContactNumber: { type: String, require: true },
-      secondContacNumber: { type: String },
-      cantidadPersonas: { type: Number, require: true },
-    },
-    default: {
-      numeroVuelo: '',
-      aerolinea: '',
-      tipoRecogida: 0,
-      personas: [],
-      firstContactNumber: '',
-      secondContacNumber: '',
-      cantidadPersonas: 0,
-    },
-  })
-  infoTour: {
-    numeroVuelo: string;
-    personas: string[];
-    firstContactNumber: string;
-    secondContacNumber: string;
-    cantidadPersonas: number;
-  };
-
 
   @Prop({
     type: {
