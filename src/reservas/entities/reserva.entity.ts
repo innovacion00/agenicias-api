@@ -2,7 +2,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
 import { IAsistente, ITitularInfo, ValidTipoRecogida } from '../interfaces';
-import { number } from 'joi';
+import {
+  // InfoTouresDto,
+  InfoTransporteDto,
+} from '../dto';
 
 @Schema({ timestamps: true })
 export class Reserva extends Document {
@@ -81,12 +84,10 @@ export class Reserva extends Document {
       cantidadPersonas: 0,
     },
   })
-  infoTransporte: {
-    numeroVuelo: string;
-    firstContactNumber: string;
-    secondContacNumber: string;
-    cantidadPersonas: number;
-  };
+  infoTransporte: InfoTransporteDto;
+
+  // @Prop({})
+  // infoToures: InfoTouresDto[];
 
   @Prop({
     type: {

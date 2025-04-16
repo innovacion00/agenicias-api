@@ -1000,7 +1000,7 @@ export const notificacionTransporte = (
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Solicitud de Transporte</title>
+  <title>Solicitud de traslado</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -1046,11 +1046,11 @@ export const notificacionTransporte = (
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h2>Solicitud de Transporte</h2>
+      <h2>Solicitud de traslado</h2>
     </div>
     <div class="email-body">
       <p>Hola,</p>
-      <p>Se ha solicitado un servicio de transporte con los siguientes datos:</p>
+      <p>Se ha solicitado un servicio de traslado con los siguientes datos:</p>
 
       <ul>
         <li><strong>Tipo de recogida:</strong> ${textTipoRecogida}</li>

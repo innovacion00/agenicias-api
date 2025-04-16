@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsEmail,
   IsEnum,
   IsIn,
@@ -309,6 +310,16 @@ export class InfoTransporteDto {
   cantidadPersonas: number;
 }
 
+// export class InfoTouresDto {
+//   @IsString()
+//   @IsNotEmpty()
+//   nombre: string;
+
+//   @IsString()
+//   @IsDate()
+//   diaSeleccionado: string;
+// }
+
 export class CreateReservaDto {
   @IsNumber()
   @IsNotEmpty()
@@ -327,6 +338,12 @@ export class CreateReservaDto {
   @IsOptional()
   @IsNotEmpty()
   infoTransporte?: InfoTransporteDto;
+
+  // @ValidateNested({ each: true })
+  // @IsArray()
+  // @Type(() => InfoTransporteDto)
+  // @IsOptional()
+  // infoToures?: InfoTouresDto[];
 
   @ValidateNested()
   @Type(() => RetencionesDto)
