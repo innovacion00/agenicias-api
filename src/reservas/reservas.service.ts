@@ -25,6 +25,7 @@ import {
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
+  notificacionTransporte,
   notificaiconReservaGrupo,
   tiposAgencia,
 } from 'src/config';
@@ -38,6 +39,7 @@ import {
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
+import { calcularFechaLimitePago } from './utils';
 
 @Injectable()
 export class ReservasService {
@@ -80,37 +82,11 @@ export class ReservasService {
         createReservaDto.reservaInfo.reservation.checkin,
         fechaActual,
       );
-      let fechaLimitePago: string;
+      const fechaLimitePago = calcularFechaLimitePago(actualDiffDays);
       const fechaLimitePago2: string = format(
         addDay(createReservaDto.reservaInfo.reservation.checkin, -1),
         'YYYY-MM-DD',
       );
-
-      //? Para fechas menores a 72 horas pago inmediato
-      if (actualDiffDays <= 3) {
-        fechaLimitePago = format(new Date(), 'YYYY-MM-DD');
-      }
-      //? Para fechas de 4 a 10 dias antes del checkin los pagos deben ser 2 dias antes de la fecha de checkin
-      else if (actualDiffDays >= 4 && actualDiffDays <= 10) {
-        fechaLimitePago = format(
-          addDay(new Date(), actualDiffDays - 2),
-          'YYYY-MM-DD',
-        );
-      }
-      //? Para fechas de 11 a 30 dias antes del checkin los pagos deben ser 7 dias antes de la fecha de checkin
-      else if (actualDiffDays >= 11 && actualDiffDays <= 30) {
-        fechaLimitePago = format(
-          addDay(new Date(), actualDiffDays - 7),
-          'YYYY-MM-DD',
-        );
-      }
-      //? Para fechas mayores 31 dias el pago debe ser minimo 12 dias antes del checkin
-      else {
-        fechaLimitePago = format(
-          addDay(new Date(), actualDiffDays - 12),
-          'YYYY-MM-DD',
-        );
-      }
 
       const userInfo = await this.userModel
         .findById(userId)
@@ -145,8 +121,9 @@ export class ReservasService {
       if (createReservaDto.planAlimentario) {
         planAlimentario = createReservaDto.planAlimentario;
       }
+
       const reserva = await this.reservasModel.create({
-        hotel: hotelesAutocore[hotelId],
+        hotel: hotelesAutocore[hotelId].name,
         agenciaId: userInfo.agencia._id,
         userId,
         cantidadHabitaciones:
@@ -172,6 +149,44 @@ export class ReservasService {
 
       await userInfo.save();
 
+      if (createReservaDto.infoTransporte.firstContactNumber) {
+        // TODO: Se necesita correo para cartagena
+
+        const { name, city } = hotelesAutocore[hotelId];
+        const { tipoRecogida } = createReservaDto.infoTransporte;
+        const email =
+          city === 'Santa marta'
+            ? 'reservasgocolombia@gmail.com'
+            : '';
+
+        const textTipoRecogida =
+          tipoRecogida === 0
+            ? `De aeropuerto a ${name}`
+            : tipoRecogida === 1
+              ? `De ${name} al aeropuerto`
+              : `De aeropuerto a ${name} y de ${name} al aeropuerto`;
+
+        await this.emailService
+          .sendEmail(
+            email,
+            `Se solicito transporte ${textTipoRecogida}`,
+            '',
+            notificacionTransporte(
+              textTipoRecogida,
+              createReservaDto.reservaInfo.reservation.checkin,
+              createReservaDto.reservaInfo.reservation.checkout,
+              createReservaDto.infoTransporte.cantidadPersonas,
+              createReservaDto.infoTransporte.firstContactNumber,
+              createReservaDto.infoTransporte.secondContacNumber,
+              createReservaDto.infoTransporte.aerolinea,
+              createReservaDto.infoTransporte.numeroVuelo,
+            ),
+          )
+          .catch((error) => {
+            this.logger.error(error);
+          });
+      }
+
       if (cantidadHabitacion >= 10) {
         await this.emailService
           .sendEmail(
@@ -183,7 +198,7 @@ export class ReservasService {
               // @ts-ignore
               userInfo.agencia.fullName,
               cantidadHabitacion,
-              hotelesAutocore[hotelId],
+              hotelesAutocore[hotelId].name,
               createReservaDto.reservaInfo.reservation.checkin,
               createReservaDto.reservaInfo.reservation.checkout,
             ),
@@ -621,7 +636,6 @@ export class ReservasService {
       this.errorManager.handle(error);
     }
   }
-
 
   //? Pruebas
   // async prueba() {

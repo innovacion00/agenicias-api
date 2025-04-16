@@ -984,3 +984,95 @@ export const notificacionCancelacionVencimiento = (
     `;
   }
 };
+
+export const notificacionTransporte = (
+  textTipoRecogida: string,
+  fechaCheckin: string,
+  fechaCheckout: string,
+  cantidadPersonas: number,
+  firstContactNumber: string,
+  secondContacNumber: string,
+  aerolinea: string,
+  numeroVuelo: string,
+) => {
+  return `
+  <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitud de Transporte</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #cc8831;
+      color: #ffffff;
+      padding: 20px;
+      text-align: center;
+    }
+    .email-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .email-body {
+      padding: 20px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .email-body p {
+      margin: 0 0 10px;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #888888;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h2>Solicitud de Transporte</h2>
+    </div>
+    <div class="email-body">
+      <p>Hola,</p>
+      <p>Se ha solicitado un servicio de transporte con los siguientes datos:</p>
+
+      <ul>
+        <li><strong>Tipo de recogida:</strong> ${textTipoRecogida}</li>
+        <li><strong>Fecha de Check-in:</strong> ${fechaCheckin}</li>
+        <li><strong>Fecha de Check-out:</strong> ${fechaCheckout}</li>
+        <li><strong>Cantidad de personas:</strong> ${cantidadPersonas}</li>
+        <li><strong>Número de contacto principal:</strong> ${firstContactNumber}</li>
+        <li><strong>Segundo número de contacto:</strong> ${secondContacNumber || "no incluyo"}</li>
+        <li><strong>Aerolínea:</strong> ${aerolinea}</li>
+        <li><strong>Número de vuelo:</strong> ${numeroVuelo}</li>
+      </ul>
+
+      <p>Por favor, confirmar la disponibilidad y proceder con la coordinación del servicio.</p>
+
+      <p>Gracias,<br>Equipo Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>©${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+  `;
+};

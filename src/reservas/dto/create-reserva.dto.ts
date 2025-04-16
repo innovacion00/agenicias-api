@@ -284,14 +284,13 @@ class InfoTransporteDto {
   @MinLength(2)
   aerolinea: string;
 
+  @IsNumber()
+  @IsNotEmpty()
   @IsEnum(ValidTipoRecogida, {
     message: `tipoRecogida debe ser uno de: ${Object.values(ValidTipoRecogida)
       .filter((val) => typeof val === 'number')
       .join(' ,')}`,
   })
-  @IsNumber()
-  @IsNotEmpty()
-  @IsEnum(ValidTipoRecogida)
   tipoRecogida: ValidTipoRecogida;
 
   @IsString()

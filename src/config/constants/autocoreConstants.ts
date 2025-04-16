@@ -26,23 +26,23 @@ export const autocoreHeadersDev = {
 
 export const hotelesAutocore = {
   //? Cartagena
-  '13645': 'Hotel Azuan',
-  '13633': 'Hotel Aixo',
-  '13644': 'Hotel Avexi',
-  '13643': 'Hotel Marina',
-  '14364': 'Hotel Bocagrande',
-  '17644': 'Hotel Abi',
-  '13677': 'Hotel Boquilla',
+  '13645': { city: 'Cartagena', name: 'Hotel Azuan' },
+  '13633': { city: 'Cartagena', name: 'Hotel Aixo' },
+  '13644': { city: 'Cartagena', name: 'Hotel Avexi' },
+  '13643': { city: 'Cartagena', name: 'Hotel Marina' },
+  '14364': { city: 'Cartagena', name: 'Hotel Bocagrande' },
+  '17644': { city: 'Cartagena', name: 'Hotel Abi' },
+  '13677': { city: 'Cartagena', name: 'Hotel Boquilla' },
 
   //? Bogota
-  '18004': 'Hotel Windsor',
-  '16255': 'Hotel Madisson',
+  '18004': { city: 'Bogota', name: 'Hotel Windsor' },
+  '16255': { city: 'Bogota', name: 'Hotel Madisson' },
 
   //? Santa marta
-  '17491': 'Hotel Rodadero',
-  '15736': 'Hotel 1525',
-  '19629': 'Hotel Axis',
-  '15740': 'Hotel Sansiraka',
+  '17491': { city: 'Santa marta', name: 'Hotel Rodadero' },
+  '15736': { city: 'Santa marta', name: 'Hotel 1525' },
+  '19629': { city: 'Santa marta', name: 'Hotel Axis' },
+  '15740': { city: 'Santa marta', name: 'Hotel Sansiraka' },
 };
 
 export const hotelesAutocorePaymenLink = {
