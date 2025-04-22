@@ -273,10 +273,6 @@ class RetencionesDto {
 }
 
 export class InfoTransporteDto {
-  // @IsArray()
-  // @IsString({ each: true })
-  // personas: string[];
-
   @IsString()
   @MinLength(2)
   numeroVuelo: string;
@@ -301,7 +297,7 @@ export class InfoTransporteDto {
   @IsString()
   @IsPhoneNumber()
   @IsOptional()
-  secondContacNumber: string;
+  secondContacNumber?: string;
 
   @IsNumber()
   @IsNotEmpty()
@@ -310,15 +306,20 @@ export class InfoTransporteDto {
   cantidadPersonas: number;
 }
 
-// export class InfoTouresDto {
-//   @IsString()
-//   @IsNotEmpty()
-//   nombre: string;
+export class InfoTouresDto {
+  @IsArray()
+  @IsString({ each: true })
+  nombres: string[];
 
-//   @IsString()
-//   @IsDate()
-//   diaSeleccionado: string;
-// }
+  @IsString()
+  @IsPhoneNumber()
+  firstContactNumber: string;
+
+  @IsString()
+  @IsPhoneNumber()
+  @IsOptional()
+  secondContacNumber?: string;
+}
 
 export class CreateReservaDto {
   @IsNumber()
@@ -339,11 +340,10 @@ export class CreateReservaDto {
   @IsNotEmpty()
   infoTransporte?: InfoTransporteDto;
 
-  // @ValidateNested({ each: true })
-  // @IsArray()
-  // @Type(() => InfoTransporteDto)
-  // @IsOptional()
-  // infoToures?: InfoTouresDto[];
+  @ValidateNested()
+  @Type(() => InfoTouresDto)
+  @IsOptional()
+  infoToures?: InfoTouresDto;
 
   @ValidateNested()
   @Type(() => RetencionesDto)

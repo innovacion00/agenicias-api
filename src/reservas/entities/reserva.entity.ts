@@ -2,10 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
 import { IAsistente, ITitularInfo, ValidTipoRecogida } from '../interfaces';
-import {
-  // InfoTouresDto,
-  InfoTransporteDto,
-} from '../dto';
+import { InfoTouresDto, InfoTransporteDto } from '../dto';
 
 @Schema({ timestamps: true })
 export class Reserva extends Document {
@@ -84,10 +81,31 @@ export class Reserva extends Document {
       cantidadPersonas: 0,
     },
   })
-  infoTransporte: InfoTransporteDto;
+  infoTransporte?: InfoTransporteDto;
 
-  // @Prop({})
-  // infoToures: InfoTouresDto[];
+  @Prop({
+    type: {
+      nombres: {
+        type: [String],
+        required: true,
+        validate: {
+          validator: (arr: string[]) =>
+            Array.isArray(arr) &&
+            arr.every((item) => typeof item === 'string' && item.trim() !== ''),
+          message: 'Todos los nombres deben ser strings no vacíos',
+        },
+      },
+      firstContactNumber: { type: String, required: true },
+      secondContacNumber: { type: String, required: false },
+    },
+    default: {
+      nombres: [],
+      firstContactNumber: '',
+      secondContacNumber: '',
+    },
+    required: false,
+  })
+  infoToures?: InfoTouresDto;
 
   @Prop({
     type: {

@@ -25,6 +25,7 @@ import {
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionVoluntariaReservas,
+  notificacionToures,
   notificacionTransporte,
   notificaiconReservaGrupo,
   tiposAgencia,
@@ -95,15 +96,15 @@ export class ReservasService {
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
-      const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaAutocore(
-          hotelId,
-          createReservaDto.reservaInfo,
-        );
+      // const reservaAutocoreInfo =
+      //   await this.httpCustomService.createReservaAutocore(
+      //     hotelId,
+      //     createReservaDto.reservaInfo,
+      //   );
 
-      if (reservaAutocoreInfo.no_available_rooms) {
-        throw new ConflictException(reservaAutocoreInfo.msg);
-      }
+      // if (reservaAutocoreInfo.no_available_rooms) {
+      //   throw new ConflictException(reservaAutocoreInfo.msg);
+      // }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {
@@ -131,7 +132,7 @@ export class ReservasService {
         total: createReservaDto.total,
         totalMitad: createReservaDto.total / 2,
         reservation: createReservaDto.reservaInfo.reservation,
-        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        reservaChatbotId: 'reservaAutocoreInfo.chatbot_id',
         titularInfo: createReservaDto.titularInfo,
         fechaLimitePago,
         fechaLimitePago2,
@@ -142,7 +143,8 @@ export class ReservasService {
         planAlimentario,
         adicionCena: createReservaDto.adicionCena || false,
         adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
-        infoTransporte: createReservaDto.infoTransporte,
+        infoTransporte: createReservaDto.infoTransporte || null,
+        infoToures: createReservaDto.infoToures || null,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
@@ -150,12 +152,12 @@ export class ReservasService {
       await userInfo.save();
 
       if (createReservaDto.infoTransporte) {
-        // TODO: Se necesita correo para cartagena
-
         const { name, city } = hotelesAutocore[hotelId];
         const { tipoRecogida } = createReservaDto.infoTransporte;
         const email =
-          city === 'Santa marta' ? 'reservasgocolombia@gmail.com' : 'operadortour2025@gmail.com';
+          city === 'Santa marta'
+            ? 'reservasgocolombia@gmail.com'
+            : 'operadortour2025@gmail.com';
 
         const textTipoRecogida =
           tipoRecogida === 0
@@ -175,9 +177,34 @@ export class ReservasService {
               createReservaDto.reservaInfo.reservation.checkout,
               createReservaDto.infoTransporte.cantidadPersonas,
               createReservaDto.infoTransporte.firstContactNumber,
-              createReservaDto.infoTransporte.secondContacNumber,
               createReservaDto.infoTransporte.aerolinea,
               createReservaDto.infoTransporte.numeroVuelo,
+              `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
+              createReservaDto.infoTransporte.secondContacNumber,
+            ),
+          )
+          .catch((error) => {
+            this.logger.error(error);
+          });
+      }
+
+      if (createReservaDto.infoToures) {
+        const { name, city } = hotelesAutocore[hotelId];
+        const email =
+          city === 'Santa marta'
+            ? 'reservasgocolombia@gmail.com'
+            : 'operadortour2025@gmail.com';
+
+        await this.emailService
+          .sendEmail(
+            email,
+            `Solictud de servicio de toures para Geh Suites hotels`,
+            '',
+            notificacionToures(
+              createReservaDto.infoToures.nombres,
+              name,
+              createReservaDto.infoToures.firstContactNumber,
+              createReservaDto.infoToures.secondContacNumber,
             ),
           )
           .catch((error) => {
