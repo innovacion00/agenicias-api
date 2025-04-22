@@ -95,7 +95,7 @@ export class Reserva extends Document {
           message: 'Todos los nombres deben ser strings no vacíos',
         },
       },
-      firstContactNumber: { type: String, required: true },
+      firstContactNumber: { type: String, required: false },
       secondContacNumber: { type: String, required: false },
     },
     default: {
