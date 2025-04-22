@@ -96,15 +96,15 @@ export class ReservasService {
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
-      // const reservaAutocoreInfo =
-      //   await this.httpCustomService.createReservaAutocore(
-      //     hotelId,
-      //     createReservaDto.reservaInfo,
-      //   );
+      const reservaAutocoreInfo =
+        await this.httpCustomService.createReservaAutocore(
+          hotelId,
+          createReservaDto.reservaInfo,
+        );
 
-      // if (reservaAutocoreInfo.no_available_rooms) {
-      //   throw new ConflictException(reservaAutocoreInfo.msg);
-      // }
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException(reservaAutocoreInfo.msg);
+      }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {
