@@ -132,7 +132,7 @@ export class ReservasService {
         total: createReservaDto.total,
         totalMitad: createReservaDto.total / 2,
         reservation: createReservaDto.reservaInfo.reservation,
-        reservaChatbotId: 'reservaAutocoreInfo.chatbot_id',
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
         titularInfo: createReservaDto.titularInfo,
         fechaLimitePago,
         fechaLimitePago2,
