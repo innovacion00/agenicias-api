@@ -83,29 +83,29 @@ export class Reserva extends Document {
   })
   infoTransporte?: InfoTransporteDto;
 
-  @Prop({
-    type: {
-      nombres: {
-        type: [String],
-        required: true,
-        validate: {
-          validator: (arr: string[]) =>
-            Array.isArray(arr) &&
-            arr.every((item) => typeof item === 'string' && item.trim() !== ''),
-          message: 'Todos los nombres deben ser strings no vacíos',
-        },
-      },
-      firstContactNumber: { type: String, required: false },
-      secondContacNumber: { type: String, required: false },
-    },
-    default: {
-      nombres: [],
-      firstContactNumber: '',
-      secondContacNumber: '',
-    },
-    required: false,
-  })
-  infoToures?: InfoTouresDto;
+  // @Prop({
+  //   type: {
+  //     nombres: {
+  //       type: [String],
+  //       required: true,
+  //       validate: {
+  //         validator: (arr: string[]) =>
+  //           Array.isArray(arr) &&
+  //           arr.every((item) => typeof item === 'string' && item.trim() !== ''),
+  //         message: 'Todos los nombres deben ser strings no vacíos',
+  //       },
+  //     },
+  //     firstContactNumber: { type: String, required: false },
+  //     secondContacNumber: { type: String, required: false },
+  //   },
+  //   default: {
+  //     nombres: [],
+  //     firstContactNumber: '',
+  //     secondContacNumber: '',
+  //   },
+  //   required: false,
+  // })
+  // infoToures?: InfoTouresDto;
 
   @Prop({
     type: {
