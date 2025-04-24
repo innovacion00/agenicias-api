@@ -144,7 +144,7 @@ export class ReservasService {
         adicionCena: createReservaDto.adicionCena || false,
         adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
         infoTransporte: createReservaDto.infoTransporte || null,
-        // infoToures: createReservaDto.infoToures || null,
+        infoToures: createReservaDto.infoToures || null,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);
@@ -188,29 +188,29 @@ export class ReservasService {
           });
       }
 
-      // if (createReservaDto.infoToures) {
-      //   const { name, city } = hotelesAutocore[hotelId];
-      //   const email =
-      //     city === 'Santa marta'
-      //       ? 'reservasgocolombia@gmail.com'
-      //       : 'operadortour2025@gmail.com';
+      if (createReservaDto.infoToures) {
+        const { name, city } = hotelesAutocore[hotelId];
+        const email =
+          city === 'Santa marta'
+            ? 'reservasgocolombia@gmail.com'
+            : 'operadortour2025@gmail.com';
 
-      //   await this.emailService
-      //     .sendEmail(
-      //       email,
-      //       `Solictud de servicio de toures para Geh Suites hotels`,
-      //       '',
-      //       notificacionToures(
-      //         createReservaDto.infoToures.nombres,
-      //         name,
-      //         createReservaDto.infoToures.firstContactNumber,
-      //         createReservaDto.infoToures.secondContacNumber,
-      //       ),
-      //     )
-      //     .catch((error) => {
-      //       this.logger.error(error);
-      //     });
-      // }
+        await this.emailService
+          .sendEmail(
+            email,
+            `Solictud de servicio de toures para Geh Suites hotels`,
+            '',
+            notificacionToures(
+              createReservaDto.infoToures.nombres,
+              name,
+              createReservaDto.infoToures.firstContactNumber,
+              createReservaDto.infoToures.secondContacNumber,
+            ),
+          )
+          .catch((error) => {
+            this.logger.error(error);
+          });
+      }
 
       if (cantidadHabitacion >= 10) {
         await this.emailService
@@ -665,18 +665,15 @@ export class ReservasService {
   //? Pruebas
   // async prueba() {
   //   try {
-  //     const agencias = await this.reservasModel.aggregate([
-  //       {
-  //         $group: {
-  //           _id: '$agenciaId',
-  //           reserva: { $first: '$$ROOT' },
-  //         },
-  //       },
-  //       {
-  //         $count: 'agenciasConReserva',
-  //       },
-  //     ]);
-  //     return agencias;
+  //     const reserva = await this.reservasModel.findById(
+  //       '6809669fef1b4468e1b6bab9',
+  //     );
+
+  //     reserva.reservaChatbotId = 'Hola mundo';
+
+  //     await reserva.save();
+
+  //     return reserva
   //   } catch (error) {
   //     this.logger.error(error);
   //     this.errorManager.handle(error);

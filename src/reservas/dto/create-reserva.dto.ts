@@ -337,13 +337,12 @@ export class CreateReservaDto {
   @ValidateNested()
   @Type(() => InfoTransporteDto)
   @IsOptional()
-  @IsNotEmpty()
   infoTransporte?: InfoTransporteDto;
 
-  // @ValidateNested()
-  // @Type(() => InfoTouresDto)
-  // @IsOptional()
-  // infoToures?: InfoTouresDto;
+  @ValidateNested()
+  @Type(() => InfoTouresDto)
+  @IsOptional()
+  infoToures?: InfoTouresDto;
 
   @ValidateNested()
   @Type(() => RetencionesDto)
