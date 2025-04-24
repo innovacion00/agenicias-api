@@ -994,6 +994,8 @@ export const notificacionTransporte = (
   aerolinea: string,
   numeroVuelo: string,
   titular: string,
+  contactoAgencia: string,
+  numeroVueloSalida?:string,
   secondContacNumber?: string,
 ) => {
   return `
@@ -1035,6 +1037,15 @@ export const notificacionTransporte = (
     .email-body p {
       margin: 0 0 10px;
     }
+    .advertencia {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 15px;
+      border-radius: 6px;
+      color: #856404;
+      font-weight: bold;
+      margin: 20px 0;
+    }
     .email-footer {
       background-color: #f4f4f4;
       text-align: center;
@@ -1055,17 +1066,22 @@ export const notificacionTransporte = (
 
       <ul>
         <li><strong>Titular de la reserva:</strong> ${titular}</li>
-        <li><strong>Tipo de recogida:</strong> ${textTipoRecogida}</li>
+        <li><strong>Número de contacto principal:</strong> ${firstContactNumber}</li>
+        <li><strong>Tipo de recogida:</strong> ${textTipoRecogida} (Compartido)</li>
         <li><strong>Fecha de Check-in:</strong> ${fechaCheckin}</li>
         <li><strong>Fecha de Check-out:</strong> ${fechaCheckout}</li>
         <li><strong>Cantidad de personas:</strong> ${cantidadPersonas}</li>
-        <li><strong>Número de contacto principal:</strong> ${firstContactNumber}</li>
         <li><strong>Segundo número de contacto:</strong> ${secondContacNumber || 'no incluyó'}</li>
         <li><strong>Aerolínea:</strong> ${aerolinea}</li>
-        <li><strong>Número de vuelo:</strong> ${numeroVuelo}</li>
+        <li><strong>Número de vuelo de llegada:</strong> ${numeroVuelo}</li>
+        <li><strong>Número de vuelo de salida:</strong> ${numeroVueloSalida || 'no incluyó'}</li>
       </ul>
 
       <p>Por favor, confirmar la disponibilidad y proceder con la coordinación del servicio.</p>
+
+      <div class="advertencia">
+        Importante: confirmar llamando al siguiente número <a href="tel:${contactoAgencia}">${contactoAgencia}</a>
+      </div>
 
       <p><strong>Ante cualquier duda o inconveniente, por favor contactar al correo <a href="mailto:reservas@gehsuites.com">reservas@gehsuites.com</a>.</strong></p>
 

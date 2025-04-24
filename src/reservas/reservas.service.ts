@@ -96,15 +96,15 @@ export class ReservasService {
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
-      const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaAutocore(
-          hotelId,
-          createReservaDto.reservaInfo,
-        );
+      // const reservaAutocoreInfo =
+      //   await this.httpCustomService.createReservaAutocore(
+      //     hotelId,
+      //     createReservaDto.reservaInfo,
+      //   );
 
-      if (reservaAutocoreInfo.no_available_rooms) {
-        throw new ConflictException(reservaAutocoreInfo.msg);
-      }
+      // if (reservaAutocoreInfo.no_available_rooms) {
+      //   throw new ConflictException(reservaAutocoreInfo.msg);
+      // }
 
       const retenciones: any = {};
       if (createReservaDto.reteFuente) {
@@ -132,7 +132,7 @@ export class ReservasService {
         total: createReservaDto.total,
         totalMitad: createReservaDto.total / 2,
         reservation: createReservaDto.reservaInfo.reservation,
-        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        reservaChatbotId: "reservaAutocoreInfo.chatbot_id",
         titularInfo: createReservaDto.titularInfo,
         fechaLimitePago,
         fechaLimitePago2,
@@ -151,66 +151,75 @@ export class ReservasService {
 
       await userInfo.save();
 
-      if (createReservaDto.infoTransporte) {
-        const { name, city } = hotelesAutocore[hotelId];
-        const { tipoRecogida } = createReservaDto.infoTransporte;
-        const email =
-          city === 'Santa marta'
-            ? 'reservasgocolombia@gmail.com'
-            : 'operadortour2025@gmail.com';
+      // if (createReservaDto.infoTransporte) {
+      //   const { name, city } = hotelesAutocore[hotelId];
+      //   const { tipoRecogida } = createReservaDto.infoTransporte;
+      //   const contactInfo =
+      //     city === 'Santa marta'
+      //       ? {
+      //           email: 'reservasgocolombia@gmail.com',
+      //           tel: '+57 304 3697601',
+      //         }
+      //       : {
+      //           email: 'operadortour2025@gmail.com',
+      //           tel: '+57 304 3697601',
+      //         };
 
-        const textTipoRecogida =
-          tipoRecogida === 0
-            ? `De aeropuerto a ${name}`
-            : tipoRecogida === 1
-              ? `De ${name} al aeropuerto`
-              : `De aeropuerto a ${name} y de ${name} al aeropuerto`;
+      //   const textTipoRecogida =
+      //     tipoRecogida === 0
+      //       ? `Servicio de traslado desde el a`
+      //       : tipoRecogida === 1
+      //         ? `Servicio de traslado de ${name} a aeropuerto`
+      //         : `Servicio de traslado de aeropueto a ${name} y salida del ${name} al aeropuerto`;
 
-        await this.emailService
-          .sendEmail(
-            email,
-            `Solictud de servicio de translado para Geh Suites hotels`,
-            '',
-            notificacionTransporte(
-              textTipoRecogida,
-              createReservaDto.reservaInfo.reservation.checkin,
-              createReservaDto.reservaInfo.reservation.checkout,
-              createReservaDto.infoTransporte.cantidadPersonas,
-              createReservaDto.infoTransporte.firstContactNumber,
-              createReservaDto.infoTransporte.aerolinea,
-              createReservaDto.infoTransporte.numeroVuelo,
-              `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
-              createReservaDto.infoTransporte.secondContacNumber,
-            ),
-          )
-          .catch((error) => {
-            this.logger.error(error);
-          });
-      }
+      //   await this.emailService
+      //     .sendEmail(
+      //       contactInfo.email,
+      //       `Solictud de servicio de translado para Geh Suites hotels`,
+      //       '',
+      //       notificacionTransporte(
+      //         textTipoRecogida,
+      //         createReservaDto.reservaInfo.reservation.checkin,
+      //         createReservaDto.reservaInfo.reservation.checkout,
+      //         createReservaDto.infoTransporte.cantidadPersonas,
+      //         createReservaDto.infoTransporte.firstContactNumber,
+      //         createReservaDto.infoTransporte.aerolinea,
+      //         createReservaDto.infoTransporte.numeroVuelo,
+      //         `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
+      //         contactInfo.tel,
+      //         createReservaDto.infoTransporte.numeroVueloSalida,
+      //         createReservaDto.infoTransporte.secondContacNumber,
+      //       ),
+      //     )
+      //     .catch((error) => {
+      //       this.logger.error(error);
+      //     });
+      // }
 
-      if (createReservaDto.infoToures) {
-        const { name, city } = hotelesAutocore[hotelId];
-        const email =
-          city === 'Santa marta'
-            ? 'reservasgocolombia@gmail.com'
-            : 'operadortour2025@gmail.com';
+      // if (createReservaDto.infoToures) {
+      //   const { name, city } = hotelesAutocore[hotelId];
+      //   const email =
+      //     city === 'Santa marta'
+      //       ? 'reservasgocolombia@gmail.com'
+      //       : 'operadortour2025@gmail.com';
 
-        await this.emailService
-          .sendEmail(
-            email,
-            `Solictud de servicio de toures para Geh Suites hotels`,
-            '',
-            notificacionToures(
-              createReservaDto.infoToures.nombres,
-              name,
-              createReservaDto.infoToures.firstContactNumber,
-              createReservaDto.infoToures.secondContacNumber,
-            ),
-          )
-          .catch((error) => {
-            this.logger.error(error);
-          });
-      }
+      //   await this.emailService
+      //     .sendEmail(
+      //       email,
+      //       `Solictud de servicio de toures para Geh Suites hotels`,
+      //       '',
+      //       notificacionToures(
+      //         createReservaDto.infoToures.nombres,
+      //         name,
+      //         createReservaDto.infoToures.firstContactNumber,
+      //         `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
+      //         createReservaDto.infoToures.secondContacNumber,
+      //       ),
+      //     )
+      //     .catch((error) => {
+      //       this.logger.error(error);
+      //     });
+      // }
 
       if (cantidadHabitacion >= 10) {
         await this.emailService
@@ -663,20 +672,20 @@ export class ReservasService {
   }
 
   //? Pruebas
-  // async prueba() {
-  //   try {
-  //     const reserva = await this.reservasModel.findById(
-  //       '6809669fef1b4468e1b6bab9',
-  //     );
+//   async prueba() {
+//     try {
+//       const reserva = await this.reservasModel.findById(
+//         '680aa1d6dfbefaf5fb1a8cf8',
+//       );
 
-  //     reserva.reservaChatbotId = 'Hola mundo';
+//       reserva.reservaChatbotId = 'Hola mundo';
 
-  //     await reserva.save();
+//       await reserva.save();
 
-  //     return reserva
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.errorManager.handle(error);
-  //   }
-  // }
+//       return reserva
+//     } catch (error) {
+//       this.logger.error(error);
+//       this.errorManager.handle(error);
+//     }
+//   }
 }

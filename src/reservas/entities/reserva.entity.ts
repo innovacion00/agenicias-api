@@ -60,6 +60,7 @@ export class Reserva extends Document {
   @Prop({
     type: {
       numeroVuelo: { type: String, require: true },
+      numeroVueloSalida: { type: String },
       aerolinea: { type: String, require: true },
       tipoRecogida: {
         type: Number,

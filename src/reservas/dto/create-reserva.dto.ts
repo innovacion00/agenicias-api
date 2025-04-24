@@ -279,6 +279,11 @@ export class InfoTransporteDto {
 
   @IsString()
   @MinLength(2)
+  @IsOptional()
+  numeroVueloSalida?: string;
+
+  @IsString()
+  @MinLength(2)
   aerolinea: string;
 
   @IsNumber()
