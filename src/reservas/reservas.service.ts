@@ -152,7 +152,7 @@ export class ReservasService {
       await userInfo.save();
 
       if (
-        createReservaDto.infoTransporte ||
+        createReservaDto.infoTransporte &&
         // @ts-ignore
         userInfo.agencia.fullName !== 'geh suites'
       ) {
@@ -201,7 +201,7 @@ export class ReservasService {
       }
 
       if (
-        createReservaDto.infoToures ||
+        createReservaDto.infoToures &&
         // @ts-ignore
         userInfo.agencia.fullName !== 'geh suites'
       ) {
