@@ -196,7 +196,11 @@ export class ReservasService {
           });
       }
 
-      if (createReservaDto.infoToures) {
+      if (
+        createReservaDto.infoToures ||
+        // @ts-ignore
+        userInfo.agencia.fullName !== 'geh suites'
+      ) {
         const { name, city } = hotelesAutocore[hotelId];
         const email =
           city === 'Santa marta'
@@ -213,6 +217,8 @@ export class ReservasService {
               name,
               createReservaDto.infoToures.firstContactNumber,
               `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
+              Number(createReservaDto.reservaInfo.reservation.adults) +
+                Number(createReservaDto.reservaInfo.reservation.children) || 0,
               createReservaDto.infoToures.secondContacNumber,
             ),
           )
@@ -672,20 +678,20 @@ export class ReservasService {
   }
 
   //? Pruebas
-//   async prueba() {
-//     try {
-//       const reserva = await this.reservasModel.findById(
-//         '680aa1d6dfbefaf5fb1a8cf8',
-//       );
-
-//       reserva.reservaChatbotId = 'Hola mundo';
-
-//       await reserva.save();
-
-//       return reserva
-//     } catch (error) {
-//       this.logger.error(error);
-//       this.errorManager.handle(error);
-//     }
-//   }
+  // async prueba() {
+  //   try {
+  //     const result = await this.reservasModel.updateMany(
+  //       {
+  //         'infoTransporte.numeroVuelo': '',
+  //       },
+  //       {
+  //         $unset: { infoTransporte: '' },
+  //       },
+  //     );
+  //     return 'ok';
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     this.errorManager.handle(error);
+  //   }
+  // }
 }

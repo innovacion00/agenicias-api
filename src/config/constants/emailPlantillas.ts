@@ -995,7 +995,7 @@ export const notificacionTransporte = (
   numeroVuelo: string,
   titular: string,
   contactoAgencia: string,
-  numeroVueloSalida?:string,
+  numeroVueloSalida?: string,
   secondContacNumber?: string,
 ) => {
   return `
@@ -1102,6 +1102,7 @@ export const notificacionToures = (
   nombreHotel: string,
   firstContactNumber: string,
   titular: string,
+  cantidadPersonas: number,
   secondContacNumber?: string,
 ) => {
   return `
@@ -1164,6 +1165,7 @@ export const notificacionToures = (
       <ul>
         <li><strong>Titular de la reserva:</strong> ${titular}</li>
         <li><strong>Toures solicitados:</strong> ${nombresToures.join(', ')}</li>
+        <li><strong>Cantidad de personas:</strong> ${cantidadPersonas}</li>
         <li><strong>Hotel:</strong> ${nombreHotel}</li>
         <li><strong>Número de contacto principal:</strong> ${firstContactNumber}</li>
         <li><strong>Segundo número de contacto:</strong> ${secondContacNumber || 'no incluyó'}</li>
