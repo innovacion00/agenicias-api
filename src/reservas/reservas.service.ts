@@ -151,7 +151,11 @@ export class ReservasService {
 
       await userInfo.save();
 
-      if (createReservaDto.infoTransporte) {
+      if (
+        createReservaDto.infoTransporte ||
+        // @ts-ignore
+        userInfo.agencia.fullName !== 'geh suites'
+      ) {
         const { name, city } = hotelesAutocore[hotelId];
         const { tipoRecogida } = createReservaDto.infoTransporte;
         const contactInfo =
