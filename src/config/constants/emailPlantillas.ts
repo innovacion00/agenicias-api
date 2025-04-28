@@ -820,6 +820,95 @@ export const notificacionCancelacionVoluntariaReservas = (
   }
 };
 
+export const notificacionCancelacionToures = (
+  titular: string,
+  fechaCheckin: string,
+  fechaCheckout: string,
+  numeroTelefono: string,
+) => {
+  return `
+  <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cancelación de servicio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #cc8831;
+      color: #ffffff;
+      padding: 20px;
+      text-align: center;
+    }
+    .email-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .email-body {
+      padding: 20px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .email-body p {
+      margin: 0 0 10px;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #888888;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h2>Cancelación de servicio</h2>
+    </div>
+    <div class="email-body">
+      <p>Hola,</p>
+
+      <p><strong>Geh Suites</strong> les informa que la reserva realizada a nombre de <strong>${titular}</strong> ha sido cancelada.</p>
+
+      <p>Detalles de la reserva cancelada:</p>
+      <ul>
+        <li><strong>Fecha de Check-in:</strong> ${fechaCheckin}</li>
+        <li><strong>Fecha de Check-out:</strong> ${fechaCheckout}</li>
+      </ul>
+
+      <p>Por consiguiente, solicitamos cancelar el servicio de transporte o tour asociado a esta reserva, ya que no será requerido.</p>
+
+      <p>Agradecemos su comprensión y apoyo en la gestión de esta solicitud.</p>
+
+      <p><strong>Ante cualquier duda o inconveniente, por favor contactar al correo 
+      <a href="mailto:reservas@gehsuites.com">reservas@gehsuites.com</a> o llamar al número <strong>${numeroTelefono}</strong>.</strong></p>
+
+      <p>Gracias,<br>Equipo Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>©${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+  `;
+};
+
 export const notificacionCancelacionVencimiento = (
   reserva: string,
   agencia: string,

@@ -24,6 +24,7 @@ import { User } from 'src/auth/entities';
 import {
   hotelesAutocore,
   hotelesAutocorePaymenLink,
+  notificacionCancelacionToures,
   notificacionCancelacionVoluntariaReservas,
   notificacionToures,
   notificacionTransporte,
@@ -40,7 +41,7 @@ import {
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
-import { calcularFechaLimitePago } from './utils';
+import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
 
 @Injectable()
 export class ReservasService {
@@ -479,6 +480,28 @@ export class ReservasService {
         reserva.pagadoPrimeraMitad,
         saldoFavor,
       );
+
+      if (reserva.infoToures || reserva.infoTransporte) {
+        const mensajeCancelacion = notificacionCancelacionToures(
+          `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
+          reserva.reservation.checkin,
+          reserva.reservation.checkout,
+          reserva.infoToures.firstContactNumber ||
+            reserva.infoTransporte.firstContactNumber,
+        );
+
+        const contactInfo =
+          obtenerCiudadPorNombre(reserva.hotel) === 'Santa marta'
+            ? 'reservasgocolombia@gmail.com'
+            : 'operadortour2025@gmail.com';
+
+        await this.emailService.sendEmail(
+          contactInfo,
+          `Booking connect - Notificacion de cancelacion de transporte o tour`,
+          '',
+          mensajeCancelacion ,
+        );
+      }
 
       await this.emailService.sendEmail(
         'reservas@gehsuites.com',
