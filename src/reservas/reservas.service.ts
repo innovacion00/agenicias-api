@@ -486,8 +486,7 @@ export class ReservasService {
           `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
           reserva.reservation.checkin,
           reserva.reservation.checkout,
-          reserva.infoToures.firstContactNumber ||
-            reserva.infoTransporte.firstContactNumber,
+          reserva.infoToures?.firstContactNumber || reserva.infoTransporte?.firstContactNumber
         );
 
         const contactInfo =
@@ -499,7 +498,7 @@ export class ReservasService {
           contactInfo,
           `Booking connect - Notificacion de cancelacion de transporte o tour`,
           '',
-          mensajeCancelacion ,
+          mensajeCancelacion,
         );
       }
 
