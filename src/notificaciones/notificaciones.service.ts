@@ -88,7 +88,6 @@ export class NotificacionesService {
               'reservas@gehsuites.com',
               // @ts-ignore
               `Booking connect - Notificacion de cancelacion de reserva para la agencia ${userDoc.agencia.fullName}`,
-              '',
               mensaje,
             );
           }
@@ -97,7 +96,6 @@ export class NotificacionesService {
             this.emailService.sendEmail(
               userDoc.email,
               notiFields.subject,
-              '',
               notiFields.html,
             ),
           );

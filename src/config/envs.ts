@@ -24,6 +24,9 @@ interface EnvVars {
   SENDER_EMAIL: string;
   EMAIL_APP_PASSWORD: string;
 
+  // ? SEND GRID
+  SENDGRID_API_KEY: string;
+
   // ? Autocore
   AUTOCORE_URL: string;
   AUTOCORE_ACCESS_KEY: string;
@@ -74,6 +77,9 @@ const envSchema = joi
     // ? Node_Mailer
     EMAIL_APP_PASSWORD: joi.string().required(),
     SENDER_EMAIL: joi.string().required(),
+
+    // ? SEND GRID
+    SENDGRID_API_KEY: joi.string().required(),
 
     // ? Autocore
     AUTOCORE_URL: joi.string().required(),
@@ -132,6 +138,9 @@ export const envs = {
   // ? Node_Mailer
   senderEmail: envVars.SENDER_EMAIL,
   emailAppPassword: envVars.EMAIL_APP_PASSWORD,
+
+  // ? SEND GRID
+  sendgridApiKey: envVars.SENDGRID_API_KEY,
 
   // ? Autocore
   autocoreUrl: envVars.AUTOCORE_URL,

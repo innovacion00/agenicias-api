@@ -181,7 +181,6 @@ export class ReservasService {
           .sendEmail(
             contactInfo.email,
             `Solictud de servicio de translado para Geh Suites hotels`,
-            '',
             notificacionTransporte(
               textTipoRecogida,
               createReservaDto.reservaInfo.reservation.checkin,
@@ -216,7 +215,6 @@ export class ReservasService {
           .sendEmail(
             email,
             `Solictud de servicio de toures para Geh Suites hotels`,
-            '',
             notificacionToures(
               createReservaDto.infoToures.nombres,
               name,
@@ -238,7 +236,6 @@ export class ReservasService {
             'reservas@gehsuites.com',
             // @ts-ignore
             `Reserva para grupo de ${cantidadHabitacion} para agencia ${userInfo.agencia.fullName}`,
-            '',
             notificaiconReservaGrupo(
               // @ts-ignore
               userInfo.agencia.fullName,
@@ -486,7 +483,8 @@ export class ReservasService {
           `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
           reserva.reservation.checkin,
           reserva.reservation.checkout,
-          reserva.infoToures?.firstContactNumber || reserva.infoTransporte?.firstContactNumber
+          reserva.infoToures?.firstContactNumber ||
+            reserva.infoTransporte?.firstContactNumber,
         );
 
         const contactInfo =
@@ -497,7 +495,6 @@ export class ReservasService {
         await this.emailService.sendEmail(
           contactInfo,
           `Booking connect - Notificacion de cancelacion de transporte o tour`,
-          '',
           mensajeCancelacion,
         );
       }
@@ -505,7 +502,6 @@ export class ReservasService {
       await this.emailService.sendEmail(
         'reservas@gehsuites.com',
         `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
-        '',
         mensajeReserva,
       );
 
@@ -704,20 +700,98 @@ export class ReservasService {
   }
 
   //? Pruebas
-  // async prueba() {
-  //   try {
-  //     const result = await this.reservasModel.updateMany(
-  //       {
-  //         'infoTransporte.numeroVuelo': '',
-  //       },
-  //       {
-  //         $unset: { infoTransporte: '' },
-  //       },
-  //     );
-  //     return 'ok';
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.errorManager.handle(error);
-  //   }
-  // }
+//   async prueba() {
+//     try {
+//       const msg = await this.emailService.sendEmail(
+//         'cbbas1999@gmail.com',
+//         'Correo de prueba',
+//         '',
+//         `
+//         <!DOCTYPE html>
+// <html lang="es">
+// <head>
+//   <meta charset="UTF-8">
+//   <title>Cancelación de servicio</title>
+//   <style>
+//     body {
+//       font-family: Arial, sans-serif;
+//       background-color: #f8f8f8;
+//       margin: 0;
+//       padding: 0;
+//     }
+//     .email-container {
+//       max-width: 600px;
+//       margin: 30px auto;
+//       background-color: #ffffff;
+//       border: 1px solid #dddddd;
+//       border-radius: 8px;
+//       overflow: hidden;
+//     }
+//     .email-header {
+//       background-color: #cc8831;
+//       color: #ffffff;
+//       padding: 20px;
+//       text-align: center;
+//     }
+//     .email-header h2 {
+//       margin: 0;
+//       font-size: 22px;
+//     }
+//     .email-body {
+//       padding: 20px;
+//       color: #333333;
+//       line-height: 1.6;
+//     }
+//     .email-body p {
+//       margin: 0 0 10px;
+//     }
+//     .email-footer {
+//       background-color: #f4f4f4;
+//       text-align: center;
+//       padding: 10px;
+//       font-size: 12px;
+//       color: #888888;
+//     }
+//   </style>
+// </head>
+// <body>
+//   <div class="email-container">
+//     <div class="email-header">
+//       <h2>Cancelación de servicio</h2>
+//     </div>
+//     <div class="email-body">
+//       <p>Hola,</p>
+
+//       <p><strong>Geh Suites</strong> les informa que la reserva realizada a nombre de <strong>{titular}</strong> ha sido cancelada.</p>
+
+//       <p>Detalles de la reserva cancelada:</p>
+//       <ul>
+//         <li><strong>Fecha de Check-in:</strong> {fechaCheckin}</li>
+//         <li><strong>Fecha de Check-out:</strong> {fechaCheckout}</li>
+//       </ul>
+
+//       <p>Por consiguiente, solicitamos cancelar el servicio de transporte o tour asociado a esta reserva, ya que no será requerido.</p>
+
+//       <p>Agradecemos su comprensión y apoyo en la gestión de esta solicitud.</p>
+
+//       <p><strong>Ante cualquier duda o inconveniente, por favor contactar al correo 
+//       <a href="mailto:reservas@gehsuites.com">reservas@gehsuites.com</a> o llamar al número <strong>{numeroTelefono}</strong>.</strong></p>
+
+//       <p>Gracias,<br>Equipo Geh Suites</p>
+//     </div>
+//     <div class="email-footer">
+//       <p>©${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+//     </div>
+//   </div>
+// </body>
+// </html>
+//         `,
+//       );
+
+//       return msg;
+//     } catch (error) {
+//       this.logger.error(error);
+//       this.errorManager.handle(error);
+//     }
+//   }
 }

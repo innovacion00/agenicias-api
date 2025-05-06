@@ -160,7 +160,6 @@ export class AuthService {
     await this.sendEmailCustomService.sendEmail(
       email,
       'Booking connect - Codigo de verificacion',
-      '',
       html,
     );
   }
