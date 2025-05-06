@@ -80,7 +80,7 @@ export class AgenciasController {
     return this.agenciasService.getAgenciasBySearch(search);
   }
 
-  // ? Agencias con reservas
+  //? Agencias con reservas
   @Get("agencias-con-reserva")
   @Auth(ValidRoles.superAdmin)
   getCountOfAgenciasReservas() {

@@ -658,7 +658,7 @@ export const notificacionEmailCancelacionReserva = (
 };
 
 // #region Cancelacion
-// ? Mensaje para el equipo de reservas
+//? Mensaje para el equipo de reservas
 export const notificacionCancelacionVoluntariaReservas = (
   reserva: string,
   agencia: string,

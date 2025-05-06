@@ -8,36 +8,36 @@ interface EnvVars {
 
   JWT_SECRET: string;
 
-  // ? Cobre
+  //? Cobre
   COBRE_API_URL: string;
   COBRE_USER_ID: string;
   COBRE_SECRET: string;
   COBRE_AUTH_STRING: string;
   COBRE_API_KEY: string;
 
-  // ? Cloudinary
+  //? Cloudinary
   CLOUDINARY_NAME: string;
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
 
-  // ? Node_Mailer
+  //? Node_Mailer
   SENDER_EMAIL: string;
   EMAIL_APP_PASSWORD: string;
 
-  // ? SEND GRID
+  //? SEND GRID
   SENDGRID_API_KEY: string;
 
-  // ? Autocore
+  //? Autocore
   AUTOCORE_URL: string;
   AUTOCORE_ACCESS_KEY: string;
   AUTOCORE_SECRET_KEY: string;
 
-  // ? Autocore dev
+  //? Autocore dev
   AUTOCORE_URL_DEV?: string;
   AUTOCORE_ACCESS_KEY_DEV?: string;
   AUTOCORE_SECRET_KEY_DEV?: string;
 
-  // ? My Tool
+  //? My Tool
   MY_TOOL_EMAIL: string;
   MY_TOOL_CLAVE: string;
 
@@ -62,36 +62,36 @@ const envSchema = joi
 
     JWT_SECRET: joi.string().required(),
 
-    // ? Cobre
+    //? Cobre
     COBRE_API_URL: joi.string().required(),
     COBRE_USER_ID: joi.string().required(),
     COBRE_SECRET: joi.string().required(),
     COBRE_AUTH_STRING: joi.string().required(),
     COBRE_API_KEY: joi.string().required(),
 
-    // ? Cloudinary
+    //? Cloudinary
     CLOUDINARY_NAME: joi.string().required(),
     CLOUDINARY_API_KEY: joi.string().required(),
     CLOUDINARY_API_SECRET: joi.string().required(),
 
-    // ? Node_Mailer
+    //? Node_Mailer
     EMAIL_APP_PASSWORD: joi.string().required(),
     SENDER_EMAIL: joi.string().required(),
 
-    // ? SEND GRID
+    //? SEND GRID
     SENDGRID_API_KEY: joi.string().required(),
 
-    // ? Autocore
+    //? Autocore
     AUTOCORE_URL: joi.string().required(),
     AUTOCORE_ACCESS_KEY: joi.string().required(),
     AUTOCORE_SECRET_KEY: joi.string().required(),
 
-    // ? Autocore dev
+    //? Autocore dev
     AUTOCORE_URL_DEV: joi.string().optional(),
     AUTOCORE_ACCESS_KEY_DEV: joi.string().optional(),
     AUTOCORE_SECRET_KEY_DEV: joi.string().optional(),
 
-    // ? My Tool
+    //? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
     MY_TOOL_CLAVE: joi.string().required(),
     API_1525: joi.string().required(),
@@ -123,36 +123,36 @@ export const envs = {
 
   jwtSecret: envVars.JWT_SECRET,
 
-  // ? Cobre
+  //? Cobre
   cobreApiUrl: envVars.COBRE_API_URL,
   cobreUserId: envVars.COBRE_USER_ID,
   cobreSecret: envVars.COBRE_SECRET,
   cobreAuthString: envVars.COBRE_AUTH_STRING,
   cobreApiKey: envVars.COBRE_API_KEY,
 
-  // ? Cloudinary
+  //? Cloudinary
   cloudinaryName: envVars.CLOUDINARY_NAME,
   cloudinaryApiKey: envVars.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: envVars.CLOUDINARY_API_SECRET,
 
-  // ? Node_Mailer
+  //? Node_Mailer
   senderEmail: envVars.SENDER_EMAIL,
   emailAppPassword: envVars.EMAIL_APP_PASSWORD,
 
-  // ? SEND GRID
+  //? SEND GRID
   sendgridApiKey: envVars.SENDGRID_API_KEY,
 
-  // ? Autocore
+  //? Autocore
   autocoreUrl: envVars.AUTOCORE_URL,
   autocoreAccessKey: envVars.AUTOCORE_ACCESS_KEY,
   autocoreSecretKey: envVars.AUTOCORE_SECRET_KEY,
 
-  // ? Autocore Dev
+  //? Autocore Dev
   autocoreUrlDev: envVars.AUTOCORE_URL_DEV,
   autocoreAccessKeyDev: envVars.AUTOCORE_ACCESS_KEY_DEV,
   autocoreSecretKeyDev: envVars.AUTOCORE_SECRET_KEY_DEV,
 
-  // ? My Tool
+  //? My Tool
   myToolEmail: envVars.MY_TOOL_EMAIL,
   myToolClave: envVars.MY_TOOL_CLAVE,
   api1525: envVars.API_1525,

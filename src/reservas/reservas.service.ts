@@ -703,9 +703,8 @@ export class ReservasService {
 //   async prueba() {
 //     try {
 //       const msg = await this.emailService.sendEmail(
-//         'cbbas1999@gmail.com',
+//         'rosemberc.g.02@gmail.com',
 //         'Correo de prueba',
-//         '',
 //         `
 //         <!DOCTYPE html>
 // <html lang="es">

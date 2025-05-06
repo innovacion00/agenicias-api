@@ -40,7 +40,7 @@ export class Agencia extends Document {
   })
   saldo: number;
 
-  // ? Agencia 1 para mayoristas 0 para minoristas
+  //? Agencia 1 para mayoristas 0 para minoristas
   @Prop({
     type: Number,
     required: true,

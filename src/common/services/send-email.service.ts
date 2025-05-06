@@ -3,7 +3,6 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 import * as sgMail from '@sendgrid/mail';
 import { envs } from 'src/config';
 
@@ -18,22 +17,6 @@ export class SendEmailCustomService {
     html: string,
   ) {
     try {
-      // const transporter = nodemailer.createTransport({
-      //   host: 'smtp.gmail.com',
-      //   port: 587,
-      //   auth: {
-      //     user: envs.senderEmail,
-      //     pass: envs.emailAppPassword,
-      //   },
-      // });
-
-      // const info = await transporter.sendMail({
-      //   from: `"Geh Suites No-Reply" <${envs.senderEmail}>`,
-      //   to: target,
-      //   subject,
-      //   text,
-      //   html,
-      // });
       sgMail.setApiKey(envs.sendgridApiKey);
 
       const msg = {
