@@ -327,6 +327,10 @@ export class InfoTouresDto {
 }
 
 export class CreateReservaDto {
+  @IsBoolean()
+  @IsOptional()
+  mascotas?: boolean;
+
   @IsNumber()
   @IsNotEmpty()
   total: number;

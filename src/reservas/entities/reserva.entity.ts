@@ -22,6 +22,11 @@ export class Reserva extends Document {
   cantidadHabitaciones: number;
 
   @Prop({
+    type: Boolean,
+  })
+  mascotas: boolean;
+
+  @Prop({
     type: Number,
     required: true,
   })
