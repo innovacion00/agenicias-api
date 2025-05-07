@@ -9,6 +9,7 @@ export const notificaiconReservaGrupo = (
   hotel: string,
   checkin: string,
   checkout: string,
+  reservaChatbotId: string,
 ) => {
   return `
   <!DOCTYPE html>
@@ -69,6 +70,7 @@ export const notificaiconReservaGrupo = (
         <li><strong>Hotel:</strong> ${hotel}</li>
         <li><strong>Check-in:</strong> ${checkin}</li>
         <li><strong>Check-out:</strong> ${checkout}</li>
+        <li><strong>Codigo de reserva:</strong> ${reservaChatbotId}</li>
       </ul>
       <p>Por favor, gestionen la reserva en el sistema y realicen el seguimiento correspondiente.</p>
       <p>Saludos cordiales,<br>El equipo de Geh Suites</p>

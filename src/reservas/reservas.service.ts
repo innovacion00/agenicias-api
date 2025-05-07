@@ -244,6 +244,7 @@ export class ReservasService {
               hotelesAutocore[hotelId].name,
               createReservaDto.reservaInfo.reservation.checkin,
               createReservaDto.reservaInfo.reservation.checkout,
+              reservaAutocoreInfo.chatbot_id,
             ),
           )
           .catch((error) => {
