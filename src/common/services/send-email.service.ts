@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import * as sgMail from '@sendgrid/mail';
+import * as nodemailer from 'nodemailer';
 import { envs } from 'src/config';
 
 @Injectable()
@@ -17,20 +17,23 @@ export class SendEmailCustomService {
     html: string,
   ) {
     try {
-      sgMail.setApiKey(envs.sendgridApiKey);
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        auth: {
+          user: envs.senderEmail,
+          pass: envs.emailAppPassword,
+        },
+      });
 
-      const msg = {
-        to: target, // Change to your recipient
-        from: {
-          email: envs.senderEmail,
-          name: 'Geh Suites No-Reply',
-        }, // Change to your verified sender
+      const info = await transporter.sendMail({
+        from: `"Geh Suites No-Reply" <${envs.senderEmail}>`,
+        to: target,
         subject,
         html,
-      };
+      });
 
-      await sgMail.send(msg);
-      return 'Email enviado';
+      return info;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(
