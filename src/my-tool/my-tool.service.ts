@@ -16,7 +16,7 @@ export class MyToolService {
   private async generateMyToolToken() {
     try {
       const rawData = await axios.post<{ token: string; valido: string }>(
-        `${envs.apiAixo}:59000/api/Autenticacion/Validar`,
+        `${envs.apiAvexi}:59000/api/Autenticacion/Validar`,
         {
           correo: envs.myToolEmail,
           clave: envs.myToolClave,

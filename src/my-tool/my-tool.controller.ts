@@ -6,8 +6,8 @@ import { ReservaInfoDto } from './dto';
 export class MyToolController {
   constructor(private readonly myToolService: MyToolService) {}
 
-  // @Get('reservas-info')
-  // getReservaInfo(@Query() reservaInfo: ReservaInfoDto) {
-  //   return this.myToolService.getReservaInfo(reservaInfo);
-  // }
+  @Get('reservas-info')
+  getReservaInfo(@Query() reservaInfo: ReservaInfoDto) {
+    return this.myToolService.getReservaInfo(reservaInfo);
+  }
 }
