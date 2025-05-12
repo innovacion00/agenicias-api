@@ -76,15 +76,10 @@ export class ReservasService {
           ? tiposAgencia.mayorista
           : tiposAgencia.minorista;
 
-      const fechaActual = new Date();
 
       let planAlimentario = '';
 
-      const actualDiffDays = diffDays(
-        createReservaDto.reservaInfo.reservation.checkin,
-        fechaActual,
-      );
-      const fechaLimitePago = calcularFechaLimitePago(actualDiffDays);
+      const fechaLimitePago = calcularFechaLimitePago(createReservaDto.reservaInfo.reservation.checkin,);
       const fechaLimitePago2: string = format(
         addDay(createReservaDto.reservaInfo.reservation.checkin, -1),
         'YYYY-MM-DD',
