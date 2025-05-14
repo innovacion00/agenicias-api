@@ -76,10 +76,11 @@ export class ReservasService {
           ? tiposAgencia.mayorista
           : tiposAgencia.minorista;
 
-
       let planAlimentario = '';
 
-      const fechaLimitePago = calcularFechaLimitePago(createReservaDto.reservaInfo.reservation.checkin,);
+      const fechaLimitePago = calcularFechaLimitePago(
+        createReservaDto.reservaInfo.reservation.checkin,
+      );
       const fechaLimitePago2: string = format(
         addDay(createReservaDto.reservaInfo.reservation.checkin, -1),
         'YYYY-MM-DD',
@@ -603,7 +604,10 @@ export class ReservasService {
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId) {
     try {
-      const reservas = await this.reservasModel.find({ userId });
+      const reservas = await this.reservasModel
+        .find({ userId })
+        .sort({ createdAt: -1 });
+
       return reservas;
     } catch (error) {
       this.logger.error(error);
@@ -616,6 +620,7 @@ export class ReservasService {
     try {
       const reservas = await this.reservasModel
         .find({ agenciaId })
+        .sort({ createdAt: -1 })
         .populate('userId', 'fullName')
         .populate('agenciaId', 'fullName _id');
       return reservas;

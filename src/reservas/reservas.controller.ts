@@ -137,7 +137,6 @@ export class ReservasController {
     return this.reservasService.cancelarReservaAdmin(reservaId);
   }
 
-
   // @Post('prueba')
   // prueba() {
   //   return this.reservasService.prueba();
