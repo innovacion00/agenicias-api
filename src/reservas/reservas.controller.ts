@@ -29,13 +29,13 @@ import { ValidRoles } from 'src/auth/interfaces';
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
+  // TODO: Volver esto a el auth de reservas despues
+  // ValidRoles.admin,
+  // ValidRoles.eventosSuperAdmin,
+  // ValidRoles.user,
+  // ValidRoles.superAdmin,
   @Post('reservar')
-  @Auth(
-    ValidRoles.admin,
-    ValidRoles.eventosSuperAdmin,
-    ValidRoles.user,
-    ValidRoles.superAdmin,
-  )
+  @Auth()
   create(
     @Body(new ParseCheckinCheckoutPipe()) createReservaDto: CreateReservaDto,
     @Query('hotelId', ParseHotelIdPipe) hotelId: string,

@@ -141,6 +141,7 @@ export class ReservasService {
         infoTransporte: createReservaDto.infoTransporte || null,
         infoToures: createReservaDto.infoToures || null,
         mascotas: createReservaDto.mascotas,
+        mascotasNumber: createReservaDto.mascotasNumber,
       });
 
       userInfo.reservas.push(reserva._id as Types.ObjectId);

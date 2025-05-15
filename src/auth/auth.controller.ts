@@ -92,8 +92,6 @@ export class AuthController {
     return this.authService.switchActivationStatus(agencia, userId);
   }
 
-  
-
   // #region Administrativo
   @Get('getAllUsers')
   @Auth(ValidRoles.superAdmin)

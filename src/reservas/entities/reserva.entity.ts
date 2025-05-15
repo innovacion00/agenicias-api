@@ -28,6 +28,11 @@ export class Reserva extends Document {
 
   @Prop({
     type: Number,
+  })
+  mascotasNumber: number;
+
+  @Prop({
+    type: Number,
     required: true,
   })
   total: number;

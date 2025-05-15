@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsBoolean,
-  IsDate,
   IsEmail,
   IsEnum,
   IsIn,
@@ -19,7 +18,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { Type, Exclude } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   Agency,
   IreservaInfo,
@@ -330,6 +329,11 @@ export class CreateReservaDto {
   @IsBoolean()
   @IsOptional()
   mascotas?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  mascotasNumber?: number;
 
   @IsNumber()
   @IsNotEmpty()
