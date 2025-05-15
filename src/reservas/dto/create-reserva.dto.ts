@@ -335,6 +335,11 @@ export class CreateReservaDto {
   @Min(1)
   mascotasNumber?: number;
 
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  origenIata?: string;
+
   @IsNumber()
   @IsNotEmpty()
   total: number;
