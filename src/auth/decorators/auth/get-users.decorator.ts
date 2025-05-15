@@ -12,7 +12,7 @@ export const GetUser = createParamDecorator(
     if (!user) {
       throw new InternalServerErrorException('Usuario no econtrado(request)');
     }
-  
+
     return data ? user[data] : user;
   },
 );

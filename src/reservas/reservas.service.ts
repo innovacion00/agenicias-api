@@ -2,17 +2,15 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  ImATeapotException,
   Injectable,
   Logger,
-  MisdirectedException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
 
-import { addDay, format, diffDays, addMinute } from '@formkit/tempo';
+import { addDay, format, addMinute } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
 
 import { ErrorManager } from 'src/common/helpers';
@@ -701,8 +699,8 @@ export class ReservasService {
     }
   }
 
-  //? Pruebas
-  //   async prueba() {
-  //     
-  //   }
+  // //? Pruebas
+  // async prueba() {
+  //   return 'ok';
+  // }
 }

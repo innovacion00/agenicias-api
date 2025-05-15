@@ -30,7 +30,12 @@ export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
   @Post('reservar')
-  @Auth()
+  @Auth(
+    ValidRoles.admin,
+    ValidRoles.eventosSuperAdmin,
+    ValidRoles.user,
+    ValidRoles.superAdmin,
+  )
   create(
     @Body(new ParseCheckinCheckoutPipe()) createReservaDto: CreateReservaDto,
     @Query('hotelId', ParseHotelIdPipe) hotelId: string,
