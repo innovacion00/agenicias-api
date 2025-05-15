@@ -574,6 +574,7 @@ export class ReservasService {
 
       case 'rechazado':
       case 'cancelado':
+        reserva.rejectedLinks.push(payload.details.id);
         if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
           reserva.status = 2;
@@ -586,6 +587,7 @@ export class ReservasService {
         return true;
 
       case 'aplicado':
+        reserva.approvedLinks.push(payload.details.id);
         if (!reserva.pagadoPrimeraMitad) {
           reserva.status = 5;
           reserva.pagadoPrimeraMitad = true;
@@ -702,7 +704,12 @@ export class ReservasService {
   }
 
   // //? Pruebas
-  // async prueba() {
-  //   return 'ok';
-  // }
+  async prueba() {
+    // const reserva = await this.reservasModel.findById(
+    //   '68260dba1ff9ca66bd336775',
+    // );
+    // reserva.rejectedLinks.push('Hola');
+    // await reserva.save();
+    // return reserva;
+  }
 }

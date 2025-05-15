@@ -301,6 +301,18 @@ export class Reserva extends Document {
     expirationDate: string;
     idLinkPago: Types.ObjectId;
   };
+
+  @Prop({
+    type: [String],
+    default: [],
+  })
+  rejectedLinks: string[];
+
+  @Prop({
+    type: [String],
+    default: [],
+  })
+  approvedLinks: string[];
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);
