@@ -254,7 +254,7 @@ export class AuthService {
   async registerUserToAgency(registerUserDto: RegisterUserDto, id: string) {
     registerUserDto.fullName = registerUserDto.fullName.toLowerCase();
     try {
-      const { password, adminRole, ...userData } = registerUserDto;
+      const { password, roles, ...userData } = registerUserDto;
 
       const agenciaDoc = await this.agenciaModel.findById(id);
 
@@ -268,10 +268,10 @@ export class AuthService {
           'No se pueden crear más usuarios en esta agencia.',
         );
       }
-      
+
       const user = await this.userModel.create({
         ...userData,
-        role: adminRole ? ['admin'] : ['user'],
+        role: roles.length !== 0 ? roles : ['user'],
         agencia: new Types.ObjectId(id),
         password: bcrypt.hashSync(password, 10),
       });
