@@ -142,7 +142,6 @@ export class CreateReservaEventoDto {
   decoracion?: boolean;
 
   @IsString()
-  @IsNotEmpty()
   @IsOptional()
   decoracionDescripcion?: string;
 
@@ -152,7 +151,6 @@ export class CreateReservaEventoDto {
   alojamiento?: boolean;
 
   @IsString()
-  @IsNotEmpty()
   @IsOptional()
   observaciones?: string;
 }
