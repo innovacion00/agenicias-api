@@ -252,7 +252,7 @@ export class AuthService {
 
   // #region Registrar usuario
   async registerUserToAgency(registerUserDto: RegisterUserDto, id: string) {
-    registerUserDto.fullName = registerUserDto.fullName.toLowerCase();
+    registerUserDto.fullName = registerUserDto.fullName.toLowerCase().trim();
     try {
       const { password, adminRole, ...userData } = registerUserDto;
 
