@@ -574,6 +574,7 @@ export class ReservasService {
 
       case 'rechazado':
       case 'cancelado':
+      case 'tarjeta no válida':
         reserva.rejectedLinks.push(payload.details.id);
         if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
