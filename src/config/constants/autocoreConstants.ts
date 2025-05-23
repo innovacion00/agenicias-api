@@ -24,6 +24,7 @@ export const autocoreHeadersDev = {
   },
 };
 
+// '15736': { city: 'Santa marta', name: 'Hotel 1525' },
 export const hotelesAutocore = {
   //? Cartagena
   '13645': { city: 'Cartagena', name: 'Hotel Azuan' },
@@ -40,11 +41,11 @@ export const hotelesAutocore = {
 
   //? Santa marta
   '17491': { city: 'Santa marta', name: 'Hotel Rodadero' },
-  '15736': { city: 'Santa marta', name: 'Hotel 1525' },
   '19629': { city: 'Santa marta', name: 'Hotel Axis' },
   '15740': { city: 'Santa marta', name: 'Hotel Sansiraka' },
 };
 
+// 'Hotel 1525': 2,
 export const hotelesAutocorePaymenLink = {
   //? Cartagena
   'Hotel Azuan': 1,
@@ -61,7 +62,6 @@ export const hotelesAutocorePaymenLink = {
 
   //? Santa marta
   'Hotel Rodadero': 8,
-  'Hotel 1525': 2,
   'Hotel Axis': 48,
   'Hotel Sansiraka': 44,
 };

@@ -162,10 +162,26 @@ export class ReservasService {
                 email: 'reservasgocolombia@gmail.com',
                 tel: '+57 304 3697601',
               }
-            : {
-                email: 'operadortour2025@gmail.com',
-                tel: '+57 304 3697601',
-              };
+            : city === 'Bogota'
+              ? name === 'Hotel Windsor'
+                ? {
+                    email: [
+                      'reservas.zonanglobal@gmail.com',
+                      'recepcion@hotelwindsorhouse.com',
+                    ],
+                    tel: '+57 333 6025021',
+                  }
+                : {
+                    email: [
+                      'reservas.zonanglobal@gmail.com',
+                      'recepcionmadisson@gmail.com',
+                    ],
+                    tel: '+57 333 6025021',
+                  }
+              : {
+                  email: 'operadortour2025@gmail.com',
+                  tel: '+57 304 3697601',
+                };
 
         const textTipoRecogida =
           tipoRecogida === 0

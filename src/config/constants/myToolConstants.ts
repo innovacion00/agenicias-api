@@ -1,7 +1,6 @@
 import { envs } from '../envs';
 
 export const hotelesIps = [
-  envs.api1525,
   envs.apiWindsor,
   envs.apiBocagrande,
   envs.apiMadisson,

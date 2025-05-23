@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import * as joi from 'joi';
 
+// API_1525: string;
 interface EnvVars {
   PORT: number;
 
@@ -41,7 +42,6 @@ interface EnvVars {
   MY_TOOL_EMAIL: string;
   MY_TOOL_CLAVE: string;
 
-  API_1525: string;
   API_AIXO: string;
   API_AZUAN: string;
   API_RODADERO: string;
@@ -54,6 +54,7 @@ interface EnvVars {
   API_AXIS: string;
 }
 
+// API_1525: joi.string().required(),
 const envSchema = joi
   .object({
     PORT: joi.number().required(),
@@ -94,7 +95,6 @@ const envSchema = joi
     //? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
     MY_TOOL_CLAVE: joi.string().required(),
-    API_1525: joi.string().required(),
     API_AIXO: joi.string().required(),
     API_AZUAN: joi.string().required(),
     API_RODADERO: joi.string().required(),
@@ -116,6 +116,7 @@ if (error) {
 
 const envVars: EnvVars = value;
 
+// api1525: envVars.API_1525,
 export const envs = {
   port: envVars.PORT,
 
@@ -155,7 +156,6 @@ export const envs = {
   //? My Tool
   myToolEmail: envVars.MY_TOOL_EMAIL,
   myToolClave: envVars.MY_TOOL_CLAVE,
-  api1525: envVars.API_1525,
   apiAixo: envVars.API_AIXO,
   apiAzuan: envVars.API_AZUAN,
   apiRodadero: envVars.API_RODADERO,

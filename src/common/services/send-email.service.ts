@@ -12,7 +12,7 @@ export class SendEmailCustomService {
 
   private logger = new Logger(SendEmailCustomService.name);
   public async sendEmail(
-    target: string,
+    target: string | string[],
     subject: string,
     html: string,
   ) {
