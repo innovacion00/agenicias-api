@@ -81,7 +81,7 @@ export class AgenciasController {
   }
 
   //? Agencias con reservas
-  @Get("agencias-con-reserva")
+  @Get('agencias-con-reserva')
   @Auth(ValidRoles.superAdmin)
   getCountOfAgenciasReservas() {
     return this.agenciasService.getCountOfAgenciasReservas();
