@@ -1,7 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { IreservaInfoBd } from 'src/common/interface';
-import { IAsistente, ITitularInfo, ValidTipoRecogida } from '../interfaces';
+import {
+  IAsistente,
+  ITitularInfo,
+  LinksHistory,
+  ValidPaymentStatus,
+  ValidTipoRecogida,
+} from '../interfaces';
 import { InfoTouresDto, InfoTransporteDto } from '../dto';
 
 @Schema({ timestamps: true })
@@ -170,10 +176,11 @@ export class Reserva extends Document {
   */
   @Prop({
     type: Number,
-    default: 0,
+    default: ValidPaymentStatus.espera,
+    enum: ValidPaymentStatus,
     index: true,
   })
-  status: 0 | 1 | 2 | 3 | 4 | 5;
+  status: ValidPaymentStatus;
 
   @Prop({
     type: [
@@ -313,6 +320,18 @@ export class Reserva extends Document {
     default: [],
   })
   approvedLinks: string[];
+
+  // @Prop({
+  //   type: [
+  //     {
+  //       id: { type: String },
+  //       typeOfPayment: { type: String, default: '' },
+  //       status: { type: String },
+  //     },
+  //   ],
+  //   default: [],
+  // })
+  // linksHistory: LinksHistory[];
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

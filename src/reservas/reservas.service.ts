@@ -40,6 +40,7 @@ import {
 } from './dto';
 import { Reserva } from './entities';
 import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
+import { ValidPaymentStatus } from './interfaces';
 
 @Injectable()
 export class ReservasService {
@@ -571,7 +572,10 @@ export class ReservasService {
       throw new NotFoundException(`Reserva con id: ${id}`);
     }
 
-    if (reserva.status === 3 || reserva.status === 4) {
+    if (
+      reserva.status === ValidPaymentStatus.total ||
+      reserva.status === ValidPaymentStatus.cancelado
+    ) {
       return true;
     }
 
@@ -584,7 +588,7 @@ export class ReservasService {
     const status = payload.payment_status as string;
     switch (status.toLowerCase()) {
       case 'en proceso':
-        reserva.status = 1;
+        reserva.status = ValidPaymentStatus.espera;
         await reserva.save();
         return true;
 
@@ -594,24 +598,29 @@ export class ReservasService {
         reserva.rejectedLinks.push(payload.details.id);
         if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
-          reserva.status = 2;
+          reserva.status = ValidPaymentStatus.rejected;
           await reserva.save();
           return true;
         }
 
-        reserva.status = 2;
+        reserva.status = ValidPaymentStatus.rejected;
         await reserva.save();
         return true;
 
       case 'aplicado':
         reserva.approvedLinks.push(payload.details.id);
         if (!reserva.pagadoPrimeraMitad) {
-          reserva.status = 5;
+          reserva.status = ValidPaymentStatus.mitad;
           reserva.pagadoPrimeraMitad = true;
           await reserva.save();
           return true;
         }
-        reserva.status = 3;
+        // reserva.linksHistory.push({
+        //   id: payload.details.id,
+        //   typeOfPayment: payload.details.pay_platform,
+        //   status: ValidPaymentStatus.total,
+        // });
+        reserva.status = ValidPaymentStatus.total;
         await reserva.save();
         return true;
 
