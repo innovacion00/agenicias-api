@@ -758,13 +758,16 @@ export class ReservasService {
   //   });
 
   //   for (const reserva of reservas) {
-  //     for (let i = 0; i < reserva.linksHistory.length; i++) {
-  //       reserva.linksHistory[i].state = Number(reserva.linksHistory[i].status);
-  //     }
+  //     const updatedLinks = reserva.linksHistory.map((link) => {
+  //       const { status, ...rest } = link; // por si es Mongoose Document
+  //       return rest;
+  //     });
 
-  //     await reserva.save();
+  //     await this.reservasModel.updateOne(
+  //       { _id: reserva._id },
+  //       { $set: { linksHistory: updatedLinks } },
+  //     );
   //   }
-
   //   return reservas.length;
   // }
 }
