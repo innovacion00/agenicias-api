@@ -310,28 +310,16 @@ export class Reserva extends Document {
   };
 
   @Prop({
-    type: [String],
+    type: [
+      {
+        id: { type: String },
+        typeOfPayment: { type: String, default: '' },
+        status: { type: String },
+      },
+    ],
     default: [],
   })
-  rejectedLinks: string[];
-
-  @Prop({
-    type: [String],
-    default: [],
-  })
-  approvedLinks: string[];
-
-  // @Prop({
-  //   type: [
-  //     {
-  //       id: { type: String },
-  //       typeOfPayment: { type: String, default: '' },
-  //       status: { type: String },
-  //     },
-  //   ],
-  //   default: [],
-  // })
-  // linksHistory: LinksHistory[];
+  linksHistory: LinksHistory[];
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);
