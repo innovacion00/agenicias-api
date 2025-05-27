@@ -378,6 +378,26 @@ export class HttpCustomService {
     }
   }
 
+  public async reembolsoCartera(
+    idLink: string,
+    agenciaId: number,
+    chatbotId: string,
+  ) {
+    try {
+      const { data } = await axios.post<{ msg: string }>(
+        envs.autocoreUrl.concat(
+          `/v2/preloaded-balance/${idLink}/agencies/${agenciaId}/reservation/${chatbotId}/refund`,
+        ),
+        {},
+        autocoreHeaders,
+      );
+
+      return data;
+    } catch (error) {
+      this.axiosError(error, this.recargarCarteraAutocore.name);
+    }
+  }
+
   //? Obtener saldo autocore
   public async obtenerSaldoCartera(agency_id: number) {
     try {

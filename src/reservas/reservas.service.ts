@@ -479,6 +479,19 @@ export class ReservasService {
         );
       }
 
+      for (const linkInfo of reserva.linksHistory) {
+        if (
+          linkInfo.status === ValidPaymentStatus.mitad ||
+          linkInfo.status === ValidPaymentStatus.total
+        ) {
+          await this.httpCustomService.reembolsoCartera(
+            linkInfo.id,
+            agenciaDoc.autocoreInfo.id,
+            reserva.reservaChatbotId,
+          );
+        }
+      }
+
       const data = await this.httpCustomService.cancelarReservas(
         reserva.reservaChatbotId,
       );
@@ -598,7 +611,7 @@ export class ReservasService {
         reserva.linksHistory.push({
           id: payload.details.id,
           typeOfPayment: payload.details.pay_platform,
-          status: ValidPaymentStatus.mitad,
+          state: ValidPaymentStatus.mitad,
         });
         if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
@@ -617,7 +630,7 @@ export class ReservasService {
           reserva.linksHistory.push({
             id: payload.details.id,
             typeOfPayment: payload.details.pay_platform || 'No identificado',
-            status: ValidPaymentStatus.mitad,
+            state: ValidPaymentStatus.mitad,
           });
           reserva.status = ValidPaymentStatus.mitad;
           reserva.pagadoPrimeraMitad = true;
@@ -627,7 +640,7 @@ export class ReservasService {
         reserva.linksHistory.push({
           id: payload.details.id,
           typeOfPayment: payload.details.pay_platform,
-          status: ValidPaymentStatus.total,
+          state: ValidPaymentStatus.total,
         });
         reserva.status = ValidPaymentStatus.total;
         await reserva.save();
@@ -741,40 +754,13 @@ export class ReservasService {
   //? Pruebas
   // async prueba() {
   //   const reservas = await this.reservasModel.find({
-  //     $or: [
-  //       { approvedLinks: { $exists: true, $not: { $size: 0 } } },
-  //       { rejectedLinks: { $exists: true, $not: { $size: 0 } } },
-  //     ],
+  //     linksHistory: { $exists: true, $not: { $size: 0 } },
   //   });
 
   //   for (const reserva of reservas) {
-  //     for (const id of reserva.approvedLinks || []) {
-  //       if (reserva.status === 3) {
-  //         reserva.linksHistory.push({
-  //           id: id,
-  //           typeOfPayment: 'No identificado',
-  //           status: 3,
-  //         });
-  //       }
-  //       reserva.linksHistory.push({
-  //         id: id,
-  //         typeOfPayment: 'No identificado',
-  //         status: 5,
-  //       });
+  //     for (let i = 0; i < reserva.linksHistory.length; i++) {
+  //       reserva.linksHistory[i].state = Number(reserva.linksHistory[i].status);
   //     }
-
-  //     for (const id of reserva.rejectedLinks || []) {
-  //       reserva.linksHistory.push({
-  //         id: id,
-  //         typeOfPayment: 'No identificado',
-  //         status: 2,
-  //       });
-  //     }
-
-  //     await this.reservasModel.updateOne(
-  //       { _id: reserva._id },
-  //       { $unset: { rejectedLinks: '', approvedLinks: '' } },
-  //     );
 
   //     await reserva.save();
   //   }
