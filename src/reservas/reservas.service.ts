@@ -629,7 +629,9 @@ export class ReservasService {
         if (!reserva.pagadoPrimeraMitad) {
           reserva.linksHistory.push({
             id: payload.details.id,
-            typeOfPayment: payload.details.pay_platform || 'No identificado',
+            typeOfPayment: payload.details.pay_platform
+              ? payload.details.pay_platform
+              : 'No identificado',
             state: ValidPaymentStatus.mitad,
           });
           reserva.status = ValidPaymentStatus.mitad;
