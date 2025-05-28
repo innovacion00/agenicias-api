@@ -479,16 +479,18 @@ export class ReservasService {
         );
       }
 
-      for (const linkInfo of reserva.linksHistory) {
-        if (
-          linkInfo.status === ValidPaymentStatus.mitad ||
-          linkInfo.status === ValidPaymentStatus.total
-        ) {
-          await this.httpCustomService.reembolsoCartera(
-            linkInfo.id,
-            agenciaDoc.autocoreInfo.id,
-            reserva.reservaChatbotId,
-          );
+      if (reserva.linksHistory) {
+        for (const linkInfo of reserva.linksHistory) {
+          if (
+            linkInfo.status === ValidPaymentStatus.mitad ||
+            linkInfo.status === ValidPaymentStatus.total
+          ) {
+            await this.httpCustomService.reembolsoCartera(
+              linkInfo.id,
+              agenciaDoc.autocoreInfo.id,
+              reserva.reservaChatbotId,
+            );
+          }
         }
       }
 
