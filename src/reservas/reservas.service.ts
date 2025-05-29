@@ -601,6 +601,15 @@ export class ReservasService {
     }
 
     const status = payload.payment_status as string;
+
+    const linkDetails = {
+      id: payload.details.id,
+      typeOfPayment: payload.details.pay_platform
+        ? payload.details.pay_platform
+        : 'No identificado',
+      state: null,
+    };
+
     switch (status.toLowerCase()) {
       case 'en proceso':
         reserva.status = ValidPaymentStatus.espera;
@@ -610,11 +619,8 @@ export class ReservasService {
       case 'rechazado':
       case 'cancelado':
       case 'tarjeta no válida':
-        reserva.linksHistory.push({
-          id: payload.details.id,
-          typeOfPayment: payload.details.pay_platform,
-          state: ValidPaymentStatus.mitad,
-        });
+        linkDetails.state = ValidPaymentStatus.rejected;
+        reserva.linksHistory.push(linkDetails);
         if (pagoValidator) {
           reserva.pagadoPrimeraMitad = false;
 
@@ -629,26 +635,19 @@ export class ReservasService {
 
       case 'aplicado':
         if (!reserva.pagadoPrimeraMitad) {
-          reserva.linksHistory.push({
-            id: payload.details.id,
-            typeOfPayment: payload.details.pay_platform
-              ? payload.details.pay_platform
-              : 'No identificado',
-            state: ValidPaymentStatus.mitad,
-          });
+          linkDetails.state = ValidPaymentStatus.mitad;
+          reserva.linksHistory.push(linkDetails);
           reserva.status = ValidPaymentStatus.mitad;
           reserva.pagadoPrimeraMitad = true;
           await reserva.save();
           return true;
         }
-        reserva.linksHistory.push({
-          id: payload.details.id,
-          typeOfPayment: payload.details.pay_platform,
-          state:
-            reserva.status === ValidPaymentStatus.mitad
-              ? ValidPaymentStatus.mitad
-              : ValidPaymentStatus.total,
-        });
+        linkDetails.state =
+          reserva.status === ValidPaymentStatus.mitad
+            ? ValidPaymentStatus.mitad
+            : ValidPaymentStatus.total;
+
+        reserva.linksHistory.push(linkDetails);
         reserva.status = ValidPaymentStatus.total;
         await reserva.save();
         return true;
