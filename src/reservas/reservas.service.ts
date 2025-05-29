@@ -644,7 +644,10 @@ export class ReservasService {
         reserva.linksHistory.push({
           id: payload.details.id,
           typeOfPayment: payload.details.pay_platform,
-          state: ValidPaymentStatus.total,
+          state:
+            reserva.status === ValidPaymentStatus.mitad
+              ? ValidPaymentStatus.mitad
+              : ValidPaymentStatus.total,
         });
         reserva.status = ValidPaymentStatus.total;
         await reserva.save();
