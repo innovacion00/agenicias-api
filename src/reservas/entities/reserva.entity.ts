@@ -315,6 +315,7 @@ export class Reserva extends Document {
         id: { type: String },
         typeOfPayment: { type: String, default: '' },
         state: { type: Number },
+        fecha: { type: Date },
       },
     ],
     default: [],

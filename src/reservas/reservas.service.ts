@@ -40,7 +40,7 @@ import {
 } from './dto';
 import { Reserva } from './entities';
 import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
-import { ValidPaymentStatus } from './interfaces';
+import { LinksHistory, ValidPaymentStatus } from './interfaces';
 
 @Injectable()
 export class ReservasService {
@@ -482,8 +482,8 @@ export class ReservasService {
       if (reserva.linksHistory) {
         for (const linkInfo of reserva.linksHistory) {
           if (
-            linkInfo.status === ValidPaymentStatus.mitad ||
-            linkInfo.status === ValidPaymentStatus.total
+            linkInfo.state === ValidPaymentStatus.mitad ||
+            linkInfo.state === ValidPaymentStatus.total
           ) {
             await this.httpCustomService.reembolsoCartera(
               linkInfo.id,
@@ -572,13 +572,11 @@ export class ReservasService {
     const id = valores[0].trim();
 
     let pagoValidator = null;
-
     if (valores[1]) {
       pagoValidator = valores[1].trim();
     }
 
     const reserva = await this.reservasModel.findById(id);
-
     if (!reserva.paymenIds) {
       reserva.paymenIds = [];
     }
@@ -601,15 +599,14 @@ export class ReservasService {
     }
 
     const status = payload.payment_status as string;
-
-    const linkDetails = {
+    const linkDetails: LinksHistory = {
       id: payload.details.id,
       typeOfPayment: payload.details.pay_platform
         ? payload.details.pay_platform
         : 'No identificado',
       state: null,
+      fecha: new Date(),
     };
-
     switch (status.toLowerCase()) {
       case 'en proceso':
         reserva.status = ValidPaymentStatus.espera;
@@ -642,10 +639,9 @@ export class ReservasService {
           await reserva.save();
           return true;
         }
-        linkDetails.state =
-          reserva.status === ValidPaymentStatus.mitad
-            ? ValidPaymentStatus.mitad
-            : ValidPaymentStatus.total;
+        linkDetails.state = pagoValidator
+          ? ValidPaymentStatus.total
+          : ValidPaymentStatus.mitad;
 
         reserva.linksHistory.push(linkDetails);
         reserva.status = ValidPaymentStatus.total;
