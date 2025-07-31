@@ -327,8 +327,9 @@ export class AuthService {
     }
 
     if (user.settings.omitirOtp) {
+      const { password, ...userWithoutPassword } = user.toJSON();
       return {
-        ...user.toJSON(),
+        ...userWithoutPassword,
         token: this.generateJwt({ _id: user._id as string }),
       };
     }
