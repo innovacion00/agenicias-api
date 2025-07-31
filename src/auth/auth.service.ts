@@ -380,8 +380,9 @@ export class AuthService {
 
       await validacionDb.save();
 
+      const { password, ...userWithoutPassword } = userData.toJSON();
       return {
-        ...userData.toJSON(),
+        ...userWithoutPassword,
         token: this.generateJwt({ _id: userData._id as string }),
       };
     } catch (error) {
