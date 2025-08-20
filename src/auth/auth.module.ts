@@ -5,6 +5,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
   OtpVerification,
   OtpVerificationSchema,
+  RefreshToken,
+  RefreshTokenSchema,
   User,
   UserSchema,
 } from './entities';
@@ -32,6 +34,10 @@ import { IntegrationsModule } from 'src/integrations/integrations.module';
         name: OtpVerification.name,
         schema: OtpVerificationSchema,
       },
+      {
+        name: RefreshToken.name,
+        schema: RefreshTokenSchema,
+      },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -41,13 +47,9 @@ import { IntegrationsModule } from 'src/integrations/integrations.module';
         return {
           secret: envs.jwtSecret,
           signOptions: {
-            /*
-            TODO: Ahora es tu problema crear una forma de refrescar 
-            el token, el del frontend no sabia como hacer cosas 
-            basicas y me dio flojera crear una ruta de refrescar 
-            token y explicarle como usarla,buena suerte ✌️
-            */
-            expiresIn: '365d',
+            // Access tokens con expiración corta (15 minutos)
+            // Los refresh tokens tendrán expiración más larga (7 días)
+            expiresIn: '15m',
           },
         };
       },

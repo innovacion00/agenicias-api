@@ -26,7 +26,8 @@ import {
   SignInDto,
   RegisterUserDto,
 } from './dto';
-import { OtpVerification } from './entities';
+import { OtpVerification, RefreshToken } from './entities';
+import { randomBytes } from 'crypto';
 import { SendEmailCustomService } from 'src/common/services';
 
 @Injectable()
@@ -45,6 +46,9 @@ export class AuthService {
     @InjectModel(OtpVerification.name)
     private readonly otpVerificationModel: Model<OtpVerification>,
 
+    @InjectModel(RefreshToken.name)
+    private readonly refreshTokenModel: Model<RefreshToken>,
+
     private readonly sendEmailCustomService: SendEmailCustomService,
 
     private readonly jwtService: JwtService,
@@ -55,6 +59,42 @@ export class AuthService {
   private generateJwt(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
     return token;
+  }
+
+  private async generateRefreshToken(userId: Types.ObjectId): Promise<string> {
+    // Generar token único usando crypto
+    const refreshToken = randomBytes(64).toString('hex');
+    
+    // Calcular fecha de expiración (7 días)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // Desactivar refresh tokens anteriores del usuario
+    await this.refreshTokenModel.updateMany(
+      { userId, isActive: true },
+      { isActive: false }
+    );
+
+    // Crear nuevo refresh token
+    await this.refreshTokenModel.create({
+      userId,
+      token: refreshToken,
+      expiresAt,
+      isActive: true,
+    });
+
+    return refreshToken;
+  }
+
+  private async generateTokenPair(userId: string) {
+    const accessToken = this.generateJwt({ _id: userId });
+    const refreshToken = await this.generateRefreshToken(new Types.ObjectId(userId));
+    
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: '15m', // 15 minutos para el access token
+    };
   }
 
   private async findOneByTerm(term: string) {
@@ -328,9 +368,10 @@ export class AuthService {
 
     if (user.settings.omitirOtp) {
       const { password, ...userWithoutPassword } = user.toJSON();
+      const tokens = await this.generateTokenPair(user._id.toString());
       return {
         ...userWithoutPassword,
-        token: this.generateJwt({ _id: user._id as string }),
+        ...tokens,
       };
     }
 
@@ -381,9 +422,10 @@ export class AuthService {
       await validacionDb.save();
 
       const { password, ...userWithoutPassword } = userData.toJSON();
+      const tokens = await this.generateTokenPair(userData._id.toString());
       return {
         ...userWithoutPassword,
-        token: this.generateJwt({ _id: userData._id as string }),
+        ...tokens,
       };
     } catch (error) {
       this.logger.error(error);
@@ -399,6 +441,65 @@ export class AuthService {
       return { valid: true, decodedToken };
     } catch (error) {
       throw new UnauthorizedException('Invalid Token');
+    }
+  }
+
+  // #region Refresh Token
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const { token } = refreshTokenDto;
+
+      // Buscar el refresh token en la base de datos
+      const refreshTokenDoc = await this.refreshTokenModel.findOne({
+        token,
+        isActive: true,
+      });
+
+      if (!refreshTokenDoc) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // Verificar si el token ha expirado
+      if (refreshTokenDoc.expiresAt < new Date()) {
+        // Desactivar el token expirado
+        refreshTokenDoc.isActive = false;
+        await refreshTokenDoc.save();
+        throw new UnauthorizedException('Refresh token expired');
+      }
+
+      // Buscar el usuario asociado
+      const user = await this.userModel
+        .findById(refreshTokenDoc.userId)
+        .select(this.userAttributes)
+        .populate('agencia', 'category fullName empresa')
+        .exec();
+
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException('User not found or inactive');
+      }
+
+      // Verificar que la agencia esté activa
+      const agencia = await this.agenciaModel.findById(user.agencia);
+      if (!agencia || !agencia.isActive) {
+        throw new ForbiddenException('Agency not active');
+      }
+
+      // Desactivar el refresh token usado (rotación de tokens)
+      refreshTokenDoc.isActive = false;
+      await refreshTokenDoc.save();
+
+      // Generar nuevos tokens
+      const tokens = await this.generateTokenPair(user._id.toString());
+
+      // Devolver usuario con nuevos tokens
+      const { password, ...userWithoutPassword } = user.toJSON();
+      return {
+        ...userWithoutPassword,
+        ...tokens,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
     }
   }
 
@@ -463,6 +564,40 @@ export class AuthService {
     });
 
     return { ok: true };
+  }
+
+  // #region Limpiar refresh tokens expirados
+  async cleanupExpiredRefreshTokens() {
+    try {
+      const result = await this.refreshTokenModel.deleteMany({
+        $or: [
+          { expiresAt: { $lt: new Date() } },
+          { isActive: false }
+        ]
+      });
+      
+      this.logger.log(`Cleaned up ${result.deletedCount} expired refresh tokens`);
+      return { deletedCount: result.deletedCount };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Revocar todos los refresh tokens de un usuario
+  async revokeUserRefreshTokens(userId: string) {
+    try {
+      const result = await this.refreshTokenModel.updateMany(
+        { userId: new Types.ObjectId(userId), isActive: true },
+        { isActive: false }
+      );
+      
+      this.logger.log(`Revoked ${result.modifiedCount} refresh tokens for user ${userId}`);
+      return { revokedCount: result.modifiedCount };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
   }
 
   // #region Administrativo
