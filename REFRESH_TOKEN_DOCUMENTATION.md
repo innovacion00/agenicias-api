@@ -207,6 +207,18 @@ Tiempo 7 días  → Refresh Token expira, usuario debe hacer login
 
 ## 🔒 **Características de Seguridad Implementadas:**
 
+### **⚠️ Nota sobre Almacenamiento de Tokens:**
+> **Importante:** Al usar cookies o localStorage accesibles desde JavaScript, los tokens están expuestos a ataques XSS (Cross-Site Scripting). 
+> 
+> **Recomendaciones de seguridad:**
+> - Implementar validación de entrada estricta
+> - Usar CSP (Content Security Policy) headers
+> - Sanitizar todo el contenido renderizado
+> - Mantener dependencias actualizadas
+> - Considerar el uso de httpOnly cookies en entornos de alta seguridad
+
+### **🛡️ Medidas de Seguridad Implementadas:**
+
 1. **Rotación de Tokens**: Cada vez que se usa un refresh token, se genera uno nuevo y el anterior se desactiva
 2. **Expiración Corta de Access Tokens**: 15 minutos para minimizar exposición
 3. **Expiración de Refresh Tokens**: 7 días para balance entre seguridad y UX
@@ -643,13 +655,47 @@ export const useAuth = () => {
 
 #### **1. Almacenamiento Seguro:**
 ```javascript
-// ❌ NO hacer esto:
-localStorage.setItem('accessToken', token); // Vulnerable a XSS
+// ✅ Opción 1: localStorage (persistente entre sesiones)
+localStorage.setItem('accessToken', token);
+localStorage.setItem('refreshToken', refreshToken);
 
-// ✅ Hacer esto:
-// Usar httpOnly cookies para refresh tokens
-// Usar sessionStorage para access tokens (se borra al cerrar pestaña)
+// ✅ Opción 2: sessionStorage (se borra al cerrar pestaña)
 sessionStorage.setItem('accessToken', token);
+sessionStorage.setItem('refreshToken', refreshToken);
+
+// ✅ Opción 3: Cookies accesibles desde JavaScript
+document.cookie = `accessToken=${token}; path=/; max-age=900; SameSite=Strict`;
+document.cookie = `refreshToken=${refreshToken}; path=/; max-age=604800; SameSite=Strict`;
+
+// ❌ NO usar httpOnly cookies si necesitas acceder desde JavaScript
+// httpOnly previene acceso desde JavaScript (XSS protection)
+
+// 🔍 **Comparación de Opciones de Almacenamiento:**
+
+// **localStorage:**
+// ✅ Persistente entre sesiones
+// ✅ Fácil acceso desde JavaScript
+// ❌ Vulnerable a XSS
+// ❌ No se borra automáticamente
+
+// **sessionStorage:**
+// ✅ Se borra al cerrar pestaña
+// ✅ Fácil acceso desde JavaScript
+// ❌ Vulnerable a XSS
+// ❌ Se pierde al recargar página
+
+// **Cookies JavaScript:**
+// ✅ Configurables (expiración, dominio, path)
+// ✅ Enviadas automáticamente en peticiones
+// ✅ Accesibles desde JavaScript
+// ❌ Vulnerable a XSS
+// ❌ Límite de tamaño (4KB)
+
+// **Cookies httpOnly:**
+// ✅ Protección contra XSS
+// ✅ Enviadas automáticamente
+// ❌ NO accesibles desde JavaScript
+// ❌ Requiere backend para manejo
 ```
 
 #### **2. Validación de Tokens:**
@@ -690,6 +736,101 @@ const handleAuthError = (error) => {
       showGenericError();
   }
 };
+```
+
+### **🍪 Implementación con Cookies JavaScript:**
+
+```javascript
+// Utilidades para manejar cookies
+const CookieUtils = {
+  // Establecer cookie
+  setCookie: (name, value, days = 7) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    
+    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`;
+  },
+
+  // Obtener cookie
+  getCookie: (name) => {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  },
+
+  // Eliminar cookie
+  deleteCookie: (name) => {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  },
+
+  // Establecer access token (15 minutos)
+  setAccessToken: (token) => {
+    CookieUtils.setCookie('accessToken', token, 0.01); // 15 minutos
+  },
+
+  // Establecer refresh token (7 días)
+  setRefreshToken: (token) => {
+    CookieUtils.setCookie('refreshToken', token, 7);
+  }
+};
+
+// Uso en el interceptor de Axios
+api.interceptors.request.use((config) => {
+  const token = CookieUtils.getCookie('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Uso en el interceptor de respuesta
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = CookieUtils.getCookie('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+        
+        const response = await api.post('/auth/refresh-token', {
+          token: refreshToken
+        });
+        
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        
+        // Actualizar cookies
+        CookieUtils.setAccessToken(accessToken);
+        CookieUtils.setRefreshToken(newRefreshToken);
+        
+        // Reintentar la petición original
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+        
+      } catch (refreshError) {
+        // Refresh falló, limpiar cookies y redirigir a login
+        CookieUtils.deleteCookie('accessToken');
+        CookieUtils.deleteCookie('refreshToken');
+        
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 ```
 
 ### **📱 Implementación en React Native:**
