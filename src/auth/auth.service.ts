@@ -25,6 +25,7 @@ import {
   RefreshTokenDto,
   SignInDto,
   RegisterUserDto,
+  ValidateAccessTokenDto,
 } from './dto';
 import { OtpVerification, RefreshToken } from './entities';
 import { randomBytes } from 'crypto';
@@ -441,6 +442,98 @@ export class AuthService {
       return { valid: true, decodedToken };
     } catch (error) {
       throw new UnauthorizedException('Invalid Token');
+    }
+  }
+
+  // #region Validar Access Token
+  async validateAccessToken(validateAccessTokenDto: ValidateAccessTokenDto) {
+    try {
+      const { accessToken } = validateAccessTokenDto;
+      
+      // Verificar el token JWT
+      const decodedToken = this.jwtService.verify(accessToken);
+      
+      // Verificar que el usuario existe y está activo
+      const user = await this.userModel
+        .findById(decodedToken._id)
+        .select('_id fullName email role isActive agencia')
+        .populate('agencia', 'fullName category empresa isActive')
+        .exec();
+
+      if (!user) {
+        return {
+          valid: false,
+          message: 'Usuario no encontrado',
+          code: 'USER_NOT_FOUND'
+        };
+      }
+
+      if (!user.isActive) {
+        return {
+          valid: false,
+          message: 'Usuario inactivo',
+          code: 'USER_INACTIVE'
+        };
+      }
+
+      // Verificar que la agencia esté activa
+      if (user.agencia && typeof user.agencia === 'object' && 'isActive' in user.agencia && !user.agencia.isActive) {
+        return {
+          valid: false,
+          message: 'Agencia inactiva',
+          code: 'AGENCY_INACTIVE'
+        };
+      }
+
+      // Calcular tiempo restante del token
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = decodedToken.exp;
+      const timeRemaining = expiresAt - now;
+      const minutesRemaining = Math.floor(timeRemaining / 60);
+
+      return {
+        valid: true,
+        message: 'Token válido',
+        code: 'TOKEN_VALID',
+        user: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          agencia: user.agencia
+        },
+        token: {
+          expiresAt: new Date(expiresAt * 1000).toISOString(),
+          timeRemaining: `${minutesRemaining} minutos`,
+          secondsRemaining: timeRemaining
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Error validando access token:', error);
+      
+      if (error.name === 'TokenExpiredError') {
+        return {
+          valid: false,
+          message: 'Token expirado',
+          code: 'TOKEN_EXPIRED'
+        };
+      }
+      
+      if (error.name === 'JsonWebTokenError') {
+        return {
+          valid: false,
+          message: 'Token inválido',
+          code: 'TOKEN_INVALID'
+        };
+      }
+
+      return {
+        valid: false,
+        message: 'Error validando token',
+        code: 'VALIDATION_ERROR',
+        error: error.message
+      };
     }
   }
 

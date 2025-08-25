@@ -15,6 +15,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { FilesModule } from './files/files.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EventosModule } from './eventos/eventos.module';
+import { VuelosModule } from './vuelos/vuelos.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { EventosModule } from './eventos/eventos.module';
     ReservasModule,
     CloudinaryModule,
     EventosModule,
+    VuelosModule,
   ],
   controllers: [],
   providers: [],

@@ -18,6 +18,7 @@ import {
   RefreshTokenDto,
   RequestPasswordChangeDto,
   RegisterUserDto,
+  ValidateAccessTokenDto,
 } from './dto';
 
 import { AuthService } from './auth.service';
@@ -57,6 +58,12 @@ export class AuthController {
   @HttpCode(200)
   validarToken(@Body() token: string) {
     return this.authService.validarToken(token);
+  }
+
+  @Post('validate-access-token')
+  @HttpCode(200)
+  validateAccessToken(@Body() validateAccessTokenDto: ValidateAccessTokenDto) {
+    return this.authService.validateAccessToken(validateAccessTokenDto);
   }
 
   @Post('refresh-token')

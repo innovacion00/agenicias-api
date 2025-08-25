@@ -1,0 +1,7 @@
+# Comando directo para validar access token (PowerShell)
+
+$body = @{accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NzdkNzc1MzE1NTk1NDExNWNlYTIwYWEiLCJpYXQiOjE3NTYxMzI3MTAsImV4cCI6MTc1NjEzMzYxMH0.0K_YVMTa43aOopVseM0VYJsryebnyF1MbchLUySCKDs"} | ConvertTo-Json; Invoke-RestMethod -Uri "http://localhost:3000/agencias/v1/auth/validate-access-token" -Method POST -Headers @{"Content-Type" = "application/json"} -Body $body
+
+# Comando directo para validar access token (cURL)
+
+curl -X POST "http://localhost:3000/agencias/v1/auth/validate-access-token" -H "Content-Type: application/json" -d "{\"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NzdkNzc1MzE1NTk1NDExNWNlYTIwYWEiLCJpYXQiOjE3NTYxMzI3MTAsImV4cCI6MTc1NjEzMzYxMH0.0K_YVMTa43aOopVseM0VYJsryebnyF1MbchLUySCKDs\"}"
