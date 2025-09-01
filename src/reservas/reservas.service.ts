@@ -77,13 +77,16 @@ export class ReservasService {
 
       let planAlimentario = '';
 
-      const fechaLimitePago = calcularFechaLimitePago(
+      // Determinar si es reserva de grupo (más de 1 habitación)
+      const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length > 1;
+      
+      // Calcular fechas límite usando la nueva lógica
+      const fechasLimite = calcularFechaLimitePago(
         createReservaDto.reservaInfo.reservation.checkin,
+        isReservaGrupo,
       );
-      const fechaLimitePago2: string = format(
-        addDay(createReservaDto.reservaInfo.reservation.checkin, -1),
-        'YYYY-MM-DD',
-      );
+      
+      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
       const userInfo = await this.userModel
         .findById(userId)
