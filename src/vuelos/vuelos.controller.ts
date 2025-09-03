@@ -13,7 +13,8 @@ import {
 import { VuelosService } from './vuelos.service';
 import {
   SearchLocationsDto,
-  FlightSearchDto
+  FlightSearchDto,
+  SearchCitiesDto
 } from './dto';
 import {
   AmadeusLocationResponse,
@@ -106,6 +107,23 @@ export class VuelosController {
       return result;
     } catch (error) {
       this.logger.error(`Error al buscar ciudades por nombre ${cityName}:`, error);
+      throw error;
+    }
+  }
+
+  @Get('ciudades/buscar')
+  @HttpCode(HttpStatus.OK)
+  async searchCities(
+    @Query(new ValidationPipe({ transform: true })) searchDto: SearchCitiesDto,
+  ): Promise<any> {
+    this.logger.log(`Búsqueda de ciudades con parámetros: ${JSON.stringify(searchDto)}`);
+    
+    try {
+      const result = await this.vuelosService.searchCities(searchDto);
+      this.logger.log(`Búsqueda exitosa: ${result.meta?.count || 'N/A'} resultados encontrados`);
+      return result;
+    } catch (error) {
+      this.logger.error('Error en búsqueda de ciudades:', error);
       throw error;
     }
   }

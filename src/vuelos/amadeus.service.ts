@@ -289,6 +289,42 @@ export class AmadeusService {
   }
 
   /**
+   * Busca ciudades usando la API específica de ciudades de Amadeus
+   * @param params - Parámetros de búsqueda de ciudades
+   * @returns Lista de ciudades encontradas
+   */
+  async searchCities(params: {
+    countryCode?: string;
+    keyword: string;
+    max?: number;
+    include?: string[];
+  }): Promise<any> {
+    this.logger.log(`Buscando ciudades con keyword: ${params.keyword}${params.countryCode ? ` en ${params.countryCode}` : ''}`);
+    
+    const queryParams: any = {
+      keyword: params.keyword,
+    };
+
+    if (params.countryCode) {
+      queryParams.countryCode = params.countryCode;
+    }
+
+    if (params.max) {
+      queryParams.max = params.max;
+    }
+
+    if (params.include && params.include.length > 0) {
+      queryParams.include = params.include.join(',');
+    }
+
+    return this.makeAuthenticatedRequest<any>(
+      'GET',
+      '/reference-data/locations/cities',
+      queryParams,
+    );
+  }
+
+  /**
    * Busca ofertas de vuelos usando la API de Amadeus Flight Offers
    * @param searchRequest - Parámetros de búsqueda de vuelos
    * @returns Respuesta con ofertas de vuelos disponibles

@@ -52,6 +52,15 @@ export class VuelosService {
   }
 
   /**
+   * Buscar ciudades usando la API específica de ciudades de Amadeus
+   * @param searchDto - Parámetros de búsqueda de ciudades
+   * @returns Lista de ciudades encontradas
+   */
+  async searchCities(searchDto: any): Promise<any> {
+    return this.amadeusService.searchCities(searchDto);
+  }
+
+  /**
    * Buscar ofertas de vuelos disponibles
    * @param searchDto - Criterios de búsqueda de vuelos
    * @returns Lista de ofertas de vuelos disponibles
