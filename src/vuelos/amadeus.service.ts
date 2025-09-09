@@ -3,13 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { envs } from '../config';
 import { AMADEUS_CONSTANTS } from '../config/constants';
+import { ErrorHandlerService } from './services/error-handler.service';
+import { LogContext } from './interfaces/error-response.interface';
 import {
   AmadeusLocationResponse,
   AmadeusLocationQueryParams,
   AmadeusErrorResponse,
   AmadeusFlightOffersRequest,
   AmadeusFlightOffersResponse,
-  AmadeusFlightOffersErrorResponse
+  AmadeusFlightOffersErrorResponse,
+  AmadeusFlightOrderRequest,
+  AmadeusFlightOrderResponse,
+  AmadeusFlightOrderErrorResponse
 } from './interfaces';
 
 @Injectable()
@@ -20,6 +25,7 @@ export class AmadeusService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly errorHandlerService: ErrorHandlerService,
   ) {}
 
   /**
@@ -103,14 +109,31 @@ export class AmadeusService {
    * Realiza una llamada autenticada a la API de Amadeus con reintentos automáticos
    */
   private async makeAuthenticatedRequest<T>(
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'DELETE',
     endpoint: string,
     data?: any,
     retryCount = 0,
   ): Promise<T> {
     const maxRetries = 2;
+    const startTime = Date.now();
+    
+    // Crear contexto de logging
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint,
+      method,
+      timestamp: new Date().toISOString()
+    };
     
     try {
+      this.logger.log(`[AMADEUS_REQUEST] Iniciando ${method} ${endpoint}`, {
+        requestId: logContext.requestId,
+        endpoint,
+        method,
+        hasData: !!data,
+        retryCount
+      });
+
       const token = await this.getAccessToken();
       
       // Construir la URL base correctamente
@@ -121,14 +144,18 @@ export class AmadeusService {
       // Remover /v1 o /v2 del final si existe
       baseUrl = baseUrl.replace(/\/v[0-9]+$/, '');
       
-             // Para las APIs de referencia (locations), usar v1 según la documentación
-       // Para Flight Offers, usar v2 según la documentación
-       // Para otras APIs, usar v1
-       const version = endpoint.includes('flight-offers') ? '/v2' : '/v1';
-       const url = `${baseUrl}${version}${endpoint}`;
+      // Para las APIs de referencia (locations), usar v1 según la documentación
+      // Para Flight Offers, usar v2 según la documentación
+      // Para otras APIs, usar v1
+      const version = endpoint.includes('flight-offers') ? '/v2' : '/v1';
+      const url = `${baseUrl}${version}${endpoint}`;
 
-      this.logger.debug(`URL de API construida: ${url}`);
-      this.logger.debug(`Llamada a Amadeus: ${endpoint}`, data);
+      this.logger.debug(`[AMADEUS_REQUEST] URL construida: ${url}`, {
+        requestId: logContext.requestId,
+        baseUrl,
+        version,
+        endpoint
+      });
 
       // Para peticiones GET, los parámetros van en la URL como query params
       // Para peticiones POST, los parámetros van en el body
@@ -157,83 +184,72 @@ export class AmadeusService {
       }
 
       const response = await axios(config);
+      const duration = Date.now() - startTime;
+      logContext.duration = duration;
 
-      this.logger.debug(`Respuesta exitosa de Amadeus ${endpoint}: ${response.status}`);
+      this.logger.log(`[AMADEUS_SUCCESS] ${method} ${endpoint} completado`, {
+        requestId: logContext.requestId,
+        statusCode: response.status,
+        duration,
+        responseSize: JSON.stringify(response.data).length
+      });
+
       return response.data;
     } catch (error) {
-      this.logger.error(`Error en llamada a Amadeus ${endpoint}:`, {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
+      const duration = Date.now() - startTime;
+      logContext.duration = duration;
       
       // Si el token expiró (401) y no hemos reintentado, renovar token y reintentar
-      if (error.response?.status === 401 && retryCount < maxRetries) {
-        this.logger.warn(`Token expirado, renovando y reintentando... (intento ${retryCount + 1})`);
+      if (axios.isAxiosError(error) && error.response?.status === 401 && retryCount < maxRetries) {
+        this.logger.warn(`[AMADEUS_RETRY] Token expirado, renovando y reintentando... (intento ${retryCount + 1})`, {
+          requestId: logContext.requestId,
+          endpoint,
+          method,
+          retryCount: retryCount + 1
+        });
         this.accessToken = null; // Forzar renovación del token
         this.tokenExpiry = 0;
         return this.makeAuthenticatedRequest(method, endpoint, data, retryCount + 1);
       }
       
-      // Manejar errores específicos de Amadeus
+      // Manejar errores específicos de Amadeus usando el ErrorHandlerService
       if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<AmadeusErrorResponse>;
-        
-        if (axiosError.response?.status === 400) {
-          throw new HttpException(
-            {
-              message: 'Parámetros de búsqueda inválidos',
-              errors: axiosError.response.data?.errors,
-              details: axiosError.response.data?.errors?.map(e => e.detail).join(', '),
-            },
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-        
-        if (axiosError.response?.status === 404) {
-          throw new HttpException(
-            {
-              message: 'No se encontraron resultados para la búsqueda',
-              errors: axiosError.response.data?.errors,
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-        
-        if (axiosError.response?.status === 429) {
-          throw new HttpException(
-            {
-              message: 'Límite de solicitudes excedido. Intenta más tarde.',
-              errors: axiosError.response.data?.errors,
-            },
-            HttpStatus.TOO_MANY_REQUESTS,
-          );
-        }
-        
-        // Otros errores de Amadeus
-        throw new HttpException(
-          {
-            message: 'Error en la API de Amadeus',
-            errors: axiosError.response?.data?.errors,
-            details: axiosError.response?.data?.errors?.map(e => `${e.title}: ${e.detail}`).join(', '),
-          },
-          axiosError.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        throw this.errorHandlerService.handleAmadeusError(
+          error,
+          logContext,
+          endpoint,
+          method,
+          data
         );
       }
 
       // Error de red o timeout
       if (error.code === 'ECONNABORTED') {
-        throw new HttpException(
-          'Timeout al conectar con Amadeus. Intenta más tarde.',
-          HttpStatus.REQUEST_TIMEOUT,
+        throw this.errorHandlerService.handleNetworkError(
+          error,
+          logContext,
+          `${envs.amadeusBaseUrl}${endpoint}`,
+          method,
+          true // timeout
         );
       }
 
-      throw new HttpException(
-        'Error interno del servidor al conectar con Amadeus',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      // Error interno no manejado
+      throw this.errorHandlerService.handleInternalError(
+        error,
+        logContext,
+        'AmadeusService',
+        'makeAuthenticatedRequest',
+        { endpoint, method, data }
       );
     }
+  }
+
+  /**
+   * Genera un ID único para la solicitud
+   */
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -330,14 +346,38 @@ export class AmadeusService {
    * @returns Respuesta con ofertas de vuelos disponibles
    */
   async searchFlightOffers(searchRequest: AmadeusFlightOffersRequest): Promise<AmadeusFlightOffersResponse> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'searchFlightOffers',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
     try {
-      this.logger.log(`Buscando ofertas de vuelos para ${searchRequest.originDestinations.length} ruta(s)`);
+      this.logger.log(`[FLIGHT_SEARCH] Iniciando búsqueda de ofertas de vuelos`, {
+        requestId: logContext.requestId,
+        originDestinations: searchRequest.originDestinations.length,
+        travelers: searchRequest.travelers?.length || 0,
+        currencyCode: searchRequest.currencyCode
+      });
       
       // Transformar el request para Amadeus API
       const amadeusRequest = this.transformFlightSearchRequest(searchRequest);
       
-      this.logger.log(`Request original: ${JSON.stringify(searchRequest, null, 2)}`);
-      this.logger.log(`Request transformado para Amadeus: ${JSON.stringify(amadeusRequest, null, 2)}`);
+      this.logger.debug(`[FLIGHT_SEARCH] Request transformado para Amadeus`, {
+        requestId: logContext.requestId,
+        originalRequest: {
+          originDestinations: searchRequest.originDestinations.length,
+          travelers: searchRequest.travelers?.length || 0,
+          currencyCode: searchRequest.currencyCode
+        },
+        amadeusRequest: {
+          originDestinations: amadeusRequest.originDestinations.length,
+          travelers: amadeusRequest.travelers?.length || 0,
+          currencyCode: amadeusRequest.currencyCode,
+          sources: amadeusRequest.sources
+        }
+      });
       
       // Realizar la búsqueda
       const response = await this.makeAuthenticatedRequest<AmadeusFlightOffersResponse>(
@@ -346,53 +386,28 @@ export class AmadeusService {
         amadeusRequest
       );
 
-      this.logger.log(`Búsqueda exitosa: ${response.meta.count} ofertas encontradas`);
+      this.logger.log(`[FLIGHT_SEARCH_SUCCESS] Búsqueda completada exitosamente`, {
+        requestId: logContext.requestId,
+        offersFound: response.meta.count,
+        totalOffers: response.meta.count,
+        currency: (response.meta as any)?.currency || 'N/A',
+        searchDuration: (response.meta as any)?.searchDuration || 'N/A'
+      });
+
       return response;
     } catch (error) {
-      this.logger.error('Error buscando ofertas de vuelos:', error);
-      
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<AmadeusFlightOffersErrorResponse>;
-        
-               if (axiosError.response?.status === 400) {
-         // Para errores 400, devolver el error específico de Amadeus
-         const amadeusError = axiosError.response.data;
-         if (amadeusError && amadeusError.errors && amadeusError.errors.length > 0) {
-           throw new HttpException(
-             {
-               message: 'Error en parámetros de búsqueda',
-               errors: amadeusError.errors,
-               details: amadeusError.errors.map(e => e.detail).join(', ')
-             },
-             HttpStatus.BAD_REQUEST
-           );
-         } else {
-           throw new HttpException(
-             'Error en parámetros de búsqueda: Parámetros inválidos',
-             HttpStatus.BAD_REQUEST
-           );
-         }
-       }
-        
-        if (axiosError.response?.status === 404) {
-          throw new HttpException(
-            'No se encontraron vuelos para los criterios especificados',
-            HttpStatus.NOT_FOUND
-          );
+      this.logger.error(`[FLIGHT_SEARCH_ERROR] Error en búsqueda de ofertas de vuelos`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        searchRequest: {
+          originDestinations: searchRequest.originDestinations.length,
+          travelers: searchRequest.travelers?.length || 0,
+          currencyCode: searchRequest.currencyCode
         }
-        
-        if (axiosError.response?.status === 429) {
-          throw new HttpException(
-            'Límite de consultas excedido. Intente más tarde',
-            HttpStatus.TOO_MANY_REQUESTS
-          );
-        }
-      }
+      });
       
-      throw new HttpException(
-        'Error interno del servidor al buscar vuelos',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      // Re-lanzar el error para que sea manejado por el sistema de errores
+      throw error;
     }
   }
 
@@ -469,5 +484,267 @@ export class AmadeusService {
     }
 
     return amadeusRequest;
+  }
+
+  /**
+   * Crea una reserva de vuelo usando la API de Amadeus Flight Orders
+   * @param orderRequest - Datos de la reserva de vuelo
+   * @returns Respuesta con la confirmación de la reserva
+   */
+  async createFlightOrder(orderRequest: AmadeusFlightOrderRequest): Promise<AmadeusFlightOrderResponse> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'createFlightOrder',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      this.logger.log(`[FLIGHT_ORDER] Iniciando creación de reserva de vuelo`, {
+        requestId: logContext.requestId,
+        travelers: orderRequest.data.travelers.length,
+        flightOffers: orderRequest.data.flightOffers.length,
+        hasRemarks: !!orderRequest.data.remarks,
+        hasContacts: !!orderRequest.data.contacts
+      });
+      
+      // Validar que la estructura del request sea correcta
+      this.validateFlightOrderRequest(orderRequest);
+      
+      this.logger.debug(`[FLIGHT_ORDER] Request de reserva validado`, {
+        requestId: logContext.requestId,
+        travelers: orderRequest.data.travelers.length,
+        flightOffers: orderRequest.data.flightOffers.length,
+        endpoint: AMADEUS_CONSTANTS.ENDPOINTS.FLIGHT_ORDERS
+      });
+      
+      // Realizar la reserva
+      const response = await this.makeAuthenticatedRequest<AmadeusFlightOrderResponse>(
+        'POST',
+        `${AMADEUS_CONSTANTS.ENDPOINTS.FLIGHT_ORDERS}`,
+        orderRequest
+      );
+
+      this.logger.log(`[FLIGHT_ORDER_SUCCESS] Reserva creada exitosamente`, {
+        requestId: logContext.requestId,
+        orderId: response.data.id,
+        travelers: response.data.travelers?.length || 0,
+        flightOffers: response.data.flightOffers?.length || 0,
+        status: response.data.type
+      });
+
+      return response;
+    } catch (error) {
+      this.logger.error(`[FLIGHT_ORDER_ERROR] Error creando reserva de vuelo`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        orderRequest: {
+          travelers: orderRequest.data.travelers.length,
+          flightOffers: orderRequest.data.flightOffers.length,
+          hasRemarks: !!orderRequest.data.remarks,
+          hasContacts: !!orderRequest.data.contacts
+        }
+      });
+      
+      // Re-lanzar el error para que sea manejado por el sistema de errores
+      throw error;
+    }
+  }
+
+  /**
+   * Valida la estructura del request de reserva
+   * @param orderRequest - Request a validar
+   */
+  private validateFlightOrderRequest(orderRequest: AmadeusFlightOrderRequest): void {
+    if (!orderRequest.data) {
+      throw new HttpException('Datos de reserva requeridos', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!orderRequest.data.flightOffers || orderRequest.data.flightOffers.length === 0) {
+      throw new HttpException('Al menos una oferta de vuelo es requerida', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!orderRequest.data.travelers || orderRequest.data.travelers.length === 0) {
+      throw new HttpException('Al menos un viajero es requerido', HttpStatus.BAD_REQUEST);
+    }
+
+    // Validar que cada viajero tenga la información requerida
+    orderRequest.data.travelers.forEach((traveler, index) => {
+      if (!traveler.id || !traveler.dateOfBirth || !traveler.name || !traveler.gender || !traveler.contact) {
+        throw new HttpException(
+          `Información incompleta del viajero ${index + 1}`,
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      if (!traveler.contact.emailAddress || !traveler.contact.phones || traveler.contact.phones.length === 0) {
+        throw new HttpException(
+          `Información de contacto incompleta del viajero ${index + 1}`,
+          HttpStatus.BAD_REQUEST
+        );
+      }
+    });
+
+    this.logger.log('Validación de request de reserva exitosa');
+  }
+
+  /**
+   * Consulta una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo
+   * @returns Información de la reserva
+   */
+  async getFlightOrder(flightOrderId: string): Promise<AmadeusFlightOrderResponse> {
+    try {
+      this.logger.log(`Consultando reserva de vuelo: ${flightOrderId}`);
+      
+      const response = await this.makeAuthenticatedRequest<AmadeusFlightOrderResponse>(
+        'GET',
+        `${AMADEUS_CONSTANTS.ENDPOINTS.FLIGHT_ORDERS}/${encodeURIComponent(flightOrderId)}`
+      );
+
+      this.logger.log(`Reserva consultada exitosamente: ${response.data.id}`);
+      return response;
+    } catch (error) {
+      this.logger.error(`Error consultando reserva ${flightOrderId}:`, error);
+      
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<AmadeusFlightOrderErrorResponse>;
+        
+        if (axiosError.response?.status === 400) {
+          const amadeusError = axiosError.response.data;
+          if (amadeusError && amadeusError.errors && amadeusError.errors.length > 0) {
+            throw new HttpException(
+              {
+                message: 'Error en consulta de reserva',
+                errors: amadeusError.errors,
+                details: amadeusError.errors.map(e => e.detail).join(', ')
+              },
+              HttpStatus.BAD_REQUEST
+            );
+          } else {
+            throw new HttpException(
+              'Error en consulta de reserva: Parámetros inválidos',
+              HttpStatus.BAD_REQUEST
+            );
+          }
+        }
+        
+        if (axiosError.response?.status === 404) {
+          const amadeusError = axiosError.response.data;
+          this.logger.error('Amadeus 404 error (consulta):', amadeusError);
+          
+          if (amadeusError && amadeusError.errors && amadeusError.errors.length > 0) {
+            throw new HttpException(
+              {
+                message: 'Reserva de vuelo no encontrada',
+                errors: amadeusError.errors,
+                details: amadeusError.errors.map(e => e.detail).join(', ')
+              },
+              HttpStatus.NOT_FOUND
+            );
+          } else {
+            throw new HttpException(
+              'Reserva de vuelo no encontrada',
+              HttpStatus.NOT_FOUND
+            );
+          }
+        }
+        
+        if (axiosError.response?.status === 429) {
+          throw new HttpException(
+            'Límite de consultas excedido. Intente más tarde',
+            HttpStatus.TOO_MANY_REQUESTS
+          );
+        }
+      }
+      
+      throw new HttpException(
+        'Error interno del servidor al consultar la reserva',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Cancela una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo a cancelar
+   * @returns Confirmación de la cancelación
+   */
+  async cancelFlightOrder(flightOrderId: string): Promise<void> {
+    try {
+      this.logger.log(`Cancelando reserva de vuelo: ${flightOrderId}`);
+      
+      await this.makeAuthenticatedRequest<void>(
+        'DELETE',
+        `${AMADEUS_CONSTANTS.ENDPOINTS.FLIGHT_ORDERS}/${encodeURIComponent(flightOrderId)}`
+      );
+
+      this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
+    } catch (error) {
+      this.logger.error(`Error cancelando reserva ${flightOrderId}:`, error);
+      
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<AmadeusFlightOrderErrorResponse>;
+        
+        if (axiosError.response?.status === 400) {
+          const amadeusError = axiosError.response.data;
+          if (amadeusError && amadeusError.errors && amadeusError.errors.length > 0) {
+            throw new HttpException(
+              {
+                message: 'Error en cancelación de reserva',
+                errors: amadeusError.errors,
+                details: amadeusError.errors.map(e => e.detail).join(', ')
+              },
+              HttpStatus.BAD_REQUEST
+            );
+          } else {
+            throw new HttpException(
+              'Error en cancelación de reserva: Parámetros inválidos',
+              HttpStatus.BAD_REQUEST
+            );
+          }
+        }
+        
+        if (axiosError.response?.status === 404) {
+          const amadeusError = axiosError.response.data;
+          this.logger.error('Amadeus 404 error (cancelación):', amadeusError);
+          
+          if (amadeusError && amadeusError.errors && amadeusError.errors.length > 0) {
+            throw new HttpException(
+              {
+                message: 'Reserva de vuelo no encontrada',
+                errors: amadeusError.errors,
+                details: amadeusError.errors.map(e => e.detail).join(', ')
+              },
+              HttpStatus.NOT_FOUND
+            );
+          } else {
+            throw new HttpException(
+              'Reserva de vuelo no encontrada',
+              HttpStatus.NOT_FOUND
+            );
+          }
+        }
+        
+        if (axiosError.response?.status === 409) {
+          throw new HttpException(
+            'No se puede cancelar la reserva en su estado actual',
+            HttpStatus.CONFLICT
+          );
+        }
+        
+        if (axiosError.response?.status === 429) {
+          throw new HttpException(
+            'Límite de consultas excedido. Intente más tarde',
+            HttpStatus.TOO_MANY_REQUESTS
+          );
+        }
+      }
+      
+      throw new HttpException(
+        'Error interno del servidor al cancelar la reserva',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }

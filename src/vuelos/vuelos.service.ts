@@ -2,11 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AmadeusService } from './amadeus.service';
 import { 
   SearchLocationsDto, 
-  FlightSearchDto 
+  FlightSearchDto,
+  FlightOrderDto
 } from './dto';
 import { 
   AmadeusLocationResponse,
-  AmadeusFlightOffersResponse 
+  AmadeusFlightOffersResponse,
+  AmadeusFlightOrderRequest,
+  AmadeusFlightOrderResponse
 } from './interfaces';
 
 @Injectable()
@@ -77,6 +80,81 @@ export class VuelosService {
       return result;
     } catch (error) {
       this.logger.error('Error en VuelosService.searchFlightOffers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crear una reserva de vuelo
+   * @param orderDto - Datos de la reserva de vuelo
+   * @returns Confirmación de la reserva
+   */
+  async createFlightOrder(orderDto: FlightOrderDto): Promise<AmadeusFlightOrderResponse> {
+    try {
+      this.logger.log('Iniciando proceso de reserva de vuelo...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify({
+        flightOffers: orderDto.flightOffers.length,
+        travelers: orderDto.travelers.length,
+        hasRemarks: !!orderDto.remarks,
+        hasContacts: !!orderDto.contacts
+      })}`);
+      
+      // Transformar el DTO al formato requerido por Amadeus
+      const amadeusRequest: AmadeusFlightOrderRequest = {
+        data: {
+          type: 'flight-order',
+          flightOffers: orderDto.flightOffers,
+          travelers: orderDto.travelers,
+          remarks: orderDto.remarks,
+          ticketingAgreement: orderDto.ticketingAgreement,
+          contacts: orderDto.contacts
+        }
+      };
+      
+      // Llamar al servicio de Amadeus
+      const result = await this.amadeusService.createFlightOrder(amadeusRequest);
+      
+      this.logger.log(`Reserva creada exitosamente: ${result.data.id}`);
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.createFlightOrder:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Consulta una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo
+   * @returns Información de la reserva
+   */
+  async getFlightOrder(flightOrderId: string): Promise<AmadeusFlightOrderResponse> {
+    try {
+      this.logger.log(`Consultando reserva de vuelo: ${flightOrderId}`);
+      
+      const result = await this.amadeusService.getFlightOrder(flightOrderId);
+      
+      this.logger.log(`Reserva consultada exitosamente: ${result.data.id}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error en VuelosService.getFlightOrder:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancela una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo a cancelar
+   * @returns Confirmación de la cancelación
+   */
+  async cancelFlightOrder(flightOrderId: string): Promise<void> {
+    try {
+      this.logger.log(`Cancelando reserva de vuelo: ${flightOrderId}`);
+      
+      await this.amadeusService.cancelFlightOrder(flightOrderId);
+      
+      this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
+    } catch (error) {
+      this.logger.error(`Error en VuelosService.cancelFlightOrder:`, error);
       throw error;
     }
   }

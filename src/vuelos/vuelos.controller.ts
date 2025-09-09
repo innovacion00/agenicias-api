@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -9,23 +10,43 @@ import {
   HttpStatus,
   HttpCode,
   Logger,
+  UseInterceptors,
+  UseFilters,
 } from '@nestjs/common';
 import { VuelosService } from './vuelos.service';
+import { ErrorHandlerService } from './services/error-handler.service';
+import { ErrorHandlerInterceptor } from './interceptors/error-handler.interceptor';
+import { ErrorHandlerFilter } from './filters/error-handler.filter';
+import { LogContext } from './interfaces/error-response.interface';
 import {
   SearchLocationsDto,
   FlightSearchDto,
-  SearchCitiesDto
+  SearchCitiesDto,
+  FlightOrderDto
 } from './dto';
 import {
   AmadeusLocationResponse,
-  AmadeusFlightOffersResponse
+  AmadeusFlightOffersResponse,
+  AmadeusFlightOrderResponse
 } from './interfaces';
 
 @Controller('vuelos')
+@UseInterceptors(ErrorHandlerInterceptor)
+@UseFilters(ErrorHandlerFilter)
 export class VuelosController {
   private readonly logger = new Logger(VuelosController.name);
 
-  constructor(private readonly vuelosService: VuelosService) {}
+  constructor(
+    private readonly vuelosService: VuelosService,
+    private readonly errorHandlerService: ErrorHandlerService,
+  ) {}
+
+  /**
+   * Genera un ID único para la solicitud
+   */
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   @Get('test')
   @HttpCode(HttpStatus.OK)
@@ -177,20 +198,143 @@ export class VuelosController {
   async searchFlightOffers(
     @Body(new ValidationPipe({ transform: true })) searchDto: FlightSearchDto
   ): Promise<AmadeusFlightOffersResponse> {
-    this.logger.log(`Búsqueda de vuelos solicitada: ${JSON.stringify({
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'searchFlightOffers',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Búsqueda de vuelos solicitada`, {
+      requestId: logContext.requestId,
       origin: searchDto.originDestinations[0]?.originLocationCode,
       destination: searchDto.originDestinations[0]?.destinationLocationCode,
       date: searchDto.originDestinations[0]?.departureDate,
-      travelers: searchDto.travelers.length
-    })}`);
+      travelers: searchDto.travelers.length,
+      currencyCode: searchDto.currencyCode
+    });
 
     try {
       const offers = await this.vuelosService.searchFlightOffers(searchDto);
       
-      this.logger.log(`Búsqueda exitosa: ${offers.meta.count} ofertas encontradas`);
+      this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos completada`, {
+        requestId: logContext.requestId,
+        offersFound: offers.meta.count,
+        currency: (offers.meta as any)?.currency || 'N/A',
+        searchDuration: (offers.meta as any)?.searchDuration || 'N/A'
+      });
+
       return offers;
     } catch (error) {
-      this.logger.error('Error en búsqueda de vuelos:', error);
+      this.logger.error(`[CONTROLLER_ERROR] Error en búsqueda de vuelos`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        searchParams: {
+          origin: searchDto.originDestinations[0]?.originLocationCode,
+          destination: searchDto.originDestinations[0]?.destinationLocationCode,
+          date: searchDto.originDestinations[0]?.departureDate,
+          travelers: searchDto.travelers.length
+        }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Crear una reserva de vuelo
+   * @param orderDto - Datos de la reserva de vuelo
+   * @returns Confirmación de la reserva
+   */
+  @Post('reservar')
+  @HttpCode(HttpStatus.CREATED)
+  async createFlightOrder(
+    @Body(new ValidationPipe({ transform: true })) orderDto: FlightOrderDto
+  ): Promise<AmadeusFlightOrderResponse> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'createFlightOrder',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Reserva de vuelo solicitada`, {
+      requestId: logContext.requestId,
+      flightOffers: orderDto.flightOffers.length,
+      travelers: orderDto.travelers.length,
+      hasRemarks: !!orderDto.remarks,
+      hasContacts: !!orderDto.contacts
+    });
+
+    try {
+      const order = await this.vuelosService.createFlightOrder(orderDto);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Reserva de vuelo creada exitosamente`, {
+        requestId: logContext.requestId,
+        orderId: order.data.id,
+        travelers: order.data.travelers?.length || 0,
+        flightOffers: order.data.flightOffers?.length || 0,
+        status: order.data.type
+      });
+
+      return order;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en reserva de vuelo`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        orderParams: {
+          flightOffers: orderDto.flightOffers.length,
+          travelers: orderDto.travelers.length,
+          hasRemarks: !!orderDto.remarks,
+          hasContacts: !!orderDto.contacts
+        }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Consulta una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo
+   * @returns Información de la reserva
+   */
+  @Get('reservas/:flightOrderId')
+  @HttpCode(HttpStatus.OK)
+  async getFlightOrder(
+    @Param('flightOrderId') flightOrderId: string
+  ): Promise<AmadeusFlightOrderResponse> {
+    this.logger.log(`Consulta de reserva solicitada: ${flightOrderId}`);
+
+    try {
+      const order = await this.vuelosService.getFlightOrder(flightOrderId);
+      
+      this.logger.log(`Reserva consultada exitosamente: ${order.data.id}`);
+      return order;
+    } catch (error) {
+      this.logger.error(`Error consultando reserva ${flightOrderId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancela una reserva de vuelo específica
+   * @param flightOrderId - ID de la reserva de vuelo a cancelar
+   * @returns Confirmación de la cancelación
+   */
+  @Delete('reservas/:flightOrderId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async cancelFlightOrder(
+    @Param('flightOrderId') flightOrderId: string
+  ): Promise<void> {
+    this.logger.log(`Cancelación de reserva solicitada: ${flightOrderId}`);
+
+    try {
+      await this.vuelosService.cancelFlightOrder(flightOrderId);
+      
+      this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
+    } catch (error) {
+      this.logger.error(`Error cancelando reserva ${flightOrderId}:`, error);
       throw error;
     }
   }
