@@ -10,6 +10,15 @@ import { Request, Response } from 'express';
 import { ErrorHandlerService } from '../services/error-handler.service';
 import { ErrorResponse } from '../interfaces/error-response.interface';
 
+// Extender la interfaz Request para incluir requestId
+declare global {
+  namespace Express {
+    interface Request {
+      requestId?: string;
+    }
+  }
+}
+
 /**
  * Filtro global para el manejo de excepciones
  */
@@ -138,7 +147,7 @@ export class ErrorHandlerFilter implements ExceptionFilter {
       if ('message' in response) {
         return Array.isArray(response.message) 
           ? response.message.join(', ') 
-          : response.message;
+          : String(response.message);
       }
     }
     
@@ -148,15 +157,15 @@ export class ErrorHandlerFilter implements ExceptionFilter {
   /**
    * Obtiene los detalles del error para HttpException
    */
-  private getHttpExceptionDetails(exception: HttpException): string {
+  private getHttpExceptionDetails(exception: HttpException): string | undefined {
     const response = exception.getResponse();
     
     if (typeof response === 'object' && response !== null) {
       if ('details' in response) {
-        return response.details;
+        return String(response.details);
       }
       if ('error' in response) {
-        return response.error;
+        return String(response.error);
       }
     }
     
