@@ -77,8 +77,8 @@ export class ReservasService {
 
       let planAlimentario = '';
 
-      // Determinar si es reserva de grupo (más de 1 habitación)
-      const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length > 1;
+      // Determinar si es reserva de grupo (10 o más habitaciones)
+      const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length >= 10;
       
       // Calcular fechas límite usando la nueva lógica
       const fechasLimite = calcularFechaLimitePago(
