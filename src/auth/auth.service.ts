@@ -345,7 +345,7 @@ export class AuthService {
     const { email, password } = signInDto;
     const user = await this.userModel
       .findOne({ email })
-      .populate('agencia', 'category fullName empresa')
+      .populate('agencia', 'category fullName empresa slug')
       .select(this.userAttributes)
       .exec();
 
@@ -457,7 +457,7 @@ export class AuthService {
       const user = await this.userModel
         .findById(decodedToken._id)
         .select('_id fullName email role isActive agencia')
-        .populate('agencia', 'fullName category empresa isActive')
+        .populate('agencia', 'fullName category empresa isActive slug')
         .exec();
 
       if (!user) {
