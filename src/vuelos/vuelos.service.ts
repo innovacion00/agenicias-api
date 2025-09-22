@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AmadeusService } from './amadeus.service';
+import { FlightEnrichmentService } from './services/flight-enrichment.service';
 import { 
   SearchLocationsDto, 
   FlightSearchDto,
@@ -11,12 +12,16 @@ import {
   AmadeusFlightOrderRequest,
   AmadeusFlightOrderResponse
 } from './interfaces';
+import { EnrichedFlightOffersResponse } from './interfaces/enriched-flight-offers.interface';
 
 @Injectable()
 export class VuelosService {
   private readonly logger = new Logger(VuelosService.name);
 
-  constructor(private readonly amadeusService: AmadeusService) {}
+  constructor(
+    private readonly amadeusService: AmadeusService,
+    private readonly flightEnrichmentService: FlightEnrichmentService
+  ) {}
 
   /**
    * Probar autenticación con Amadeus
@@ -63,12 +68,13 @@ export class VuelosService {
     return this.amadeusService.searchCities(searchDto);
   }
 
+
   /**
    * Buscar ofertas de vuelos disponibles
    * @param searchDto - Criterios de búsqueda de vuelos
-   * @returns Lista de ofertas de vuelos disponibles
+   * @returns Lista de ofertas de vuelos disponibles con nombres de ciudades
    */
-  async searchFlightOffers(searchDto: any): Promise<AmadeusFlightOffersResponse> {
+  async searchFlightOffers(searchDto: any): Promise<EnrichedFlightOffersResponse> {
     try {
       this.logger.log('Iniciando búsqueda de vuelos...');
       this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(searchDto)}`);
@@ -76,13 +82,18 @@ export class VuelosService {
       // Pasar el request directamente al AmadeusService
       // El AmadeusService se encarga de la transformación
       const result = await this.amadeusService.searchFlightOffers(searchDto);
+      
+      // Enriquecer la respuesta con nombres de ciudades usando el servicio aislado
+      const enrichedResult = await this.flightEnrichmentService.enrichFlightOffers(result);
+      
       this.logger.log('Búsqueda completada exitosamente en VuelosService');
-      return result;
+      return enrichedResult;
     } catch (error) {
       this.logger.error('Error en VuelosService.searchFlightOffers:', error);
       throw error;
     }
   }
+
 
   /**
    * Crear una reserva de vuelo

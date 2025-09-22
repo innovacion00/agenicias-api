@@ -66,7 +66,7 @@ export class BotReservasPendientesService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async ejecutarBotReservasPendientes() {
-    this.logger.log('🚀 Iniciando bot de reservas pendientes de pago...');
+    this.logger.log(' Iniciando bot de reservas pendientes de pago...');
     
     try {
       const reservasPendientes = await this.obtenerReservasPendientes();
@@ -430,7 +430,7 @@ export class BotReservasPendientesService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🚨 Reporte de Reservas Pendientes de Pago</h1>
+            <h1> Reporte de Reservas Pendientes de Pago</h1>
             <p>Fecha: ${fechaActual}</p>
           </div>
           
@@ -438,14 +438,14 @@ export class BotReservasPendientesService {
             <p>Se ha generado el reporte diario de reservas pendientes de pago para el sistema de Geh Suites.</p>
             
             <div class="stats">
-              <h3>📊 Resumen del Reporte</h3>
+              <h3> Resumen del Reporte</h3>
               <p><strong>Total de Reservas Pendientes:</strong> ${cantidadReservas}</p>
               <p><strong>Fecha de Generación:</strong> ${fechaActual}</p>
               <p><strong>Hora de Generación:</strong> ${format(new Date(), 'HH:mm:ss')}</p>
             </div>
             
             <div class="warning">
-              <strong>⚠️ Importante:</strong> Las reservas incluidas en este reporte tienen 2 días o menos para completar el pago. 
+              <strong> Importante:</strong> Las reservas incluidas en este reporte tienen 2 días o menos para completar el pago. 
               Se recomienda contactar a las agencias correspondientes para gestionar los pagos pendientes.
             </div>
             
@@ -482,14 +482,14 @@ export class BotReservasPendientesService {
       ],
     );
 
-    this.logger.log(`📧 Correo enviado exitosamente a reservas@gehsuites.com con ${cantidadReservas} reservas`);
+    this.logger.log(` Correo enviado exitosamente a reservas@gehsuites.com con ${cantidadReservas} reservas`);
   }
 
   /**
    * Método manual para ejecutar el bot (útil para testing)
    */
   async ejecutarManualmente(): Promise<void> {
-    this.logger.log('🔧 Ejecutando bot manualmente...');
+    this.logger.log(' Ejecutando bot manualmente...');
     await this.ejecutarBotReservasPendientes();
   }
 
@@ -497,7 +497,7 @@ export class BotReservasPendientesService {
    * Método de diagnóstico para revisar las reservas en la base de datos
    */
   async diagnosticoReservas() {
-    this.logger.log('🔍 Ejecutando diagnóstico de reservas...');
+    this.logger.log(' Ejecutando diagnóstico de reservas...');
     
     const fechaActual = new Date();
     

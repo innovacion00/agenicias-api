@@ -21,7 +21,7 @@ export class BotReservasPendientesController {
   @RoleProtected(ValidRoles.superAdmin)
   @UseGuards(AuthGuard('jwt'), UserRoleGuard)
   async ejecutarBotManualmente() {
-    this.logger.log('🔧 Ejecutando bot manualmente desde el controlador...');
+    this.logger.log(' Ejecutando bot manualmente desde el controlador...');
     
     try {
       await this.botReservasPendientesService.ejecutarManualmente();
@@ -32,7 +32,7 @@ export class BotReservasPendientesController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('❌ Error al ejecutar el bot manualmente:', error);
+      this.logger.error('Error al ejecutar el bot manualmente:', error);
       
       return {
         success: false,
@@ -67,7 +67,7 @@ export class BotReservasPendientesController {
   @RoleProtected(ValidRoles.superAdmin)
   @UseGuards(AuthGuard('jwt'), UserRoleGuard)
   async diagnosticoReservas() {
-    this.logger.log('🔍 Ejecutando diagnóstico de reservas...');
+    this.logger.log(' Ejecutando diagnóstico de reservas...');
     
     try {
       const diagnostico = await this.botReservasPendientesService.diagnosticoReservas();
@@ -79,7 +79,7 @@ export class BotReservasPendientesController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('❌ Error al ejecutar diagnóstico:', error);
+      this.logger.error(' Error al ejecutar diagnóstico:', error);
       
       return {
         success: false,

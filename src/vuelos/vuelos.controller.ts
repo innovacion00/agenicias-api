@@ -149,13 +149,14 @@ export class VuelosController {
     }
   }
 
+
   /**
    * Endpoint de prueba para depurar problemas de disponibilidad
    */
   @Post('disponibilidad-test')
   @HttpCode(HttpStatus.OK)
   async searchFlightOffersTest(@Body() rawBody: any): Promise<any> {
-    this.logger.log('🔍 Endpoint de prueba llamado');
+    this.logger.log(' Endpoint de prueba llamado');
     this.logger.log(`Raw body: ${JSON.stringify(rawBody)}`);
     
     try {
@@ -197,7 +198,7 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   async searchFlightOffers(
     @Body(new ValidationPipe({ transform: true })) searchDto: FlightSearchDto
-  ): Promise<AmadeusFlightOffersResponse> {
+  ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'searchFlightOffers',
