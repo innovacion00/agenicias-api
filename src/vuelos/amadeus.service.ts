@@ -166,7 +166,7 @@ export class AmadeusService {
           Authorization: `Bearer ${token}`,
           'Accept': 'application/vnd.amadeus+json',
         },
-        timeout: 15000, // 15 segundos de timeout
+        timeout: 250000, 
       };
 
       if (method === 'GET' && data) {
