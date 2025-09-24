@@ -395,7 +395,7 @@ export class AuthService {
       const userData = await this.userModel
         .findOne({ email })
         .select(this.userAttributes)
-        .populate('agencia', 'category fullName empresa')
+        .populate('agencia', 'category fullName empresa slug')
         .exec();
 
       const validacionDb = await this.otpVerificationModel.findById(
