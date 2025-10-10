@@ -15,11 +15,12 @@ export const IsNotFutureDate = (validationOptions?: ValidationOptions) => {
       validator: {
         validate(value: string, args: ValidationArguments) {
           const fechaActual = new Date();
+          const fechaConsulta = new Date(value);
 
-          return !isBefore(value, fechaActual);
+          return fechaConsulta >= fechaActual;
         },
         defaultMessage(args: ValidationArguments) {
-          return `${args.property} no debe ser una fecha mayor a la actual.`;
+          return `${args.property} debe ser una fecha futura o actual.`;
         },
       },
     });

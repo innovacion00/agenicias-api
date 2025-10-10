@@ -704,6 +704,7 @@ export class ReservasService {
           nights,
           ciudad,
           disponibilidadAutoCoreDto.category,
+          false, // Usar URL de producción temporalmente
         );
 
         return data;
@@ -715,6 +716,7 @@ export class ReservasService {
           nights,
           ciudad,
           agenciaInfo.category,
+          false, // Usar URL de producción temporalmente
         );
 
         return data;

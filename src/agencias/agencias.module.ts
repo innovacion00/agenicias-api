@@ -16,6 +16,6 @@ import { ReservasModule } from 'src/reservas/reservas.module';
     CommonModule,
     MongooseModule.forFeature([{ name: Agencia.name, schema: AgenciaSchema }]),
   ],
-  exports: [MongooseModule],
+  exports: [AgenciasService, MongooseModule],
 })
 export class AgenciasModule {}
