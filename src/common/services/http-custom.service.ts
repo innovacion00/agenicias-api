@@ -201,16 +201,10 @@ export class HttpCustomService {
       const url = `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista}/availability?checkin=${checkin}&nights=${night}&city=${city}`;
       const headers = dev ? autocoreHeadersDev : autocoreHeaders;
       
-      console.log('=== HTTP AUTOCORE ===');
-      console.log('URL:', url);
-      console.log('Headers:', headers);
-      console.log('Body (layout):', layout);
-      console.log('Dev mode:', dev);
-      console.log('===================');
-
+      
       const { data } = await axios.post<Iavailability[]>(
         url,
-        layout,
+        { layout },
         headers,
       );
 

@@ -1,457 +1,173 @@
 {
   "info": {
     "name": "Agencias API - Cotizaciones",
-    "description": "Colección de endpoints para el flujo completo de cotizaciones",
+    "description": "Flujo completo: disponibilidad, cotizaciones privadas y endpoints públicos.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{access_token}}",
-        "type": "string"
-      }
-    ]
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:3000/agencias/v1",
-      "type": "string"
-    },
-    {
-      "key": "access_token",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NzZhZmVhNDE4MmY2ODI4YmVmNWZmN2IiLCJpYXQiOjE3NjAxMTAwOTQsImV4cCI6MTc2MDExMDk5NH0.16y63yEoLVYHkzmxplZo_7C8-p_4tqSNkvH5pNY21b0",
-      "type": "string"
-    }
-  ],
   "item": [
     {
-      "name": "1. Consulta de Disponibilidad",
-      "item": [
-        {
-          "name": "Consulta Disponibilidad - Cartagena",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"checkin\": \"2026-02-04\",\n  \"checkout\": \"2026-02-07\",\n  \"adults\": \"2\",\n  \"children\": \"0\",\n  \"children_ages\": \"\",\n  \"city\": \"CARTAGENA\",\n  \"country\": \"COL\",\n  \"currency\": \"COP\",\n  \"rooms\": \"1\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/reservas/consultar-disponibilidad",
-              "host": ["{{base_url}}"],
-              "path": ["reservas", "consultar-disponibilidad"]
-            }
-          }
+      "name": "Auth - Sign In (obtener token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/auth/sign-in",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "sign-in"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"innovacion@gehsuites.com\",\n  \"password\": \"123456\"\n}"
         }
-      ]
+      }
     },
     {
-      "name": "2. Cotizaciones - Endpoints Privados (Agencia)",
-      "item": [
-        {
-          "name": "Debug User Info",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/debug-user",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "debug-user"]
-            }
-          }
+      "name": "Reservas - Disponibilidad",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/reservas/disponibilidad",
+          "host": ["{{baseUrl}}"],
+          "path": ["reservas", "disponibilidad"]
         },
-        {
-          "name": "Crear Cotización desde Disponibilidad",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mascotas\": false,\n  \"total\": 281138,\n  \"adicionCena\": false,\n  \"adicionAlmuerzo\": false,\n  \"planAlimentario\": \"Desayuno\",\n  \"reteFuente\": {\n    \"porcentaje\": 3.5,\n    \"resultado\": 9840\n  },\n  \"reteIca\": {\n    \"porcentaje\": 0.96,\n    \"resultado\": 2699\n  },\n  \"reteIva\": {\n    \"porcentaje\": 19,\n    \"resultado\": 53416\n  },\n  \"exentoIva\": false,\n  \"asistentes\": [\n    {\n      \"fullName\": \"Juan Pérez\",\n      \"tipoDocumento\": \"CC\",\n      \"documento\": \"12345678\",\n      \"telefono\": \"+573001234567\",\n      \"email\": \"juan@email.com\"\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Juan\",\n    \"lastName\": \"Pérez\",\n    \"tipoDocumento\": \"CC\",\n    \"documento\": \"12345678\",\n    \"fechaNacimiento\": \"1990-01-01\"\n  },\n  \"reservaInfo\": {\n    \"agency\": {\n      \"is_agency\": true,\n      \"agency_type\": 1,\n      \"external_ref_id\": \"AG001\"\n    },\n    \"reservation\": {\n      \"adults\": \"2\",\n      \"checkin\": \"2026-02-04\",\n      \"checkout\": \"2026-02-07\",\n      \"children\": \"0\",\n      \"children_ages\": \"\",\n      \"city\": \"CARTAGENA\",\n      \"country\": \"COL\",\n      \"currency\": \"COP\",\n      \"email\": \"juan@email.com\",\n      \"telephone\": \"+573001234567\",\n      \"firstName\": \"Juan\",\n      \"lastName\": \"Pérez\",\n      \"nights\": \"3\",\n      \"notes\": \"Habitación con vista al mar\",\n      \"rooms\": \"1\",\n      \"roomsData\": [\n        {\n          \"nombreHabitacion\": \"Habitación Doble Standard\",\n          \"adults\": \"2\",\n          \"children\": \"0\",\n          \"children_ages\": \"\",\n          \"checkin\": \"2026-02-04\",\n          \"checkout\": \"2026-02-07\",\n          \"currency\": \"COP\",\n          \"id\": \"83803\",\n          \"quantity\": \"1\",\n          \"rateId\": \"99091\",\n          \"unitaryPrice\": 281138\n        }\n      ]\n    }\n  },\n  \"cotizacionChatbotId\": \"chatbot_123\",\n  \"fechaLimiteRespuesta\": \"2026-01-28\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/from-disponibilidad",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "from-disponibilidad"]
-            }
-          }
-        },
-        {
-          "name": "Listar Cotizaciones por Agencia",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones"]
-            }
-          }
-        },
-        {
-          "name": "Obtener Cotización por ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/{{cotizacion_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "{{cotizacion_id}}"]
-            }
-          }
-        },
-        {
-          "name": "Obtener Estadísticas de Cotizaciones",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/estadisticas",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "estadisticas"]
-            }
-          }
-        },
-        {
-          "name": "Generar Datos para Landing",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/landing/{{cotizacion_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "landing", "{{cotizacion_id}}"]
-            }
-          }
-        },
-        {
-          "name": "Almacenar HTML de Landing",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cotizacionId\": \"{{cotizacion_id}}\",\n  \"landingHtml\": \"<html><body><h1>Landing Page HTML</h1><p>Contenido generado por el frontend</p></body></html>\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/store-landing",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "store-landing"]
-            }
-          }
-        },
-        {
-          "name": "Generar PDF de Cotización",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cotizacionId\": \"{{cotizacion_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/pdf",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "pdf"]
-            }
-          }
-        },
-        {
-          "name": "Convertir Cotización a Reserva",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/convertir-reserva/{{cotizacion_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "convertir-reserva", "{{cotizacion_id}}"]
-            }
-          }
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"checkingDate\": \"{{checkin}}\",\n  \"nights\": {{nights}},\n  \"ciudad\": \"{{ciudad}}\",\n  \"layout\": [ { \"adults\": 2, \"children_ages\": [] } ],\n  \"category\": 1\n}"
         }
-      ]
+      }
     },
     {
-      "name": "3. Cotizaciones - Endpoints Públicos (Huésped)",
-      "item": [
-        {
-          "name": "Ver Cotización por Token (Público)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/public/token/{{token_acceso}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "public", "token", "{{token_acceso}}"]
-            }
-          }
+      "name": "Cotizaciones - Crear desde disponibilidad",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/from-disponibilidad",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "from-disponibilidad"]
         },
-        {
-          "name": "Aceptar Cotización (Público)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": 1\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/public/responder/{{token_acceso}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "public", "responder", "{{token_acceso}}"]
-            }
-          }
-        },
-        {
-          "name": "Rechazar Cotización (Público)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": 2,\n  \"motivoRechazo\": \"Precio muy alto\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/public/responder/{{token_acceso}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "public", "responder", "{{token_acceso}}"]
-            }
-          }
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titularInfo\": {\n    \"firstName\": \"Juan\",\n    \"lastName\": \"Pérez\",\n    \"email\": \"juan@example.com\",\n    \"telephone\": \"+57 3000000000\",\n    \"tipoDocumento\": \"CC\",\n    \"numeroDocumento\": \"123456789\"\n  },\n  \"reservaInfo\": {\n    \"reservation\": {\n      \"checkin\": \"{{checkin}}\",\n      \"checkout\": \"{{checkout}}\",\n      \"nights\": \"{{nights}}\",\n      \"adults\": \"2\",\n      \"children\": \"0\",\n      \"rooms\": \"1\",\n      \"roomsData\": [\n        { \"nombreHabitacion\": \"Habitacion Doble Standard\", \"roomId\": \"83528\", \"roomName\": \"Habitacion Doble Standard\" }\n      ],\n      \"firstName\": \"Juan\",\n      \"lastName\": \"Pérez\",\n      \"email\": \"juan@example.com\",\n      \"telephone\": \"+57 3000000000\"\n    }\n  },\n  \"total\": 1000000,\n  \"fechaLimiteRespuesta\": \"{{fechaLimiteRespuesta}}\"\n}"
         }
-      ]
+      }
     },
     {
-      "name": "4. Flujo Completo de Prueba",
-      "item": [
-        {
-          "name": "Paso 1: Consultar Disponibilidad",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"checkin\": \"2026-02-04\",\n  \"checkout\": \"2026-02-07\",\n  \"adults\": \"2\",\n  \"children\": \"0\",\n  \"children_ages\": \"\",\n  \"city\": \"CARTAGENA\",\n  \"country\": \"COL\",\n  \"currency\": \"COP\",\n  \"rooms\": \"1\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/reservas/consultar-disponibilidad",
-              "host": ["{{base_url}}"],
-              "path": ["reservas", "consultar-disponibilidad"]
-            }
-          }
-        },
-        {
-          "name": "Paso 2: Crear Cotización",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mascotas\": false,\n  \"total\": 281138,\n  \"adicionCena\": false,\n  \"adicionAlmuerzo\": false,\n  \"planAlimentario\": \"Desayuno\",\n  \"reteFuente\": {\n    \"porcentaje\": 3.5,\n    \"resultado\": 9840\n  },\n  \"reteIca\": {\n    \"porcentaje\": 0.96,\n    \"resultado\": 2699\n  },\n  \"reteIva\": {\n    \"porcentaje\": 19,\n    \"resultado\": 53416\n  },\n  \"exentoIva\": false,\n  \"asistentes\": [\n    {\n      \"fullName\": \"Juan Pérez\",\n      \"tipoDocumento\": \"CC\",\n      \"documento\": \"12345678\",\n      \"telefono\": \"+573001234567\",\n      \"email\": \"juan@email.com\"\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Juan\",\n    \"lastName\": \"Pérez\",\n    \"tipoDocumento\": \"CC\",\n    \"documento\": \"12345678\",\n    \"fechaNacimiento\": \"1990-01-01\"\n  },\n  \"reservaInfo\": {\n    \"agency\": {\n      \"is_agency\": true,\n      \"agency_type\": 1,\n      \"external_ref_id\": \"AG001\"\n    },\n    \"reservation\": {\n      \"adults\": \"2\",\n      \"checkin\": \"2026-02-04\",\n      \"checkout\": \"2026-02-07\",\n      \"children\": \"0\",\n      \"children_ages\": \"\",\n      \"city\": \"CARTAGENA\",\n      \"country\": \"COL\",\n      \"currency\": \"COP\",\n      \"email\": \"juan@email.com\",\n      \"telephone\": \"+573001234567\",\n      \"firstName\": \"Juan\",\n      \"lastName\": \"Pérez\",\n      \"nights\": \"3\",\n      \"notes\": \"Habitación con vista al mar\",\n      \"rooms\": \"1\",\n      \"roomsData\": [\n        {\n          \"nombreHabitacion\": \"Habitación Doble Standard\",\n          \"adults\": \"2\",\n          \"children\": \"0\",\n          \"children_ages\": \"\",\n          \"checkin\": \"2026-02-04\",\n          \"checkout\": \"2026-02-07\",\n          \"currency\": \"COP\",\n          \"id\": \"83803\",\n          \"quantity\": \"1\",\n          \"rateId\": \"99091\",\n          \"unitaryPrice\": 281138\n        }\n      ]\n    }\n  },\n  \"cotizacionChatbotId\": \"chatbot_123\",\n  \"fechaLimiteRespuesta\": \"2026-01-28\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/from-disponibilidad",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "from-disponibilidad"]
-            }
-          }
-        },
-        {
-          "name": "Paso 3: Generar Datos para Landing",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/landing/{{cotizacion_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "landing", "{{cotizacion_id}}"]
-            }
-          }
-        },
-        {
-          "name": "Paso 4: Almacenar HTML de Landing",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cotizacionId\": \"{{cotizacion_id}}\",\n  \"landingHtml\": \"<html><head><title>Cotización de Hotel</title></head><body><h1>Cotización de Hotel</h1><p>Hola {{titularInfo.firstName}}, aquí está tu cotización:</p><p>Hotel: {{hotelInfo.nombre}}</p><p>Habitación: {{habitacionInfo.nombreHabitacion}}</p><p>Check-in: {{reservaInfo.reservation.checkin}}</p><p>Check-out: {{reservaInfo.reservation.checkout}}</p><p>Total: ${{total}} COP</p><p>Fecha límite de respuesta: {{fechaLimiteRespuesta}}</p><div><button onclick=\"aceptarCotizacion()\">Aceptar</button><button onclick=\"rechazarCotizacion()\">Rechazar</button></div></body></html>\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/store-landing",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "store-landing"]
-            }
-          }
-        },
-        {
-          "name": "Paso 5: Generar PDF",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cotizacionId\": \"{{cotizacion_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/pdf",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "pdf"]
-            }
-          }
-        },
-        {
-          "name": "Paso 6: Ver Cotización (Público)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/public/token/{{token_acceso}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "public", "token", "{{token_acceso}}"]
-            }
-          }
-        },
-        {
-          "name": "Paso 7: Aceptar Cotización (Público)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": 1\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/cotizaciones/public/responder/{{token_acceso}}",
-              "host": ["{{base_url}}"],
-              "path": ["cotizaciones", "public", "responder", "{{token_acceso}}"]
-            }
-          }
+      "name": "Cotizaciones - Landing data",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/landing/{{cotizacionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "landing", "{{cotizacionId}}"]
         }
-      ]
+      }
+    },
+    {
+      "name": "Cotizaciones - Store landing HTML",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/store-landing",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "store-landing"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cotizacionId\": \"{{cotizacionId}}\",\n  \"landingHtml\": \"<!doctype html><html><head><meta charset=\\\"utf-8\\\"><title>Cotización</title></head><body><h1>Cotización</h1><p>Contenido...</p></body></html>\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Cotizaciones - Público - Obtener por token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/public/token/{{tokenAcceso}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "public", "token", "{{tokenAcceso}}"]
+        }
+      }
+    },
+    {
+      "name": "Cotizaciones - Público - Responder (aceptar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/public/responder/{{tokenAcceso}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "public", "responder", "{{tokenAcceso}}"]
+        },
+        "body": { "mode": "raw", "raw": "{\n  \"status\": 1\n}" }
+      }
+    },
+    {
+      "name": "Cotizaciones - Público - Responder (rechazar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/public/responder/{{tokenAcceso}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "public", "responder", "{{tokenAcceso}}"]
+        },
+        "body": { "mode": "raw", "raw": "{\n  \"status\": 2,\n  \"motivoRechazo\": \"No me interesa\"\n}" }
+      }
+    },
+    {
+      "name": "Cotizaciones - Generar PDF",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/pdf",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "pdf"]
+        },
+        "body": { "mode": "raw", "raw": "{\n  \"cotizacionId\": \"{{cotizacionId}}\"\n}" }
+      }
+    },
+    {
+      "name": "Cotizaciones - Convertir a reserva",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/cotizaciones/convertir-reserva/{{cotizacionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cotizaciones", "convertir-reserva", "{{cotizacionId}}"]
+        }
+      }
     }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/agencias/v1" },
+    { "key": "token", "value": "" },
+    { "key": "checkin", "value": "2025-11-20" },
+    { "key": "checkout", "value": "2025-11-22" },
+    { "key": "nights", "value": "2" },
+    { "key": "ciudad", "value": "CARTAGENA" },
+    { "key": "fechaLimiteRespuesta", "value": "2025-11-27" },
+    { "key": "cotizacionId", "value": "" },
+    { "key": "tokenAcceso", "value": "" }
   ]
 }
+
+
