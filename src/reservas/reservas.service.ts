@@ -691,6 +691,10 @@ export class ReservasService {
     disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
   ) {
     try {
+      console.log('=== SERVICIO DISPONIBILIDAD ===');
+      console.log('Agencia ID recibido:', agenciaId);
+      console.log('DTO recibido:', disponibilidadAutoCoreDto);
+      
       const { layout, checkingDate, ciudad, nights } =
         disponibilidadAutoCoreDto;
 
@@ -698,6 +702,7 @@ export class ReservasService {
         disponibilidadAutoCoreDto.category === 0 ||
         disponibilidadAutoCoreDto.category === 1
       ) {
+        console.log('Usando category del DTO:', disponibilidadAutoCoreDto.category);
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
           checkingDate,
@@ -709,7 +714,15 @@ export class ReservasService {
 
         return data;
       } else {
+        console.log('Obteniendo info de agencia...');
         const agenciaInfo = await this.agenciaModel.findById(agenciaId);
+        console.log('Agencia encontrada:', {
+          id: agenciaInfo._id,
+          fullName: agenciaInfo.fullName,
+          category: agenciaInfo.category,
+          isActive: agenciaInfo.isActive
+        });
+        
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
           checkingDate,
@@ -722,6 +735,7 @@ export class ReservasService {
         return data;
       }
     } catch (error) {
+      console.log('ERROR en getDisponibilidad:', error);
       this.logger.error(error);
       this.errorManager.handle(error);
     }

@@ -198,14 +198,26 @@ export class HttpCustomService {
     dev?: boolean,
   ) {
     try {
+      const url = `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista}/availability?checkin=${checkin}&nights=${night}&city=${city}`;
+      const headers = dev ? autocoreHeadersDev : autocoreHeaders;
+      
+      console.log('=== HTTP AUTOCORE ===');
+      console.log('URL:', url);
+      console.log('Headers:', headers);
+      console.log('Body (layout):', layout);
+      console.log('Dev mode:', dev);
+      console.log('===================');
+
       const { data } = await axios.post<Iavailability[]>(
-        `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista}/availability?checkin=${checkin}&nights=${night}&city=${city}`,
-        { layout },
-        dev ? autocoreHeadersDev : autocoreHeaders,
+        url,
+        layout,
+        headers,
       );
 
+      console.log('Respuesta Autocore exitosa:', data);
       return data;
     } catch (error) {
+      console.log('ERROR en getDisponibilidadAutocore:', error);
       this.axiosError(error, this.getDisponibilidadAutocore.name);
     }
   }
