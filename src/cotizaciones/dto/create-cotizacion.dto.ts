@@ -239,7 +239,8 @@ class TitularInfoDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CE', 'PA'])
+  @MinLength(3)
+  @MaxLength(20)
   tipoDocumento: string;
 
   @IsString()
