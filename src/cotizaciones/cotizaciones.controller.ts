@@ -51,9 +51,8 @@ export class CotizacionesController {
       receivedData: {
         total: createCotizacionDto.total,
         planAlimentario: createCotizacionDto.planAlimentario,
-        cotizacionChatbotId: createCotizacionDto.cotizacionChatbotId,
         fechaLimiteRespuesta: createCotizacionDto.fechaLimiteRespuesta,
-        asistentesCount: createCotizacionDto.asistentes?.length || 0,
+        // campos removidos: cotizacionChatbotId, asistentes
         titularInfo: createCotizacionDto.titularInfo ? 'presente' : 'ausente',
         reservaInfo: createCotizacionDto.reservaInfo ? 'presente' : 'ausente'
       }

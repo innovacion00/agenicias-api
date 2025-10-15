@@ -7,8 +7,4 @@ export class ResponderCotizacionDto {
   })
   @IsNotEmpty()
   status: CotizacionStatus.ACEPTADA | CotizacionStatus.RECHAZADA;
-
-  @IsString()
-  @IsOptional()
-  motivoRechazo?: string;
 }

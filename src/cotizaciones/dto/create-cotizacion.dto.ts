@@ -384,7 +384,6 @@ export class CreateCotizacionDto {
   @Type(() => AsistenteDto)
   @IsArray()
   @IsOptional()
-  asistentes: IAsistente[];
 
   @ValidateNested()
   @Type(() => TitularInfoDto)
@@ -403,7 +402,6 @@ export class CreateCotizacionDto {
 
   @IsString()
   @IsNotEmpty()
-  cotizacionChatbotId: string;
 
   @IsString()
   @IsNotEmpty()

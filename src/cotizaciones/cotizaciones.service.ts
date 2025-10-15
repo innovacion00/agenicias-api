@@ -24,12 +24,17 @@ export class CotizacionesService {
     // Generar URL de landing
     const landingUrl = `${process.env.FRONTEND_URL}/cotizacion/${tokenAcceso}`;
 
+    // Usar la fecha límite del DTO o calcular una por defecto (7 días desde hoy)
+    const fechaLimite = createCotizacionDto.fechaLimiteRespuesta || 
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     const cotizacion = new this.cotizacionModel({
       ...createCotizacionDto,
       userId,
       agenciaId,
       tokenAcceso,
       landingUrl,
+      fechaLimiteRespuesta: fechaLimite,
       status: CotizacionStatus.EN_ESPERA,
     });
 
@@ -173,7 +178,7 @@ export class CotizacionesService {
       cotizacion.fechaAprobacion = new Date();
     } else if (responderCotizacionDto.status === CotizacionStatus.RECHAZADA) {
       cotizacion.fechaRechazo = new Date();
-      cotizacion.motivoRechazo = responderCotizacionDto.motivoRechazo || '';
+      // No establecer motivoRechazo (campo removido del DTO)
     }
 
     return await cotizacion.save();
