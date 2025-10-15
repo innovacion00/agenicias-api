@@ -405,7 +405,7 @@ export class CreateCotizacionDto {
   @IsNotEmpty()
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'fechaLimiteRespuesta debe venir en formato YYYY-MM-DD',
   })
