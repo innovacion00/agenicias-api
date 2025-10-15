@@ -26,7 +26,7 @@ import {
   RoomsDatum,
   ValidCities,
 } from 'src/common/interface';
-import { IAsistente, ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
+import { ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
 import { IsNotFutureDate } from 'src/reservas/decorators';
 
 class AgencyDto {
@@ -192,37 +192,7 @@ class ReservaInfoDto {
   reservation: IreservaInfoBd;
 }
 
-class AsistenteDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  @MinLength(5)
-  fullName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CE', 'PA'])
-  tipoDocumento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  @Matches(/^[^\s._]+$/, {
-    message: 'document no puede contener espacios guiones bajos.',
-  })
-  documento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(7)
-  @MaxLength(15)
-  @IsPhoneNumber()
-  telefono: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-}
+// AsistenteDto eliminado: no se usa en CreateCotizacionDto
 
 class TitularInfoDto {
   @IsString()
@@ -381,11 +351,7 @@ export class CreateCotizacionDto {
   @IsOptional()
   exentoIva: boolean;
 
-  @ValidateNested({ each: true })
-  @Type(() => AsistenteDto)
-  @IsArray()
-  @IsOptional()
-
+  // (asistentes eliminado)
   @ValidateNested()
   @Type(() => TitularInfoDto)
   @IsNotEmpty()
@@ -401,9 +367,7 @@ export class CreateCotizacionDto {
   @IsNotEmpty()
   reservaInfo: IreservaInfo;
 
-  @IsString()
-  @IsNotEmpty()
-
+  // Campo eliminado previamente
   @IsString()
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
