@@ -55,6 +55,18 @@ export class Cotizacion extends Document {
 
   @Prop({
     type: Number,
+    required: true,
+  })
+  porcentajemarkup: number;
+
+  @Prop({
+    type: Number,
+    required: true,
+  })
+  montoconmarkup: number;
+
+  @Prop({
+    type: Number,
     default: 0,
   })
   totalMitad: number;

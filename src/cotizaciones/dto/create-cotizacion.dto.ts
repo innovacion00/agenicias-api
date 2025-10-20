@@ -314,6 +314,18 @@ export class CreateCotizacionDto {
   @IsNotEmpty()
   total: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @IsIn([5, 10, 15, 20], {
+    message: 'markup debe ser uno de los valores permitidos: 5, 10, 15, 20'
+  })
+  markup: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  porcentajemarkup: number;
+
   @IsBoolean()
   @IsOptional()
   adicionCena: boolean;
