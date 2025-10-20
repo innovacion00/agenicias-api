@@ -316,9 +316,7 @@ export class CreateCotizacionDto {
 
   @IsNumber()
   @IsNotEmpty()
-  @IsIn([5, 10, 15, 20], {
-    message: 'markup debe ser uno de los valores permitidos: 5, 10, 15, 20'
-  })
+  @IsPositive()
   markup: number;
 
   @IsNumber()
