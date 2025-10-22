@@ -6,6 +6,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsPhoneNumber,
   IsPositive,
@@ -384,4 +385,33 @@ export class CreateCotizacionDto {
     message: 'fechaLimiteRespuesta debe venir en formato YYYY-MM-DD',
   })
   fechaLimiteRespuesta: string;
+
+  // ===== NUEVOS CAMPOS PARA LANDING =====
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  landingHtml?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  landingUrl?: string;
+
+  // Información del huésped para la landing
+  @IsObject()
+  @IsOptional()
+  huespedInfo?: {
+    nombre: string;
+    email: string;
+    telefono: string;
+  };
+
+  // Información de la agencia para la landing
+  @IsObject()
+  @IsOptional()
+  agenciaInfo?: {
+    nombre: string;
+    telefono: string;
+    email: string;
+  };
 }

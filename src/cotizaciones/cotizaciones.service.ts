@@ -2,8 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Cotizacion, CotizacionStatus } from './entities/cotizacion.entity';
-import { CreateCotizacionDto, ResponderCotizacionDto, StoreLandingDto } from './dto';
-import { LandingData } from './interfaces';
+import { CreateCotizacionDto, ResponderCotizacionDto } from './dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { AgenciasService } from 'src/agencias/agencias.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -62,9 +61,12 @@ export class CotizacionesService {
       // Generar token de acceso único
       const tokenAcceso = uuidv4();
       
-      // Generar URL de landing (usar URL por defecto si no está definida)
+      // Mapear reservaInfo a reservation para la entidad
+      const { reservaInfo, landingHtml, landingUrl: providedLandingUrl, huespedInfo, agenciaInfo, ...restDto } = createCotizacionDto;
+      
+      // Usar la URL de landing proporcionada o generar una por defecto
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-      const landingUrl = `${frontendUrl}/cotizacion/${tokenAcceso}`;
+      const landingUrl = providedLandingUrl || `${frontendUrl}/cotizacion/${tokenAcceso}`;
 
       // Usar la fecha límite del DTO o calcular una por defecto
       const fechaLimite = createCotizacionDto.fechaLimiteRespuesta || 
@@ -76,11 +78,11 @@ export class CotizacionesService {
         tokenAcceso,
         landingUrl,
         fechaLimiteRespuesta: fechaLimite,
-        status: CotizacionStatus.EN_ESPERA
+        status: CotizacionStatus.EN_ESPERA,
+        hasLandingHtml: !!landingHtml,
+        hasHuespedInfo: !!huespedInfo,
+        hasAgenciaInfo: !!agenciaInfo
       });
-
-      // Mapear reservaInfo a reservation para la entidad
-      const { reservaInfo, ...restDto } = createCotizacionDto;
       
       // Extraer información del hotel y habitaciones de la reserva
       const hotel = reservaInfo?.reservation?.roomsData?.[0]?.nombreHabitacion || 'Hotel no especificado';
@@ -97,6 +99,16 @@ export class CotizacionesService {
         ...reservaInfo.reservation,
         roomsData: reservaInfo.reservation.roomsData || []
       };
+
+      // Procesar información adicional de landing si se proporciona
+      // Los datos de huespedInfo y agenciaInfo se pueden usar para personalizar la landing
+      // pero no se almacenan directamente en la entidad Cotizacion
+      if (huespedInfo) {
+        console.log('Información del huésped recibida:', huespedInfo);
+      }
+      if (agenciaInfo) {
+        console.log('Información de la agencia recibida:', agenciaInfo);
+      }
       
       const cotizacion = new this.cotizacionModel({
         ...restDto,
@@ -106,6 +118,7 @@ export class CotizacionesService {
         agenciaId,
         tokenAcceso,
         landingUrl,
+        landingHtml: landingHtml || '', // Almacenar HTML de landing
         fechaLimiteRespuesta: fechaLimite,
         hotel,
         cantidadHabitaciones,
@@ -200,46 +213,7 @@ export class CotizacionesService {
     return await cotizacion.save();
   }
 
-  async generateLandingData(cotizacionId: string): Promise<LandingData> {
-    const cotizacion = await this.findOne(cotizacionId);
-
-    const agencias = await this.agenciasService.findByProperty(cotizacion.agenciaId.toString());
-    const agencia = agencias[0]; // Tomar la primera agencia encontrada
-
-    return {
-      cotizacionId: cotizacion._id.toString(),
-      hotel: cotizacion.hotel,
-      checkin: cotizacion.reservation.checkin,
-      checkout: cotizacion.reservation.checkout,
-      noches: parseInt(cotizacion.reservation.nights),
-      total: cotizacion.total,
-      habitaciones: cotizacion.cantidadHabitaciones,
-      huéspedes: {
-        adultos: parseInt(cotizacion.reservation.adults),
-        niños: parseInt(cotizacion.reservation.children) || 0,
-      },
-      huésped: {
-        nombre: `${cotizacion.reservation.firstName} ${cotizacion.reservation.lastName}`,
-        email: cotizacion.reservation.email,
-        telefono: cotizacion.reservation.telephone,
-      },
-      agencia: {
-        nombre: agencia?.fullName || 'Agencia no encontrada',
-        telefono: agencia?.telefonoContacto || '',
-        email: agencia?.emailContacto || '',
-      },
-      fechaLimiteRespuesta: cotizacion.fechaLimiteRespuesta,
-      tokenAcceso: cotizacion.tokenAcceso,
-    };
-  }
-
-  async storeLanding(storeLandingDto: StoreLandingDto): Promise<Cotizacion> {
-    const cotizacion = await this.findOne(storeLandingDto.cotizacionId);
-    
-    cotizacion.landingHtml = storeLandingDto.landingHtml;
-    
-    return await cotizacion.save();
-  }
+  // Métodos de landing eliminados - ahora se manejan en createFromDisponibilidad
 
   async generatePdf(cotizacionId: string): Promise<string> {
     const cotizacion = await this.findOne(cotizacionId);

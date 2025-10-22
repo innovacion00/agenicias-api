@@ -11,7 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
-import { CreateCotizacionDto, ResponderCotizacionDto, GeneratePdfDto, StoreLandingDto } from './dto';
+import { CreateCotizacionDto, ResponderCotizacionDto, GeneratePdfDto } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ValidRoles } from 'src/auth/interfaces';
@@ -107,17 +107,7 @@ export class CotizacionesController {
     );
   }
 
-  @Post('landing/:id')
-  @Auth()
-  generateLandingData(@Param('id') id: string) {
-    return this.cotizacionesService.generateLandingData(id);
-  }
-
-  @Post('store-landing')
-  @Auth()
-  storeLanding(@Body() storeLandingDto: StoreLandingDto) {
-    return this.cotizacionesService.storeLanding(storeLandingDto);
-  }
+  // Endpoints de landing eliminados - ahora se manejan en createFromDisponibilidad
 
   @Post('pdf')
   @Auth()
