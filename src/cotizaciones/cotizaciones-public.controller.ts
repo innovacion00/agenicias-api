@@ -17,6 +17,11 @@ export class CotizacionesPublicController {
     return this.cotizacionesService.findByTokenPublic(tokenAcceso);
   }
 
+  @Get(':id')
+  findOneByIdPublic(@Param('id') id: string) {
+    return this.cotizacionesService.findByIdPublic(id);
+  }
+
   @Post('responder/:tokenAcceso')
   responderCotizacionPublic(
     @Param('tokenAcceso') tokenAcceso: string,

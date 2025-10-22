@@ -185,6 +185,20 @@ export class CotizacionesService {
     return cotizacion;
   }
 
+  async findByIdPublic(id: string): Promise<Cotizacion> {
+    const cotizacion = await this.cotizacionModel
+      .findById(id)
+      .populate('userId', 'firstName lastName email telephone')
+      .populate('agenciaId', 'nombre telefono email')
+      .exec();
+
+    if (!cotizacion) {
+      throw new NotFoundException('Cotización no encontrada');
+    }
+
+    return cotizacion;
+  }
+
   async responderCotizacion(
     tokenAcceso: string,
     responderCotizacionDto: ResponderCotizacionDto,
