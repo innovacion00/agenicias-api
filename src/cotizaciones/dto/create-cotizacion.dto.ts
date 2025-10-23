@@ -414,4 +414,15 @@ export class CreateCotizacionDto {
     telefono: string;
     email: string;
   };
+
+  // Información del hotel desde la consulta de disponibilidad
+  @IsObject()
+  @IsOptional()
+  hotelInfo?: {
+    id: number;
+    name: string;
+    roomcloud_id: string;
+    city: string;
+    largest_room_beds: number;
+  };
 }

@@ -85,7 +85,8 @@ export class CotizacionesService {
       });
       
       // Extraer información del hotel y habitaciones de la reserva
-      const hotel = reservaInfo?.reservation?.roomsData?.[0]?.nombreHabitacion || 'Hotel no especificado';
+      // Usar la información real del hotel desde la disponibilidad
+      const hotel = createCotizacionDto.hotelInfo?.name || 'Hotel no especificado';
       const cantidadHabitaciones = parseInt(reservaInfo?.reservation?.rooms || '1');
       
       // Mapear markup a porcentajemarkup para la base de datos
