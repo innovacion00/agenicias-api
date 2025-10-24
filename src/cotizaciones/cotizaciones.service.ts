@@ -27,16 +27,12 @@ export class CotizacionesService {
     const fechaLimite = createCotizacionDto.fechaLimiteRespuesta || 
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Mapear markup a porcentajemarkup para la base de datos
-    const porcentajemarkup = createCotizacionDto.markup;
-    
-    // Calcular montoconmarkup basado en el porcentaje y el monto total
-    const montoconmarkup = createCotizacionDto.total * (1 + porcentajemarkup / 100);
+    // Los valores ya vienen calculados del frontend
+    // markup = monto total con markup aplicado
+    // porcentajemarkup = porcentaje de markup
 
     const cotizacion = new this.cotizacionModel({
       ...createCotizacionDto,
-      porcentajemarkup,
-      montoconmarkup,
       userId,
       agenciaId,
       tokenAcceso,
@@ -89,11 +85,9 @@ export class CotizacionesService {
       const hotel = createCotizacionDto.hotelInfo?.name || 'Hotel no especificado';
       const cantidadHabitaciones = parseInt(reservaInfo?.reservation?.rooms || '1');
       
-      // Mapear markup a porcentajemarkup para la base de datos
-      const porcentajemarkup = createCotizacionDto.markup;
-      
-      // Calcular montoconmarkup basado en el porcentaje y el monto total
-      const montoconmarkup = createCotizacionDto.total * (1 + porcentajemarkup / 100);
+      // Los valores ya vienen calculados del frontend
+      // markup = monto total con markup aplicado
+      // porcentajemarkup = porcentaje de markup
       
       // Mapear correctamente los datos de la reserva
       const reservationData = {
@@ -113,8 +107,6 @@ export class CotizacionesService {
       
       const cotizacion = new this.cotizacionModel({
         ...restDto,
-        porcentajemarkup,
-        montoconmarkup,
         userId,
         agenciaId,
         tokenAcceso,

@@ -322,7 +322,7 @@ export class CreateCotizacionDto {
 
   @IsNumber()
   @IsNotEmpty()
-  @IsPositive()
+  @Min(0)
   porcentajemarkup: number;
 
   @IsBoolean()

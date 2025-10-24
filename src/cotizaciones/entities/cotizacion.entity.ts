@@ -56,14 +56,16 @@ export class Cotizacion extends Document {
   @Prop({
     type: Number,
     required: true,
+    min: 0,
   })
-  porcentajemarkup: number;
+  markup: number;
 
   @Prop({
     type: Number,
     required: true,
+    min: 0,
   })
-  montoconmarkup: number;
+  porcentajemarkup: number;
 
   @Prop({
     type: Number,
