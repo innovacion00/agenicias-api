@@ -291,6 +291,12 @@ export class Reserva extends Document {
   notasSuperAdmin: string;
 
   @Prop({
+    type: String,
+    default: '',
+  })
+  notasagencias: string;
+
+  @Prop({
     type: {
       link: { type: String, default: '' },
       expirationDate: { type: Date, default: '' },

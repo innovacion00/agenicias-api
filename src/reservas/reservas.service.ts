@@ -434,6 +434,9 @@ export class ReservasService {
           notasSuperAdmin: updateReservaDto.notasSuperAdmin
             ? updateReservaDto.notasSuperAdmin
             : reserva.notasSuperAdmin,
+          notasagencias: updateReservaDto.notasagencias
+            ? updateReservaDto.notasagencias
+            : reserva.notasagencias,
         },
       });
 
