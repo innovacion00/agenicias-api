@@ -199,7 +199,7 @@ export class AgenciasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
-  }
+  } 
 
   // #region Cantidad de agencias con reservas
   async getCountOfAgenciasReservas() {
