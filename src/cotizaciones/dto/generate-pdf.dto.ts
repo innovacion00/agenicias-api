@@ -1,7 +1,7 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsMongoId, IsNotEmpty } from 'class-validator';
 
 export class GeneratePdfDto {
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   cotizacionId: string;
 }

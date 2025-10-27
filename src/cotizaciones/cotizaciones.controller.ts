@@ -6,15 +6,16 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
-  Request,
-  Query,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
-import { CreateCotizacionDto, ResponderCotizacionDto, GeneratePdfDto } from './dto';
-import { Auth, GetUser } from 'src/auth/decorators';
-import { User } from 'src/auth/entities';
-import { ValidRoles } from 'src/auth/interfaces';
+import {
+  CreateCotizacionDto,
+  ResponderCotizacionDto,
+  GeneratePdfDto,
+} from './dto';
+import { Auth, GetUser } from '../auth/decorators';
+import { User } from '../auth/entities';
+import { ValidRoles } from '../auth/interfaces';
 
 @Controller('cotizaciones')
 @Auth()
@@ -39,7 +40,7 @@ export class CotizacionesController {
       email: user.email,
       roles: user.role,
       agencia: user.agencia,
-      fullName: user.fullName
+      fullName: user.fullName,
     };
   }
 
@@ -52,10 +53,9 @@ export class CotizacionesController {
         total: createCotizacionDto.total,
         planAlimentario: createCotizacionDto.planAlimentario,
         fechaLimiteRespuesta: createCotizacionDto.fechaLimiteRespuesta,
-        // campos removidos: cotizacionChatbotId, asistentes
         titularInfo: createCotizacionDto.titularInfo ? 'presente' : 'ausente',
-        reservaInfo: createCotizacionDto.reservaInfo ? 'presente' : 'ausente'
-      }
+        reservaInfo: createCotizacionDto.reservaInfo ? 'presente' : 'ausente',
+      },
     };
   }
 
@@ -75,13 +75,17 @@ export class CotizacionesController {
   @Get()
   @Auth()
   findAll(@GetUser() user: User) {
-    return this.cotizacionesService.findAllByAgencia(user.agencia?.toString() || '');
+    return this.cotizacionesService.findAllByAgencia(
+      user.agencia?.toString() || '',
+    );
   }
 
   @Get('estadisticas')
   @Auth()
   getEstadisticas(@GetUser() user: User) {
-    return this.cotizacionesService.getEstadisticas(user.agencia?.toString() || '');
+    return this.cotizacionesService.getEstadisticas(
+      user.agencia?.toString() || '',
+    );
   }
 
   @Get(':id')
@@ -106,8 +110,6 @@ export class CotizacionesController {
       responderCotizacionDto,
     );
   }
-
-  // Endpoints de landing eliminados - ahora se manejan en createFromDisponibilidad
 
   @Post('pdf')
   @Auth()
