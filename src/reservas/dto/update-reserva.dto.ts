@@ -44,4 +44,8 @@ export class UpdateReservaDto {
   @IsString()
   @IsOptional()
   notasSuperAdmin?: string;
+
+  @IsString()
+  @IsOptional()
+  notasagencias?: string;
 }
