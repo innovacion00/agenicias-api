@@ -6,6 +6,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsPhoneNumber,
   IsPositive,
@@ -26,7 +27,7 @@ import {
   RoomsDatum,
   ValidCities,
 } from 'src/common/interface';
-import { IAsistente, ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
+import { ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
 import { IsNotFutureDate } from 'src/reservas/decorators';
 
 class AgencyDto {
@@ -192,37 +193,7 @@ class ReservaInfoDto {
   reservation: IreservaInfoBd;
 }
 
-class AsistenteDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  @MinLength(5)
-  fullName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CE', 'PA'])
-  tipoDocumento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  @Matches(/^[^\s._]+$/, {
-    message: 'document no puede contener espacios guiones bajos.',
-  })
-  documento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(7)
-  @MaxLength(15)
-  @IsPhoneNumber()
-  telefono: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-}
+// AsistenteDto eliminado: no se usa en CreateCotizacionDto
 
 class TitularInfoDto {
   @IsString()
@@ -239,7 +210,8 @@ class TitularInfoDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CE', 'PA'])
+  @MinLength(3)
+  @MaxLength(20)
   tipoDocumento: string;
 
   @IsString()
@@ -343,6 +315,16 @@ export class CreateCotizacionDto {
   @IsNotEmpty()
   total: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  markup: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Min(0)
+  porcentajemarkup: number;
+
   @IsBoolean()
   @IsOptional()
   adicionCena: boolean;
@@ -380,12 +362,7 @@ export class CreateCotizacionDto {
   @IsOptional()
   exentoIva: boolean;
 
-  @ValidateNested({ each: true })
-  @Type(() => AsistenteDto)
-  @IsArray()
-  @IsOptional()
-  asistentes: IAsistente[];
-
+  // (asistentes eliminado)
   @ValidateNested()
   @Type(() => TitularInfoDto)
   @IsNotEmpty()
@@ -401,14 +378,51 @@ export class CreateCotizacionDto {
   @IsNotEmpty()
   reservaInfo: IreservaInfo;
 
+  // Campo eliminado previamente
   @IsString()
-  @IsNotEmpty()
-  cotizacionChatbotId: string;
-
-  @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'fechaLimiteRespuesta debe venir en formato YYYY-MM-DD',
   })
   fechaLimiteRespuesta: string;
+
+  // ===== NUEVOS CAMPOS PARA LANDING =====
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  landingHtml?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  landingUrl?: string;
+
+  // Información del huésped para la landing
+  @IsObject()
+  @IsOptional()
+  huespedInfo?: {
+    nombre: string;
+    email: string;
+    telefono: string;
+  };
+
+  // Información de la agencia para la landing
+  @IsObject()
+  @IsOptional()
+  agenciaInfo?: {
+    nombre: string;
+    telefono: string;
+    email: string;
+  };
+
+  // Información del hotel desde la consulta de disponibilidad
+  @IsObject()
+  @IsOptional()
+  hotelInfo?: {
+    id: number;
+    name: string;
+    roomcloud_id: string;
+    city: string;
+    largest_room_beds: number;
+  };
 }

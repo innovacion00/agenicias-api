@@ -6,15 +6,16 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
-  Request,
-  Query,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
-import { CreateCotizacionDto, ResponderCotizacionDto, GeneratePdfDto, StoreLandingDto } from './dto';
-import { Auth, GetUser } from 'src/auth/decorators';
-import { User } from 'src/auth/entities';
-import { ValidRoles } from 'src/auth/interfaces';
+import {
+  CreateCotizacionDto,
+  ResponderCotizacionDto,
+  GeneratePdfDto,
+} from './dto';
+import { Auth, GetUser } from '../auth/decorators';
+import { User } from '../auth/entities';
+import { ValidRoles } from '../auth/interfaces';
 
 @Controller('cotizaciones')
 @Auth()
@@ -39,7 +40,7 @@ export class CotizacionesController {
       email: user.email,
       roles: user.role,
       agencia: user.agencia,
-      fullName: user.fullName
+      fullName: user.fullName,
     };
   }
 
@@ -51,12 +52,10 @@ export class CotizacionesController {
       receivedData: {
         total: createCotizacionDto.total,
         planAlimentario: createCotizacionDto.planAlimentario,
-        cotizacionChatbotId: createCotizacionDto.cotizacionChatbotId,
         fechaLimiteRespuesta: createCotizacionDto.fechaLimiteRespuesta,
-        asistentesCount: createCotizacionDto.asistentes?.length || 0,
         titularInfo: createCotizacionDto.titularInfo ? 'presente' : 'ausente',
-        reservaInfo: createCotizacionDto.reservaInfo ? 'presente' : 'ausente'
-      }
+        reservaInfo: createCotizacionDto.reservaInfo ? 'presente' : 'ausente',
+      },
     };
   }
 
@@ -76,13 +75,17 @@ export class CotizacionesController {
   @Get()
   @Auth()
   findAll(@GetUser() user: User) {
-    return this.cotizacionesService.findAllByAgencia(user.agencia?.toString() || '');
+    return this.cotizacionesService.findAllByAgencia(
+      user.agencia?.toString() || '',
+    );
   }
 
   @Get('estadisticas')
   @Auth()
   getEstadisticas(@GetUser() user: User) {
-    return this.cotizacionesService.getEstadisticas(user.agencia?.toString() || '');
+    return this.cotizacionesService.getEstadisticas(
+      user.agencia?.toString() || '',
+    );
   }
 
   @Get(':id')
@@ -106,18 +109,6 @@ export class CotizacionesController {
       tokenAcceso,
       responderCotizacionDto,
     );
-  }
-
-  @Post('landing/:id')
-  @Auth()
-  generateLandingData(@Param('id') id: string) {
-    return this.cotizacionesService.generateLandingData(id);
-  }
-
-  @Post('store-landing')
-  @Auth()
-  storeLanding(@Body() storeLandingDto: StoreLandingDto) {
-    return this.cotizacionesService.storeLanding(storeLandingDto);
   }
 
   @Post('pdf')

@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
 import { ResponderCotizacionDto } from './dto';
 
@@ -15,6 +9,11 @@ export class CotizacionesPublicController {
   @Get('token/:tokenAcceso')
   findOneByTokenPublic(@Param('tokenAcceso') tokenAcceso: string) {
     return this.cotizacionesService.findByTokenPublic(tokenAcceso);
+  }
+
+  @Get(':id')
+  findOneByIdPublic(@Param('id') id: string) {
+    return this.cotizacionesService.findByIdPublic(id);
   }
 
   @Post('responder/:tokenAcceso')

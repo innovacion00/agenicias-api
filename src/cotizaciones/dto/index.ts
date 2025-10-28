@@ -1,6 +1,4 @@
-export * from './create-cotizacion.dto';
-export * from './update-cotizacion.dto';
-export * from './responder-cotizacion.dto';
-export * from './generate-landing.dto';
-export * from './generate-pdf.dto';
-export * from './store-landing.dto';
+export { CreateCotizacionDto, InfoTouresDto, InfoTransporteDto } from './create-cotizacion.dto';
+export { UpdateCotizacionDto } from './update-cotizacion.dto';
+export { ResponderCotizacionDto } from './responder-cotizacion.dto';
+export { GeneratePdfDto } from './generate-pdf.dto';

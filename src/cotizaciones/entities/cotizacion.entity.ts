@@ -55,6 +55,20 @@ export class Cotizacion extends Document {
 
   @Prop({
     type: Number,
+    required: true,
+    min: 0,
+  })
+  markup: number;
+
+  @Prop({
+    type: Number,
+    required: true,
+    min: 0,
+  })
+  porcentajemarkup: number;
+
+  @Prop({
+    type: Number,
     default: 0,
   })
   totalMitad: number;
@@ -255,7 +269,7 @@ export class Cotizacion extends Document {
   @Prop({
     type: String,
     index: true,
-    required: true,
+    required: false,
   })
   cotizacionChatbotId: string;
 
