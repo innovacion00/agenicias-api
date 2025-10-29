@@ -198,20 +198,69 @@ export class HttpCustomService {
     dev?: boolean,
   ) {
     try {
-      const url = `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/agencies/${tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista}/availability?checkin=${checkin}&nights=${night}&city=${city}`;
+      const agencyType = tipoAgencia !== 0 ? tiposAgencia.mayorista : tiposAgencia.minorista;
+      const url = `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/agencies/${agencyType}/availability?checkin=${checkin}&nights=${night}&city=${city}`;
       const headers = dev ? autocoreHeadersDev : autocoreHeaders;
       
+      // Construir el body
+      const requestBody = { layout };
       
-      const { data } = await axios.post<Iavailability[]>(
+      // Log detallado de la solicitud
+      this.logger.log('🌐 Llamando a Autocore API:', {
         url,
-        { layout },
-        headers,
+        method: 'POST',
+        tipoAgencia,
+        agencyType,
+        checkin,
+        nights: night,
+        city,
+        layout: JSON.stringify(layout),
+        requestBody: JSON.stringify(requestBody),
+        headers: {
+          access_key: headers.headers.access_key ? '***' : 'MISSING',
+          secret_key: headers.headers.secret_key ? '***' : 'MISSING',
+        },
+        isDev: dev,
+      });
+      
+      // Hacer la solicitud con interceptor para debugging
+      const axiosConfig = {
+        ...headers,
+        validateStatus: (status) => status < 600, // No lanzar error aún
+      };
+
+      const response = await axios.post<Iavailability[]>(
+        url,
+        requestBody,
+        axiosConfig,
       );
 
-      console.log('Respuesta Autocore exitosa:', data);
-      return data;
+      // Log de respuesta
+      this.logger.log(`📡 Respuesta de Autocore [Status: ${response.status}]:`, {
+        status: response.status,
+        statusText: response.statusText,
+        hasData: !!response.data,
+        dataPreview: response.data ? JSON.stringify(response.data).substring(0, 200) : 'No data',
+      });
+
+      if (response.status !== 200 && response.status !== 201) {
+        this.logger.error('❌ Autocore retornó un status no exitoso:', {
+          status: response.status,
+          data: response.data,
+        });
+        throw new InternalServerErrorException(
+          `Autocore retornó status ${response.status}: ${JSON.stringify(response.data)}`,
+        );
+      }
+
+      this.logger.log('✅ Respuesta Autocore exitosa');
+      return response.data;
     } catch (error) {
-      console.log('ERROR en getDisponibilidadAutocore:', error);
+      this.logger.error('❌ ERROR en getDisponibilidadAutocore:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       this.axiosError(error, this.getDisponibilidadAutocore.name);
     }
   }

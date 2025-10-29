@@ -88,6 +88,14 @@ export class CotizacionesController {
     );
   }
 
+  @Get('test-disponibilidad-directa')
+  @Auth()
+  testDisponibilidad(@GetUser() user: User) {
+    return this.cotizacionesService.testDisponibilidadDirecta(
+      user.agencia?.toString() || '',
+    );
+  }
+
   @Get(':id')
   @Auth()
   findOne(@Param('id') id: string) {

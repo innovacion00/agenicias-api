@@ -14,6 +14,8 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AgenciasModule } from '../agencias/agencias.module';
 import { CommonModule } from 'src/common/common.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { ReservasModule } from 'src/reservas/reservas.module';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { AuthModule } from 'src/auth/auth.module';
     AgenciasModule,
     CommonModule,
     AuthModule,
+    forwardRef(() => ReservasModule),
   ],
   controllers: [CotizacionesController, CotizacionesPublicController],
   providers: [CotizacionesService],
