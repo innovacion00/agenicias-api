@@ -14,7 +14,7 @@ import { CreateCotizacionDto, ResponderCotizacionDto } from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { AgenciasService } from '../agencias/agencias.service';
 import { HttpCustomService } from 'src/common/services';
-import { hotelesAutocore } from 'src/config';
+import { hotelesAutocore, tiposAgencia } from 'src/config';
 import { Reserva } from 'src/reservas/entities';
 import { User } from 'src/auth/entities';
 import { Agencia } from 'src/agencias/entities';
@@ -516,18 +516,23 @@ export class CotizacionesService {
     }
 
     // Paso 3: Si todo está bien, crear la reserva
-    const user = await this.userModel.findById(cotizacion.userId).populate('agencia', 'fullName autocoreInfo');
+    const user = await this.userModel.findById(cotizacion.userId).populate('agencia', 'fullName autocoreInfo category');
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    // Transformar agency_type de número a string como lo espera Autocore
+    const agencyTypeString = agenciaInfo.category === 1 
+      ? tiposAgencia.mayorista 
+      : tiposAgencia.minorista;
+
     // Preparar datos para crear la reserva
     const reservaInfo = {
       agency: {
         is_agency: true,
-        agency_type: 1, // Se ajustará en el servicio de reservas
-        external_ref_id: user.agencia['autocoreInfo']?.id || '',
+        agency_type: agencyTypeString, // 'wholesale' o 'retailer'
+        external_ref_id: user.agencia['autocoreInfo']?.id?.toString() || '',
       },
       reservation: {
         ...cotizacion.reservation,
@@ -543,6 +548,19 @@ export class CotizacionesService {
       cotizacion.reservation.checkin,
       isReservaGrupo,
     );
+
+    // Log para debugging
+    this.logger.log('📤 Datos que se enviarán a Autocore:', {
+      hotelId,
+      agency: reservaInfo.agency,
+      reservation_summary: {
+        checkin: cotizacion.reservation.checkin,
+        checkout: cotizacion.reservation.checkout,
+        nights: cotizacion.reservation.nights,
+        rooms: cotizacion.reservation.rooms,
+        city: cotizacion.reservation.city,
+      }
+    });
 
     // Crear reserva en Autocore
     const reservaAutocoreInfo = await this.httpCustomService.createReservaAutocore(
