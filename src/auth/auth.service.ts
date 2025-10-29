@@ -703,4 +703,31 @@ export class AuthService {
       this.errorManager.handle(error);
     }
   }
+
+  // #region Actualizar políticas de agencia
+  async updatePoliticasAgencia(
+    userId: string,
+    politicasAgencia: string,
+  ) {
+    try {
+      const user = await this.userModel.findById(userId);
+
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      user.politicasAgencia = politicasAgencia;
+      await user.save();
+
+      const { password, ...userWithoutPassword } = user.toJSON();
+
+      return {
+        message: 'Políticas de agencia actualizadas correctamente',
+        user: userWithoutPassword,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 }

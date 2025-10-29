@@ -91,6 +91,12 @@ export class User extends Document {
     default: [],
   })
   eventos: Types.ObjectId[];
+
+  @Prop({
+    type: String,
+    default: '',
+  })
+  politicasAgencia: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

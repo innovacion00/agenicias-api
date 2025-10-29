@@ -18,6 +18,7 @@ import {
   RefreshTokenDto,
   RequestPasswordChangeDto,
   RegisterUserDto,
+  UpdatePoliticasDto,
   ValidateAccessTokenDto,
 } from './dto';
 
@@ -111,5 +112,18 @@ export class AuthController {
   @Auth(ValidRoles.superAdmin)
   getAllUsers() {
     return this.authService.getAllUsers();
+  }
+
+  // #region Actualizar políticas de agencia
+  @Patch('politicas-agencia')
+  @Auth()
+  updatePoliticasAgencia(
+    @GetUser('_id') userId: string,
+    @Body() updatePoliticasDto: UpdatePoliticasDto,
+  ) {
+    return this.authService.updatePoliticasAgencia(
+      userId,
+      updatePoliticasDto.politicasAgencia,
+    );
   }
 }
