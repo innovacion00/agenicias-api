@@ -716,14 +716,19 @@ export class AuthService {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      user.politicasAgencia = politicasAgencia;
-      await user.save();
+      // Actualizar las políticas en la agencia, no en el usuario
+      const agencia = await this.agenciaModel.findById(user.agencia);
 
-      const { password, ...userWithoutPassword } = user.toJSON();
+      if (!agencia) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
+      agencia.politicasAgencia = politicasAgencia;
+      await agencia.save();
 
       return {
         message: 'Políticas de agencia actualizadas correctamente',
-        user: userWithoutPassword,
+        politicasAgencia: agencia.politicasAgencia,
       };
     } catch (error) {
       this.logger.error(error);

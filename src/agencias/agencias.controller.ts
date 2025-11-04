@@ -86,4 +86,11 @@ export class AgenciasController {
   getCountOfAgenciasReservas() {
     return this.agenciasService.getCountOfAgenciasReservas();
   }
+
+  //? Obtener políticas de agencia por ID
+  @Get(':id/politicas')
+  @Auth()
+  obtenerPoliticasAgencia(@Param('id', ParseMongoIdPipe) id: Types.ObjectId) {
+    return this.agenciasService.obtenerPoliticasAgencia(id);
+  }
 }

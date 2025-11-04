@@ -113,6 +113,12 @@ export class Agencia extends Document {
     default: false,
   })
   permisoCartera: boolean;
+
+  @Prop({
+    type: String,
+    default: '',
+  })
+  politicasAgencia: string;
 }
 
 export const AgenciaSchema = SchemaFactory.createForClass(Agencia);

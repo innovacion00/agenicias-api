@@ -1,0 +1,1317 @@
+{
+  "api_version": "1.0",
+  "base_url": "/api",
+  "modules": {
+    "auth": {
+      "base_route": "/auth",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/auth/sign-up/:id",
+          "description": "Crear un nuevo usuario asociado a una agencia",
+          "auth_required": false,
+          "params": {
+            "id": "ObjectId de la agencia (MongoId)"
+          },
+          "body_dto": "CreateUserDto",
+          "body_example": {
+            "email": "usuario@ejemplo.com",
+            "fullName": "Juan Pérez",
+            "telefono": "+573001234567",
+            "omitirOtp": false,
+            "password": "Password123!"
+          },
+          "validations": {
+            "email": "Debe ser un email válido",
+            "fullName": "String de 2-50 caracteres",
+            "telefono": "String de 7-15 caracteres, debe empezar con +",
+            "omitirOtp": "Boolean opcional",
+            "password": "String de 6-50 caracteres, debe contener al menos una mayúscula, una minúscula y un número"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/register-user",
+          "description": "Registrar un usuario a una agencia (solo admin o superAdmin)",
+          "auth_required": true,
+          "roles": ["admin", "superAdmin"],
+          "body_dto": "RegisterUserDto",
+          "body_example": {
+            "email": "usuario@ejemplo.com",
+            "fullName": "Juan Pérez",
+            "telefono": "+573001234567",
+            "password": "Password123!",
+            "adminRole": false
+          },
+          "validations": {
+            "adminRole": "Boolean opcional - define si el usuario tendrá rol de admin"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/sign-in",
+          "description": "Iniciar sesión",
+          "auth_required": false,
+          "body_dto": "SignInDto",
+          "body_example": {
+            "email": "usuario@ejemplo.com",
+            "password": "Password123!"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/validar-token",
+          "description": "Validar un token (deprecated, usar validate-access-token)",
+          "auth_required": false,
+          "body": "string (token JWT)"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/validate-access-token",
+          "description": "Validar un access token JWT",
+          "auth_required": false,
+          "body_dto": "ValidateAccessTokenDto",
+          "body_example": {
+            "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/refresh-token",
+          "description": "Refrescar un token de acceso usando el refresh token",
+          "auth_required": false,
+          "body_dto": "RefreshTokenDto",
+          "body_example": {
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/validate-otp",
+          "description": "Validar código OTP enviado por email",
+          "auth_required": false,
+          "body_dto": "OtpValidationDto",
+          "body_example": {
+            "otp": "12345",
+            "email": "usuario@ejemplo.com"
+          },
+          "validations": {
+            "otp": "String de exactamente 5 caracteres",
+            "email": "Debe ser un email válido"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/auth/request-password-change",
+          "description": "Solicitar cambio de contraseña (envía OTP por email)",
+          "auth_required": false,
+          "body_dto": "RequestPasswordChangeDto",
+          "body_example": {
+            "email": "usuario@ejemplo.com"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/auth/new-credentials",
+          "description": "Cambiar contraseña del usuario autenticado",
+          "auth_required": true,
+          "body_dto": "NewPasswordDto",
+          "body_example": {
+            "password": "NuevaPassword123!"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/auth/switch-activation-status/:userId",
+          "description": "Activar/desactivar un usuario de la agencia",
+          "auth_required": true,
+          "roles": ["admin", "superAdmin"],
+          "params": {
+            "userId": "ObjectId del usuario (MongoId)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/auth/getAllUsers",
+          "description": "Obtener todos los usuarios del sistema",
+          "auth_required": true,
+          "roles": ["superAdmin"]
+        },
+        {
+          "method": "PATCH",
+          "path": "/auth/politicas-agencia",
+          "description": "Actualizar políticas de la agencia del usuario",
+          "auth_required": true,
+          "body_dto": "UpdatePoliticasDto",
+          "body_example": {
+            "politicasAgencia": "Políticas de cancelación: 24 horas antes..."
+          }
+        }
+      ]
+    },
+    "agencias": {
+      "base_route": "/agencias",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/agencias/create",
+          "description": "Crear una nueva agencia",
+          "auth_required": false,
+          "body_dto": "CreateAgenciaDto",
+          "body_example": {
+            "fullName": "Agencia de Viajes XYZ",
+            "emailContacto": "contacto@agenciaxy.com",
+            "telefonoContacto": "+573001234567",
+            "category": 0,
+            "empresa": true,
+            "documentInfo": {
+              "tipo": "NIT",
+              "document": "900123456"
+            }
+          },
+          "validations": {
+            "fullName": "String de 3-100 caracteres",
+            "emailContacto": "Debe ser un email válido",
+            "telefonoContacto": "String de 7-15 caracteres, debe ser un número de teléfono válido",
+            "category": "Número: 0 (minorista) o 1 (mayorista)",
+            "empresa": "Boolean opcional - indica si es empresa",
+            "documentInfo.tipo": "Enum: 'CC', 'NIT', 'CE', 'PA'",
+            "documentInfo.document": "String mínimo 6 caracteres, sin espacios ni guiones bajos"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/agencias/recharge-wallet",
+          "description": "Recargar billetera de la agencia",
+          "auth_required": true,
+          "body_dto": "RechargeWalletDto",
+          "body_example": {
+            "amount": 500000,
+            "currency": "COP"
+          },
+          "validations": {
+            "amount": "Número entre 50000 y 50000000",
+            "currency": "Solo 'COP' es válido"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/agencias/obtener-saldo",
+          "description": "Obtener saldo de la billetera de la agencia",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/agencias",
+          "description": "Obtener todas las agencias",
+          "auth_required": true,
+          "roles": ["superAdmin"]
+        },
+        {
+          "method": "GET",
+          "path": "/agencias/getByProperty",
+          "description": "Buscar agencias por propiedad",
+          "auth_required": true,
+          "roles": ["superAdmin"],
+          "query_params": {
+            "search": "Término de búsqueda"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/agencias/update/:id",
+          "description": "Actualizar información de una agencia",
+          "auth_required": true,
+          "roles": ["superAdmin"],
+          "params": {
+            "id": "ObjectId de la agencia (MongoId)"
+          },
+          "body_dto": "UpdateAgenciaDto",
+          "body_example": {
+            "fullName": "Nuevo Nombre de Agencia",
+            "emailContacto": "nuevo@email.com"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/agencias/switch-activation-agencia/:agenciaId",
+          "description": "Activar/desactivar una agencia",
+          "auth_required": true,
+          "roles": ["superAdmin"],
+          "params": {
+            "agenciaId": "ObjectId de la agencia (MongoId)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/agencias/agencies-by-term",
+          "description": "Buscar agencias por término",
+          "auth_required": false,
+          "query_params": {
+            "search": "Término de búsqueda"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/agencias/agencias-con-reserva",
+          "description": "Obtener conteo de agencias con reservas",
+          "auth_required": true,
+          "roles": ["superAdmin"]
+        }
+      ]
+    },
+    "cotizaciones": {
+      "base_route": "/cotizaciones",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/cotizaciones",
+          "description": "Crear una nueva cotización",
+          "auth_required": true,
+          "roles": ["user"],
+          "body_dto": "CreateCotizacionDto",
+          "body_example": {
+            "mascotas": false,
+            "mascotasNumber": 0,
+            "origenIata": "BOG",
+            "total": 500000,
+            "markup": 50000,
+            "porcentajemarkup": 10,
+            "adicionCena": false,
+            "adicionAlmuerzo": true,
+            "planAlimentario": "Solo desayuno",
+            "titularInfo": {
+              "firstName": "Juan",
+              "lastName": "Pérez",
+              "tipoDocumento": "CC",
+              "documento": "1234567890",
+              "fechaNacimiento": "1990-01-15"
+            },
+            "reservaInfo": {
+              "agency": {
+                "is_agency": true,
+                "agency_type": 1,
+                "external_ref_id": "AG001"
+              },
+              "reservation": {
+                "source_of_bussiness": "",
+                "adults": "2",
+                "checkin": "2025-12-01",
+                "checkout": "2025-12-05",
+                "children": "0",
+                "children_ages": "",
+                "city": "CARTAGENA",
+                "country": "COL",
+                "currency": "COP",
+                "email": "juan@ejemplo.com",
+                "telephone": "+573001234567",
+                "firstName": "Juan",
+                "lastName": "Pérez",
+                "nights": "4",
+                "notes": "Habitación con vista al mar",
+                "rooms": "1",
+                "roomsData": [
+                  {
+                    "nombreHabitacion": "Habitación Doble Standard",
+                    "adults": "2",
+                    "children": "0",
+                    "children_ages": "",
+                    "checkin": "2025-12-01",
+                    "checkout": "2025-12-05",
+                    "currency": "COP",
+                    "id": "12345",
+                    "quantity": "1",
+                    "rateId": "67890",
+                    "unitaryPrice": 450000
+                  }
+                ]
+              }
+            },
+            "fechaLimiteRespuesta": "2025-11-30",
+            "reteFuente": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "reteIva": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "reteIca": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "exentoIva": false,
+            "infoTransporte": {
+              "numeroVuelo": "AV123",
+              "numeroVueloSalida": "AV456",
+              "aerolinea": "Avianca",
+              "tipoRecogida": 1,
+              "firstContactNumber": "+573001234567",
+              "secondContacNumber": "+573009876543",
+              "cantidadPersonas": 2
+            },
+            "infoToures": {
+              "nombres": ["Juan Pérez", "María García"],
+              "firstContactNumber": "+573001234567",
+              "secondContacNumber": "+573009876543"
+            },
+            "landingHtml": "<html>...</html>",
+            "landingUrl": "https://ejemplo.com/cotizacion/123",
+            "huespedInfo": {
+              "nombre": "Juan Pérez",
+              "email": "juan@ejemplo.com",
+              "telefono": "+573001234567"
+            },
+            "agenciaInfo": {
+              "nombre": "Agencia XYZ",
+              "telefono": "+573001111111",
+              "email": "info@agenciaxyz.com"
+            },
+            "hotelInfo": {
+              "id": 13645,
+              "name": "Hotel Azuan",
+              "roomcloud_id": "12345",
+              "city": "Cartagena",
+              "largest_room_beds": 4
+            }
+          },
+          "validations": {
+            "total": "Número requerido",
+            "markup": "Número requerido, mayor a 0",
+            "porcentajemarkup": "Número requerido, mínimo 0",
+            "planAlimentario": "String opcional",
+            "fechaLimiteRespuesta": "String opcional en formato YYYY-MM-DD",
+            "reservaInfo.reservation.city": "Enum: 'CARTAGENA', 'BOGOTA', 'SANTA MARTA'",
+            "reservaInfo.reservation.country": "Solo 'COL' es válido",
+            "infoTransporte.tipoRecogida": "Enum de ValidTipoRecogida (valores numéricos)",
+            "infoTransporte.cantidadPersonas": "Número entre 1 y 50"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/from-disponibilidad",
+          "description": "Crear cotización desde consulta de disponibilidad",
+          "auth_required": true,
+          "body_dto": "CreateCotizacionDto",
+          "note": "Mismo body que crear cotización normal"
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/debug-user",
+          "description": "Endpoint de debug para verificar información del usuario",
+          "auth_required": true
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/test-validation",
+          "description": "Endpoint de prueba para validar DTO",
+          "auth_required": true,
+          "body_dto": "CreateCotizacionDto"
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones",
+          "description": "Obtener todas las cotizaciones de la agencia",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/estadisticas",
+          "description": "Obtener estadísticas de cotizaciones de la agencia",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/test-disponibilidad-directa",
+          "description": "Endpoint de prueba para verificar disponibilidad",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/:id",
+          "description": "Obtener una cotización por ID",
+          "auth_required": true,
+          "params": {
+            "id": "ObjectId de la cotización (MongoId)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/token/:tokenAcceso",
+          "description": "Obtener una cotización por token de acceso (uso interno)",
+          "auth_required": false,
+          "params": {
+            "tokenAcceso": "UUID token de acceso"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/responder/:tokenAcceso",
+          "description": "Responder a una cotización (aceptar/rechazar)",
+          "auth_required": true,
+          "params": {
+            "tokenAcceso": "UUID token de acceso"
+          },
+          "body_dto": "ResponderCotizacionDto",
+          "body_example": {
+            "status": 1,
+            "motivoRechazo": "Precio muy alto"
+          },
+          "validations": {
+            "status": "Enum: 1 (ACEPTADA) o 2 (RECHAZADA)",
+            "motivoRechazo": "String opcional, requerido si se rechaza"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/pdf",
+          "description": "Generar PDF de una cotización",
+          "auth_required": true,
+          "body_dto": "GeneratePdfDto",
+          "body_example": {
+            "cotizacionId": "507f1f77bcf86cd799439011"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/convertir-reserva/:id",
+          "description": "Convertir manualmente una cotización en reserva",
+          "auth_required": true,
+          "params": {
+            "id": "ObjectId de la cotización (MongoId)"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/cotizaciones/:id",
+          "description": "Actualizar una cotización",
+          "auth_required": true,
+          "params": {
+            "id": "ObjectId de la cotización (MongoId)"
+          },
+          "body": "Campos opcionales de CreateCotizacionDto"
+        },
+        {
+          "method": "DELETE",
+          "path": "/cotizaciones/:id",
+          "description": "Eliminar una cotización",
+          "auth_required": true,
+          "params": {
+            "id": "ObjectId de la cotización (MongoId)"
+          }
+        }
+      ]
+    },
+    "cotizaciones_public": {
+      "base_route": "/cotizaciones/public",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/cotizaciones/public/token/:tokenAcceso",
+          "description": "Obtener cotización por token (acceso público)",
+          "auth_required": false,
+          "params": {
+            "tokenAcceso": "UUID token de acceso"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/cotizaciones/public/:id",
+          "description": "Obtener cotización por ID (acceso público)",
+          "auth_required": false,
+          "params": {
+            "id": "ObjectId de la cotización (MongoId)"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/cotizaciones/public/responder/:tokenAcceso",
+          "description": "Responder cotización (acceso público)",
+          "auth_required": false,
+          "params": {
+            "tokenAcceso": "UUID token de acceso"
+          },
+          "body_dto": "ResponderCotizacionDto",
+          "body_example": {
+            "status": 1,
+            "motivoRechazo": ""
+          }
+        }
+      ]
+    },
+    "reservas": {
+      "base_route": "/reservas",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/reservas/reservar",
+          "description": "Crear una nueva reserva de hotel",
+          "auth_required": true,
+          "query_params": {
+            "hotelId": "ID del hotel en Autocore (ej: '13645')"
+          },
+          "body_dto": "CreateReservaDto",
+          "body_example": {
+            "mascotas": false,
+            "mascotasNumber": 0,
+            "origenIata": "BOG",
+            "total": 500000,
+            "adicionCena": false,
+            "adicionAlmuerzo": true,
+            "planAlimentario": "Solo desayuno",
+            "titularInfo": {
+              "firstName": "Juan",
+              "lastName": "Pérez",
+              "tipoDocumento": "CC",
+              "documento": "1234567890",
+              "fechaNacimiento": "1990-01-15"
+            },
+            "asistentes": [
+              {
+                "fullName": "María García",
+                "tipoDocumento": "CC",
+                "documento": "0987654321",
+                "telefono": "+573001234567",
+                "email": "maria@ejemplo.com"
+              }
+            ],
+            "reservaInfo": {
+              "agency": {
+                "is_agency": true,
+                "agency_type": 1,
+                "external_ref_id": "AG001"
+              },
+              "reservation": {
+                "source_of_bussiness": "",
+                "adults": "2",
+                "checkin": "2025-12-01",
+                "checkout": "2025-12-05",
+                "children": "0",
+                "children_ages": "",
+                "city": "CARTAGENA",
+                "country": "COL",
+                "currency": "COP",
+                "email": "juan@ejemplo.com",
+                "telephone": "+573001234567",
+                "firstName": "Juan",
+                "lastName": "Pérez",
+                "nights": "4",
+                "notes": "Habitación con vista al mar",
+                "rooms": "1",
+                "roomsData": [
+                  {
+                    "nombreHabitacion": "Habitación Doble Standard",
+                    "adults": "2",
+                    "children": "0",
+                    "children_ages": "",
+                    "checkin": "2025-12-01",
+                    "checkout": "2025-12-05",
+                    "currency": "COP",
+                    "id": "12345",
+                    "quantity": "1",
+                    "rateId": "67890",
+                    "unitaryPrice": 450000
+                  }
+                ]
+              }
+            },
+            "reteFuente": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "reteIva": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "reteIca": {
+              "porcentaje": 0,
+              "resultado": 0
+            },
+            "exentoIva": false,
+            "infoTransporte": {
+              "numeroVuelo": "AV123",
+              "numeroVueloSalida": "AV456",
+              "aerolinea": "Avianca",
+              "tipoRecogida": 1,
+              "firstContactNumber": "+573001234567",
+              "secondContacNumber": "+573009876543",
+              "cantidadPersonas": 2
+            },
+            "infoToures": {
+              "nombres": ["Juan Pérez", "María García"],
+              "firstContactNumber": "+573001234567",
+              "secondContacNumber": "+573009876543"
+            }
+          },
+          "validations": {
+            "total": "Número requerido",
+            "planAlimentario": "String opcional",
+            "asistentes": "Array opcional de AsistenteDto",
+            "reservaInfo.reservation.city": "Enum: 'CARTAGENA', 'BOGOTA', 'SANTA MARTA'",
+            "reservaInfo.reservation.country": "Solo 'COL' es válido"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/reservas/editar-reserva/:reservaId",
+          "description": "Editar información de una reserva",
+          "auth_required": true,
+          "params": {
+            "reservaId": "ObjectId de la reserva (MongoId)"
+          },
+          "body_dto": "UpdateReservaDto",
+          "body_example": {
+            "email": "nuevoemail@ejemplo.com",
+            "firstName": "Juan Carlos",
+            "lastName": "Pérez García",
+            "telephone": "+573009999999",
+            "documento": "9876543210",
+            "notasSuperAdmin": "Cliente VIP",
+            "notasagencias": "Solicita late checkout"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/reservas/cancelar-reserva",
+          "description": "Cancelar una reserva",
+          "auth_required": true,
+          "body_dto": "CancelReservaDto",
+          "body_example": {
+            "reservaId": "507f1f77bcf86cd799439011"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/change-status",
+          "description": "Webhook para cambio de estado de pago (Autocore/Cobre)",
+          "auth_required": false,
+          "body": "Payload del proveedor de pagos"
+        },
+        {
+          "method": "GET",
+          "path": "/reservas/reservas-by-user",
+          "description": "Obtener todas las reservas del usuario autenticado",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/reservas/reservas-by-agencia",
+          "description": "Obtener todas las reservas de la agencia",
+          "auth_required": true,
+          "roles": ["admin"]
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/generate-link",
+          "description": "Generar link de pago para una reserva",
+          "auth_required": true,
+          "body_dto": "GenerateLinkDto",
+          "body_example": {
+            "reservaId": "507f1f77bcf86cd799439011",
+            "pagoTotal": false
+          },
+          "validations": {
+            "reservaId": "ObjectId de la reserva (MongoId)",
+            "pagoTotal": "Boolean opcional - true para pago total, false para pago parcial"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/pago-billetera-single",
+          "description": "Pagar reserva con saldo de billetera",
+          "auth_required": true,
+          "body_dto": "PagoReservaBilleteraDto",
+          "body_example": {
+            "code": "CODIGO_RESERVA_123"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/pago-billetera-compuesto",
+          "description": "Pagar reserva con combinación de billetera y Autocore",
+          "auth_required": true,
+          "body_dto": "GenerateLinkDto",
+          "body_example": {
+            "reservaId": "507f1f77bcf86cd799439011",
+            "pagoTotal": true
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/disponibilidad",
+          "description": "Consultar disponibilidad de hoteles en Autocore",
+          "auth_required": true,
+          "body_dto": "DisponibilidadAutocoreDto",
+          "body_example": {
+            "checkingDate": "2025-12-01",
+            "nights": 4,
+            "ciudad": "CARTAGENA",
+            "layout": [
+              {
+                "adults": 2,
+                "children_ages": []
+              }
+            ],
+            "category": 0
+          },
+          "validations": {
+            "checkingDate": "String en formato YYYY-MM-DD, no puede ser fecha pasada",
+            "nights": "Número mínimo 1",
+            "ciudad": "Enum: 'CARTAGENA', 'BOGOTA', 'SANTA MARTA'",
+            "layout": "Array de objetos con adults (número) y children_ages (array de números)",
+            "category": "Opcional: 0 (minorista) o 1 (mayorista)"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/reservas/disponibilidad-debug",
+          "description": "Consultar disponibilidad con logs de debug",
+          "auth_required": true,
+          "body_dto": "DisponibilidadAutocoreDto"
+        },
+        {
+          "method": "GET",
+          "path": "/reservas",
+          "description": "Obtener todas las reservas del sistema",
+          "auth_required": true,
+          "roles": ["superAdmin"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/reservas/cancelar-reserva-admin/:reservaId",
+          "description": "Cancelar reserva como administrador",
+          "auth_required": true,
+          "roles": ["superAdmin"],
+          "params": {
+            "reservaId": "ObjectId de la reserva (MongoId)"
+          }
+        }
+      ]
+    },
+    "vuelos": {
+      "base_route": "/vuelos",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/vuelos/test",
+          "description": "Endpoint de prueba del módulo de vuelos",
+          "auth_required": false
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/test-auth",
+          "description": "Probar autenticación con Amadeus",
+          "auth_required": false
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/ubicaciones",
+          "description": "Buscar ubicaciones (aeropuertos, ciudades) por keyword",
+          "auth_required": false,
+          "query_params_dto": "SearchLocationsDto",
+          "query_example": {
+            "keyword": "MADRID",
+            "subType": "AIRPORT,CITY",
+            "countryCode": "ES",
+            "page[limit]": 10,
+            "page[offset]": 0,
+            "sort": "analytics.travelers.score",
+            "view": "FULL"
+          },
+          "validations": {
+            "keyword": "String requerido, se convierte a mayúsculas automáticamente",
+            "subType": "Opcional: 'AIRPORT', 'CITY' o 'AIRPORT,CITY'",
+            "countryCode": "Opcional: código ISO del país (2 letras)",
+            "page[limit]": "Opcional: número entre 1 y 100, default 10",
+            "page[offset]": "Opcional: número mínimo 0, default 0",
+            "sort": "Opcional: 'analytics.travelers.score'",
+            "view": "Opcional: 'LIGHT' o 'FULL', default 'FULL'"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/aeropuertos/iata/:iataCode",
+          "description": "Buscar aeropuerto por código IATA",
+          "auth_required": false,
+          "params": {
+            "iataCode": "Código IATA del aeropuerto (ej: 'MAD', 'JFK')"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/ciudades",
+          "description": "Buscar ciudades por nombre",
+          "auth_required": false,
+          "query_params": {
+            "nombre": "Nombre de la ciudad",
+            "countryCode": "Código ISO del país (opcional)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/ciudades/buscar",
+          "description": "Buscar ciudades con filtros avanzados",
+          "auth_required": false,
+          "query_params_dto": "SearchCitiesDto",
+          "query_example": {
+            "keyword": "Madrid",
+            "countryCode": "ES",
+            "max": 10,
+            "include": ["AIRPORTS"]
+          },
+          "validations": {
+            "keyword": "String requerido",
+            "countryCode": "Opcional: código ISO del país (2 letras)",
+            "max": "Opcional: número entre 1 y 100, default 10",
+            "include": "Opcional: array de strings, default ['AIRPORTS']"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/vuelos/disponibilidad-test",
+          "description": "Endpoint de prueba para consultar disponibilidad de vuelos",
+          "auth_required": false,
+          "body": "Body simplificado para pruebas"
+        },
+        {
+          "method": "POST",
+          "path": "/vuelos/disponibilidad",
+          "description": "Buscar ofertas de vuelos disponibles",
+          "auth_required": false,
+          "body_dto": "FlightSearchDto",
+          "body_example": {
+            "currencyCode": "USD",
+            "originDestinations": [
+              {
+                "id": "1",
+                "originLocationCode": "MAD",
+                "destinationLocationCode": "JFK",
+                "departureDate": "2025-12-15",
+                "departureTime": "08:00:00"
+              }
+            ],
+            "travelers": [
+              {
+                "id": "1",
+                "travelerType": "ADULT"
+              }
+            ],
+            "sources": ["GDS"],
+            "searchCriteria": {
+              "maxFlightOffers": 50,
+              "flightFilters": {
+                "cabinRestrictions": [
+                  {
+                    "cabin": "ECONOMY",
+                    "coverage": "MOST_SEGMENTS",
+                    "originDestinationIds": ["1"]
+                  }
+                ],
+                "maxPrice": 1000,
+                "minPrice": 100,
+                "maxNumberOfConnections": 2
+              }
+            }
+          },
+          "validations": {
+            "currencyCode": "Opcional: código de moneda ISO (3 letras), default 'USD'",
+            "originDestinations": "Array de 1 a 6 elementos requerido",
+            "originDestinations[].travelerType": "Enum: 'ADULT', 'CHILD', 'SENIOR', 'YOUNG', etc.",
+            "travelers": "Array de 1 a 9 elementos requerido",
+            "sources": "Opcional: array de strings, default ['GDS']",
+            "searchCriteria.maxFlightOffers": "Opcional: número entre 1 y 250, default 50",
+            "searchCriteria.flightFilters.cabinRestrictions[].cabin": "Enum: 'ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/vuelos/reservar",
+          "description": "Crear una reserva de vuelo",
+          "auth_required": false,
+          "body_dto": "FlightOrderDto",
+          "body_example": {
+            "flightOffers": [
+              {
+                "type": "flight-offer",
+                "id": "1",
+                "source": "GDS",
+                "instantTicketingRequired": false,
+                "nonHomogeneous": false,
+                "paymentCardRequired": false,
+                "lastTicketingDate": "2025-12-14",
+                "itineraries": [
+                  {
+                    "segments": [
+                      {
+                        "departure": {
+                          "iataCode": "MAD",
+                          "terminal": "4",
+                          "at": "2025-12-15T08:00:00"
+                        },
+                        "arrival": {
+                          "iataCode": "JFK",
+                          "terminal": "1",
+                          "at": "2025-12-15T11:00:00"
+                        },
+                        "carrierCode": "IB",
+                        "number": "6251",
+                        "aircraft": {
+                          "code": "350"
+                        },
+                        "duration": "PT8H0M",
+                        "id": "1",
+                        "numberOfStops": 0
+                      }
+                    ]
+                  }
+                ],
+                "price": {
+                  "currency": "USD",
+                  "total": "500.00",
+                  "base": "400.00",
+                  "fees": [
+                    {
+                      "amount": "100.00",
+                      "type": "TICKETING"
+                    }
+                  ],
+                  "grandTotal": "500.00"
+                },
+                "travelerPricings": [
+                  {
+                    "travelerId": "1",
+                    "fareOption": "STANDARD",
+                    "travelerType": "ADULT",
+                    "price": {
+                      "currency": "USD",
+                      "total": "500.00",
+                      "base": "400.00"
+                    },
+                    "fareDetailsBySegment": [
+                      {
+                        "segmentId": "1",
+                        "cabin": "ECONOMY",
+                        "fareBasis": "OYYRO",
+                        "class": "O",
+                        "includedCheckedBags": {
+                          "quantity": 1
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "travelers": [
+              {
+                "id": "1",
+                "dateOfBirth": "1990-01-15",
+                "name": {
+                  "firstName": "JUAN",
+                  "lastName": "PEREZ"
+                },
+                "gender": "MALE",
+                "contact": {
+                  "emailAddress": "juan@ejemplo.com",
+                  "phones": [
+                    {
+                      "deviceType": "MOBILE",
+                      "countryCallingCode": "57",
+                      "number": "3001234567"
+                    }
+                  ]
+                },
+                "documents": [
+                  {
+                    "documentType": "PASSPORT",
+                    "number": "AA123456",
+                    "expiryDate": "2030-01-15",
+                    "issuanceCountry": "CO",
+                    "nationality": "CO",
+                    "holder": true
+                  }
+                ]
+              }
+            ],
+            "remarks": {
+              "general": [
+                {
+                  "subType": "GENERAL_MISCELLANEOUS",
+                  "text": "Cliente VIP"
+                }
+              ]
+            },
+            "contacts": [
+              {
+                "addresseeName": {
+                  "firstName": "JUAN",
+                  "lastName": "PEREZ"
+                },
+                "purpose": "STANDARD",
+                "phones": [
+                  {
+                    "deviceType": "MOBILE",
+                    "countryCallingCode": "57",
+                    "number": "3001234567"
+                  }
+                ],
+                "emailAddress": "juan@ejemplo.com",
+                "address": {
+                  "lines": ["Calle 123 #45-67"],
+                  "postalCode": "110111",
+                  "cityName": "Bogotá",
+                  "countryCode": "CO"
+                }
+              }
+            ]
+          },
+          "validations": {
+            "flightOffers": "Array de mínimo 1 elemento requerido",
+            "travelers": "Array de mínimo 1 elemento requerido",
+            "travelers[].gender": "Enum: 'MALE', 'FEMALE'",
+            "travelers[].documents[].documentType": "Enum: 'PASSPORT', 'ID_CARD'",
+            "contacts[].purpose": "Enum: 'STANDARD', 'LEISURE', 'BUSINESS'"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/vuelos/reservas/:flightOrderId",
+          "description": "Consultar una reserva de vuelo",
+          "auth_required": false,
+          "params": {
+            "flightOrderId": "ID de la reserva de vuelo"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/vuelos/reservas/:flightOrderId",
+          "description": "Cancelar una reserva de vuelo",
+          "auth_required": false,
+          "params": {
+            "flightOrderId": "ID de la reserva de vuelo"
+          }
+        }
+      ]
+    },
+    "eventos": {
+      "base_route": "/eventos",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/eventos/create",
+          "description": "Crear una reserva de evento",
+          "auth_required": true,
+          "body_dto": "CreateReservaEventoDto",
+          "body_example": {
+            "nameEvento": "Conferencia Anual 2025",
+            "tipoEvento": 1,
+            "nombreOrganizador": "Juan Pérez",
+            "cantidadAsistentes": 50,
+            "telefonoOrganizador": "+573001234567",
+            "emailOrganizador": "juan@ejemplo.com",
+            "fechaInicioEvento": "2025-12-15T08:00:00.000Z",
+            "fechaFinalEvento": "2025-12-15T18:00:00.000Z",
+            "horarioEvento": [
+              {
+                "fechaInicio": "2025-12-15T08:00:00.000Z",
+                "fechaFinal": "2025-12-15T18:00:00.000Z",
+                "cantidadAsistenteDia": 50
+              }
+            ],
+            "flexibilidadEvento": false,
+            "tipoAcomodacion": 1,
+            "alimentacion": true,
+            "alimentosBebidas": {
+              "estacionCafe": true,
+              "coffeBreak": true,
+              "desayuno": false,
+              "almuerzo": true,
+              "cena": false
+            },
+            "audiovisuales": true,
+            "itemsAudiovisuales": ["Proyector", "Micrófono", "Pantalla"],
+            "decoracion": false,
+            "decoracionDescripcion": "",
+            "alojamiento": false,
+            "observaciones": "Requiere WiFi de alta velocidad"
+          },
+          "validations": {
+            "nameEvento": "String de 3-100 caracteres",
+            "tipoEvento": "Número: 1 (Corporativo), 2 (Social), 3 (Cultural)",
+            "nombreOrganizador": "String de 3-50 caracteres",
+            "cantidadAsistentes": "Número requerido",
+            "telefonoOrganizador": "String de 7-15 caracteres, debe ser un número de teléfono válido",
+            "emailOrganizador": "Debe ser un email válido",
+            "fechaInicioEvento": "Date requerido",
+            "fechaFinalEvento": "Date requerido",
+            "horarioEvento": "Array de objetos con fechaInicio, fechaFinal y cantidadAsistenteDia",
+            "tipoAcomodacion": "Número: 1 (Auditorio), 2 (Aula), 3 (Mesa cuadrada), 4 (Mesa redonda), 5 (Mesas tipo U)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/eventos",
+          "description": "Obtener todas las reservas de eventos",
+          "auth_required": true,
+          "roles": ["eventosSuperAdmin", "superAdmin"]
+        }
+      ]
+    },
+    "integrations": {
+      "base_route": "/integrations",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/integrations/create",
+          "description": "Crear una nueva integración",
+          "auth_required": false,
+          "body_dto": "CreateIntegrationDto",
+          "body_example": {
+            "name": "Integración Amadeus"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/integrations/disponibilidad",
+          "description": "Consultar disponibilidad de hoteles (para integraciones externas)",
+          "auth_required": false,
+          "custom_auth": "API Key (autodoreDev o autocoreProd)",
+          "body_dto": "DisponibilidadAutocoreDto",
+          "body_example": {
+            "checkingDate": "2025-12-01",
+            "nights": 4,
+            "ciudad": "CARTAGENA",
+            "layout": [
+              {
+                "adults": 2,
+                "children_ages": []
+              }
+            ],
+            "category": 0
+          }
+        }
+      ]
+    },
+    "files": {
+      "base_route": "/files",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/files/user-profile",
+          "description": "Subir imagen de perfil de usuario",
+          "auth_required": true,
+          "content_type": "multipart/form-data",
+          "form_data": {
+            "file": "Archivo de imagen (jpg, jpeg, png, gif)"
+          },
+          "validations": {
+            "file": "Debe ser un archivo de tipo imagen"
+          }
+        }
+      ]
+    },
+    "notificaciones": {
+      "base_route": "/notificaciones",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/notificaciones/reservas",
+          "description": "Endpoint para notificación de pago de reserva",
+          "auth_required": false
+        }
+      ]
+    },
+    "cloudinary": {
+      "base_route": "/cloudinary",
+      "endpoints": [],
+      "note": "No tiene endpoints públicos, es un servicio interno"
+    }
+  },
+  "enums": {
+    "ValidCities": {
+      "values": ["CARTAGENA", "BOGOTA", "SANTA MARTA"],
+      "description": "Ciudades válidas para reservas y cotizaciones"
+    },
+    "CotizacionStatus": {
+      "EN_ESPERA": 0,
+      "ACEPTADA": 1,
+      "RECHAZADA": 2,
+      "CONVERTIDA_RESERVA": 3,
+      "description": "Estados posibles de una cotización"
+    },
+    "ValidRoles": {
+      "user": "Usuario regular",
+      "admin": "Administrador de agencia",
+      "superAdmin": "Super administrador del sistema",
+      "eventosSuperAdmin": "Super administrador de eventos"
+    },
+    "TipoDocumento": {
+      "values": ["CC", "NIT", "CE", "PA"],
+      "description": "CC: Cédula de Ciudadanía, NIT: Número de Identificación Tributaria, CE: Cédula de Extranjería, PA: Pasaporte"
+    },
+    "ValidTipoRecogida": {
+      "description": "Tipos de recogida para transporte (valores numéricos en el enum)"
+    },
+    "TipoEvento": {
+      "CORPORATIVO": 1,
+      "SOCIAL": 2,
+      "CULTURAL": 3
+    },
+    "TipoAcomodacion": {
+      "AUDITORIO": 1,
+      "AULA_SALON": 2,
+      "MESA_CUADRADA": 3,
+      "MESA_REDONDA": 4,
+      "MESAS_TIPO_U": 5
+    }
+  },
+  "authentication": {
+    "type": "JWT Bearer Token",
+    "header": "Authorization: Bearer <token>",
+    "token_expiration": {
+      "access_token": "Varía según configuración",
+      "refresh_token": "Varía según configuración"
+    },
+    "obtain_token": {
+      "endpoint": "POST /auth/sign-in",
+      "returns": {
+        "accessToken": "string",
+        "refreshToken": "string",
+        "user": "User object"
+      }
+    },
+    "refresh_token_flow": {
+      "endpoint": "POST /auth/refresh-token",
+      "body": {
+        "token": "refresh_token"
+      }
+    }
+  },
+  "error_responses": {
+    "format": {
+      "message": "Mensaje de error descriptivo",
+      "statusCode": 400,
+      "error": "Bad Request"
+    },
+    "common_status_codes": {
+      "200": "OK - Solicitud exitosa",
+      "201": "Created - Recurso creado exitosamente",
+      "400": "Bad Request - Datos inválidos",
+      "401": "Unauthorized - Autenticación requerida o inválida",
+      "403": "Forbidden - No tiene permisos para acceder al recurso",
+      "404": "Not Found - Recurso no encontrado",
+      "500": "Internal Server Error - Error del servidor"
+    }
+  },
+  "notes": {
+    "date_format": "Las fechas deben enviarse en formato YYYY-MM-DD",
+    "phone_format": "Los teléfonos deben incluir código de país con + (ej: +573001234567)",
+    "currency": "La moneda principal del sistema es COP (Peso Colombiano)",
+    "hotels": {
+      "cartagena": ["Hotel Azuan (13645)", "Hotel Aixo (13633)", "Hotel Avexi (13644)", "Hotel Marina (13643)", "Hotel Bocagrande (14364)", "Hotel Abi (17644)", "Hotel Boquilla (13677)"],
+      "bogota": ["Hotel Windsor (18004)", "Hotel Madisson (16255)"],
+      "santa_marta": ["Hotel Rodadero (17491)", "Hotel Axis (19629)", "Hotel Sansiraka (15740)"]
+    }
+  }
+}
+

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
@@ -244,6 +244,27 @@ export class AgenciasService {
       return { agencias, cantidad };
     } catch (error) {
       this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Obtener políticas de agencia
+  async obtenerPoliticasAgencia(agenciaId: Types.ObjectId) {
+    try {
+      const agencia = await this.agenciaModel.findById(agenciaId).select('politicasAgencia').exec();
+
+      if (!agencia) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
+      return {
+        politicasAgencia: agencia.politicasAgencia || '',
+      };
+    } catch (error) {
+      this.logger.error(error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.errorManager.handle(error);
     }
   }
