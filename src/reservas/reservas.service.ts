@@ -660,10 +660,26 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por usuario
-  async getReservasByUser(userId: Types.ObjectId) {
+  async getReservasByUser(userId: Types.ObjectId | string) {
     try {
+      // Asegurar que userId sea un ObjectId válido para la búsqueda
+      // Esto funciona tanto para reservas existentes como nuevas
+      let userIdObjectId: Types.ObjectId;
+      
+      if (userId instanceof Types.ObjectId) {
+        userIdObjectId = userId;
+      } else if (typeof userId === 'string') {
+        // Validar que sea un ObjectId válido antes de crear
+        if (!Types.ObjectId.isValid(userId)) {
+          throw new BadRequestException('ID de usuario inválido');
+        }
+        userIdObjectId = new Types.ObjectId(userId);
+      } else {
+        throw new BadRequestException('Formato de ID de usuario no válido');
+      }
+
       const reservas = await this.reservasModel
-        .find({ userId })
+        .find({ userId: userIdObjectId })
         .sort({ createdAt: -1 });
 
       return reservas;

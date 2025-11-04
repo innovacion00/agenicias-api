@@ -578,10 +578,18 @@ export class CotizacionesService {
       retenciones.reteIva = cotizacion.reteIva;
     }
 
+    // Asegurar que userId y agenciaId sean ObjectId válidos
+    const userIdObjectId = cotizacion.userId instanceof Types.ObjectId 
+      ? cotizacion.userId 
+      : new Types.ObjectId(cotizacion.userId);
+    const agenciaIdObjectId = cotizacion.agenciaId instanceof Types.ObjectId 
+      ? cotizacion.agenciaId 
+      : new Types.ObjectId(cotizacion.agenciaId);
+
     const reserva = await this.reservaModel.create({
       hotel: cotizacion.hotel,
-      agenciaId: cotizacion.agenciaId,
-      userId: cotizacion.userId,
+      agenciaId: agenciaIdObjectId,
+      userId: userIdObjectId,
       cantidadHabitaciones: cotizacion.cantidadHabitaciones,
       total: cotizacion.total,
       totalMitad: cotizacion.total / 2,
