@@ -324,7 +324,6 @@ export class CotizacionesService {
     const htmlSinBotones = this.removerBotonesDelHTML(cotizacion.landingHtml);
 
     const browser = await puppeteer.launch({
-      executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
       headless: true,
       args: [
         '--no-sandbox',
