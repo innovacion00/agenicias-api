@@ -439,8 +439,50 @@ export class AuthService {
     try {
       const decodedToken = this.jwtService.verify(token);
 
-      return { valid: true, decodedToken };
+      // Obtener información del usuario y su agencia
+      const user = await this.userModel
+        .findById(decodedToken._id)
+        .select('_id fullName email telefono role isActive agencia imageUrl settings')
+        .populate('agencia', 'fullName category empresa isActive slug emailContacto telefonoContacto documentInfo autocoreInfo cobreInfo')
+        .exec();
+
+      if (!user) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      if (!user.isActive) {
+        throw new UnauthorizedException('Usuario inactivo');
+      }
+
+      // Verificar que la agencia esté activa
+      if (user.agencia && typeof user.agencia === 'object' && 'isActive' in user.agencia && !user.agencia.isActive) {
+        throw new ForbiddenException('Agencia inactiva');
+      }
+
+      // Calcular tiempo restante del token
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = decodedToken.exp;
+      const timeRemaining = expiresAt - now;
+      const minutesRemaining = Math.floor(timeRemaining / 60);
+
+      // Preparar respuesta sin password
+      const { password, ...userWithoutPassword } = user.toJSON();
+
+      return {
+        valid: true,
+        decodedToken,
+        user: userWithoutPassword,
+        agencia: user.agencia,
+        token: {
+          expiresAt: new Date(expiresAt * 1000).toISOString(),
+          timeRemaining: `${minutesRemaining} minutos`,
+          secondsRemaining: timeRemaining,
+        },
+      };
     } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
+        throw error;
+      }
       throw new UnauthorizedException('Invalid Token');
     }
   }
