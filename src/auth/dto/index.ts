@@ -6,4 +6,5 @@ export * from './register-user.dto';
 export * from './request-password-change';
 export * from './sing-in.dto';
 export * from './update-politicas.dto';
+export * from './validar-token.dto';
 export * from './validate-access-token.dto';

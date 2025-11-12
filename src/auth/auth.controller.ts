@@ -27,6 +27,7 @@ import {
   RequestPasswordChangeDto,
   RegisterUserDto,
   UpdatePoliticasDto,
+  ValidarTokenDto,
   ValidateAccessTokenDto,
 } from './dto';
 
@@ -101,8 +102,8 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Usuario o agencia inactiva' })
   @Post('validar-token')
   @HttpCode(200)
-  validarToken(@Body() token: string) {
-    return this.authService.validarToken(token);
+  validarToken(@Body() validarTokenDto: ValidarTokenDto) {
+    return this.authService.validarToken(validarTokenDto.token);
   }
 
   @ApiOperation({ summary: 'Validar access token y obtener información del usuario' })
