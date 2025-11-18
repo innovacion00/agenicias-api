@@ -65,5 +65,6 @@ export const hotelesAutocorePaymenLink = {
   'Hotel Rodadero': 8,
   'Hotel Axis': 48,
   'Hotel Sansiraka': 44,
+  'Playa Salguero Hotel': 123,
 };
 export const hotelesAutocoreIds = Object.keys(hotelesAutocore);
