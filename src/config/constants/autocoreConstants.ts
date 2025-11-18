@@ -43,6 +43,7 @@ export const hotelesAutocore = {
   '17491': { city: 'Santa marta', name: 'Hotel Rodadero' },
   '19629': { city: 'Santa marta', name: 'Hotel Axis' },
   '15740': { city: 'Santa marta', name: 'Hotel Sansiraka' },
+  '21590':   {city: 'Santa marta', name: 'Playa Salguero Hotel'}
 };
 
 // 'Hotel 1525': 2,
