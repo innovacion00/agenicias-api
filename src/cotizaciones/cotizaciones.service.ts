@@ -171,10 +171,20 @@ export class CotizacionesService {
   }
 
   // #region Obtener todas por agencia
+  async findAll(): Promise<Cotizacion[]> {
+    return await this.cotizacionModel
+      .find()
+      .populate('userId', 'firstName lastName email telephone')
+      .populate('agenciaId', 'nombre telefono email')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
   async findAllByAgencia(agenciaId: string): Promise<Cotizacion[]> {
     return await this.cotizacionModel
       .find({ agenciaId })
       .populate('userId', 'firstName lastName email telephone')
+      .populate('agenciaId', 'nombre telefono email')
       .sort({ createdAt: -1 })
       .exec();
   }

@@ -75,6 +75,12 @@ export class CotizacionesController {
   @Get()
   @Auth()
   findAll(@GetUser() user: User) {
+    const isSuperAdmin = user.role?.includes(ValidRoles.superAdmin);
+
+    if (isSuperAdmin) {
+      return this.cotizacionesService.findAll();
+    }
+
     return this.cotizacionesService.findAllByAgencia(
       user.agencia?.toString() || '',
     );
