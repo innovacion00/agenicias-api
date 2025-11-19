@@ -23,7 +23,7 @@ export class CotizacionesController {
   constructor(private readonly cotizacionesService: CotizacionesService) {}
 
   @Post()
-  @Auth(ValidRoles.user, ValidRoles.superAdmin)
+  @Auth()
   create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
     return this.cotizacionesService.create(
       createCotizacionDto,
