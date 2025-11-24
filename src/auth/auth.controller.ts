@@ -7,6 +7,14 @@ import {
   Param,
   Get,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 
 import { Auth, GetUser } from './decorators';
 
@@ -19,6 +27,7 @@ import {
   RequestPasswordChangeDto,
   RegisterUserDto,
   UpdatePoliticasDto,
+  ValidarTokenDto,
   ValidateAccessTokenDto,
 } from './dto';
 
@@ -27,11 +36,16 @@ import { ValidRoles } from './interfaces';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { Types } from 'mongoose';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // #region Iniciar secion/registrarse
+  @ApiOperation({ summary: 'Crear usuario asociado a una agencia' })
+  @ApiParam({ name: 'id', description: 'ID de la agencia (MongoId)' })
+  @ApiResponse({ status: 201, description: 'Usuario creado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @Post('sign-up/:id')
   createUser(
     @Param('id', ParseMongoIdPipe) id: string,
@@ -40,6 +54,10 @@ export class AuthController {
     return this.authService.createUser(createUserDto, id);
   }
 
+  @ApiOperation({ summary: 'Registrar usuario a una agencia (solo admin o superAdmin)' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente' })
+  @ApiResponse({ status: 403, description: 'No autorizado' })
   @Post('register-user')
   @Auth(ValidRoles.admin, ValidRoles.superAdmin)
   registerUserToAgency(
@@ -49,24 +67,57 @@ export class AuthController {
     return this.authService.registerUserToAgency(registerUserDto, id);
   }
 
+  @ApiOperation({ summary: 'Iniciar sesión' })
+  @ApiResponse({ status: 200, description: 'Login exitoso, retorna tokens JWT' })
+  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   @Post('sign-in')
   loggin(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto);
   }
 
   // #region Tokens
+  @ApiOperation({ summary: 'Validar token JWT y obtener información del usuario y agencia' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Token válido con información del usuario y agencia',
+    schema: {
+      type: 'object',
+      properties: {
+        valid: { type: 'boolean', example: true },
+        decodedToken: { type: 'object' },
+        user: { type: 'object' },
+        agencia: { type: 'object' },
+        token: {
+          type: 'object',
+          properties: {
+            expiresAt: { type: 'string', example: '2025-12-01T10:30:00.000Z' },
+            timeRemaining: { type: 'string', example: '14 minutos' },
+            secondsRemaining: { type: 'number', example: 840 },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Token inválido o usuario no encontrado' })
+  @ApiResponse({ status: 403, description: 'Usuario o agencia inactiva' })
   @Post('validar-token')
   @HttpCode(200)
-  validarToken(@Body() token: string) {
-    return this.authService.validarToken(token);
+  validarToken(@Body() validarTokenDto: ValidarTokenDto) {
+    return this.authService.validarToken(validarTokenDto.token);
   }
 
+  @ApiOperation({ summary: 'Validar access token y obtener información del usuario' })
+  @ApiResponse({ status: 200, description: 'Token válido con información del usuario' })
+  @ApiResponse({ status: 401, description: 'Token inválido' })
   @Post('validate-access-token')
   @HttpCode(200)
   validateAccessToken(@Body() validateAccessTokenDto: ValidateAccessTokenDto) {
     return this.authService.validateAccessToken(validateAccessTokenDto);
   }
 
+  @ApiOperation({ summary: 'Renovar token JWT usando refresh token' })
+  @ApiResponse({ status: 200, description: 'Nuevo token generado' })
+  @ApiResponse({ status: 401, description: 'Refresh token inválido' })
   @Post('refresh-token')
   @HttpCode(200)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -115,6 +166,10 @@ export class AuthController {
   }
 
   // #region Actualizar políticas de agencia
+  @ApiOperation({ summary: 'Actualizar políticas de la agencia' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Políticas actualizadas correctamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   @Patch('politicas-agencia')
   @Auth()
   updatePoliticasAgencia(

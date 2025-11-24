@@ -43,6 +43,7 @@ export const hotelesAutocore = {
   '17491': { city: 'Santa marta', name: 'Hotel Rodadero' },
   '19629': { city: 'Santa marta', name: 'Hotel Axis' },
   '15740': { city: 'Santa marta', name: 'Hotel Sansiraka' },
+  '21590':   {city: 'Santa marta', name: 'Playa Salguero Hotel'}
 };
 
 // 'Hotel 1525': 2,
@@ -64,5 +65,6 @@ export const hotelesAutocorePaymenLink = {
   'Hotel Rodadero': 8,
   'Hotel Axis': 48,
   'Hotel Sansiraka': 44,
+  'Playa Salguero Hotel': 123,
 };
 export const hotelesAutocoreIds = Object.keys(hotelesAutocore);

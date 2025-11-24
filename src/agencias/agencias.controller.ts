@@ -7,6 +7,14 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AgenciasService } from './agencias.service';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { Types } from 'mongoose';
@@ -14,6 +22,7 @@ import { Auth, GetUser } from 'src/auth/decorators';
 import { ValidRoles } from 'src/auth/interfaces';
 import { CreateAgenciaDto, RechargeWalletDto, UpdateAgenciaDto } from './dto';
 
+@ApiTags('agencias')
 @Controller('agencias')
 export class AgenciasController {
   constructor(private readonly agenciasService: AgenciasService) {}
@@ -35,6 +44,10 @@ export class AgenciasController {
   }
 
   //? Obtener saldo de agencia
+  @ApiOperation({ summary: 'Obtener saldo de la billetera de la agencia' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Saldo de la agencia' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   @Get('obtener-saldo')
   @Auth()
   obtenerSaldoBilletera(@GetUser('agencia') agencia: Types.ObjectId) {
@@ -42,6 +55,10 @@ export class AgenciasController {
   }
 
   //? Traer todas las agencias
+  @ApiOperation({ summary: 'Obtener todas las agencias (solo superAdmin)' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de agencias' })
+  @ApiResponse({ status: 403, description: 'Solo superAdmin' })
   @Get()
   @Auth(ValidRoles.superAdmin)
   findAll() {
@@ -88,6 +105,12 @@ export class AgenciasController {
   }
 
   //? Obtener políticas de agencia por ID
+  @ApiOperation({ summary: 'Obtener políticas de una agencia por ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'id', description: 'ID de la agencia (MongoId)' })
+  @ApiResponse({ status: 200, description: 'Políticas de la agencia' })
+  @ApiResponse({ status: 404, description: 'Agencia no encontrada' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   @Get(':id/politicas')
   @Auth()
   obtenerPoliticasAgencia(@Param('id', ParseMongoIdPipe) id: Types.ObjectId) {
