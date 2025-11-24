@@ -116,4 +116,19 @@ export class AgenciasController {
   obtenerPoliticasAgencia(@Param('id', ParseMongoIdPipe) id: Types.ObjectId) {
     return this.agenciasService.obtenerPoliticasAgencia(id);
   }
+
+  //? Obtener nombre de agencia por ID
+  @ApiOperation({ summary: 'Obtener el nombre de una agencia por ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'agenciaId', description: 'ID de la agencia (MongoId)' })
+  @ApiResponse({ status: 200, description: 'Nombre de la agencia' })
+  @ApiResponse({ status: 404, description: 'Agencia no encontrada' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @Get(':agenciaId/nombre')
+  @Auth()
+  obtenerNombreAgencia(
+    @Param('agenciaId', ParseMongoIdPipe) agenciaId: Types.ObjectId,
+  ) {
+    return this.agenciasService.obtenerNombreAgencia(agenciaId);
+  }
 }

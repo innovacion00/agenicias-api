@@ -23,7 +23,7 @@ export class CotizacionesController {
   constructor(private readonly cotizacionesService: CotizacionesService) {}
 
   @Post()
-  @Auth(ValidRoles.user)
+  @Auth()
   create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
     return this.cotizacionesService.create(
       createCotizacionDto,
@@ -75,6 +75,12 @@ export class CotizacionesController {
   @Get()
   @Auth()
   findAll(@GetUser() user: User) {
+    const isSuperAdmin = user.role?.includes(ValidRoles.superAdmin);
+
+    if (isSuperAdmin) {
+      return this.cotizacionesService.findAll();
+    }
+
     return this.cotizacionesService.findAllByAgencia(
       user.agencia?.toString() || '',
     );
