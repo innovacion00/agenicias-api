@@ -244,7 +244,7 @@ export class HttpCustomService {
       });
 
       if (response.status !== 200 && response.status !== 201) {
-        this.logger.error('❌ Autocore retornó un status no exitoso:', {
+        this.logger.error(' Autocore retornó un status no exitoso:', {
           status: response.status,
           data: response.data,
         });
@@ -253,10 +253,10 @@ export class HttpCustomService {
         );
       }
 
-      this.logger.log('✅ Respuesta Autocore exitosa');
+      this.logger.log(' Respuesta Autocore exitosa');
       return response.data;
     } catch (error) {
-      this.logger.error('❌ ERROR en getDisponibilidadAutocore:', {
+      this.logger.error(' ERROR en getDisponibilidadAutocore:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -280,7 +280,7 @@ export class HttpCustomService {
       },
       agency,
     };
-
+    
     delete reservationBody.reservation.source_of_bussiness;
     try {
       const { data } = await axios.post(

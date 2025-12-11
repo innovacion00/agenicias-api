@@ -660,8 +660,12 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por usuario
-  async getReservasByUser(userId: Types.ObjectId | string) {
+  async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
     try {
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
       // Asegurar que userId sea un ObjectId válido para la búsqueda
       // Esto funciona tanto para reservas existentes como nuevas
       let userIdObjectId: Types.ObjectId;
@@ -678,11 +682,24 @@ export class ReservasService {
         throw new BadRequestException('Formato de ID de usuario no válido');
       }
 
-      const reservas = await this.reservasModel
-        .find({ userId: userIdObjectId })
-        .sort({ createdAt: -1 });
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find({ userId: userIdObjectId })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE),
+        this.reservasModel.countDocuments({ userId: userIdObjectId }),
+      ]);
 
-      return reservas;
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -690,14 +707,32 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por agencia
-  async getReservasByAgencia(agenciaId: Types.ObjectId) {
+  async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
     try {
-      const reservas = await this.reservasModel
-        .find({ agenciaId })
-        .sort({ createdAt: -1 })
-        .populate('userId', 'fullName')
-        .populate('agenciaId', 'fullName _id');
-      return reservas;
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find({ agenciaId })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .populate('userId', 'fullName')
+          .populate('agenciaId', 'fullName _id'),
+        this.reservasModel.countDocuments({ agenciaId }),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -762,15 +797,32 @@ export class ReservasService {
 
   // #region Administracion
   //? Obtener todas las reservas
-  async getAllReservas() {
+  async getAllReservas(page = 1) {
     try {
-      const allReservas = await this.reservasModel
-        .find()
-        .populate('agenciaId', 'fullName _id')
-        .populate('userId', 'fullName')
-        .sort({ createdAt: -1 });
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
 
-      return allReservas;
+      const [allReservas, total] = await Promise.all([
+        this.reservasModel
+          .find()
+          .populate('agenciaId', 'fullName _id')
+          .populate('userId', 'fullName')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE),
+        this.reservasModel.countDocuments(),
+      ]);
+
+      return {
+        data: allReservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
