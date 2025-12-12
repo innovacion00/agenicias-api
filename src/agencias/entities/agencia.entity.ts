@@ -23,6 +23,13 @@ export class Agencia extends Document {
     required: true,
     type: String,
     lowercase: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 200,
+    validate: {
+      validator: (v: string) => v.length >= 2 && v.length <= 200,
+      message: 'El nombre de la agencia debe tener entre 2 y 200 caracteres',
+    },
   })
   fullName: string;
 
@@ -37,6 +44,11 @@ export class Agencia extends Document {
   @Prop({
     type: Number,
     default: 0,
+    min: 0,
+    validate: {
+      validator: (v: number) => v >= 0,
+      message: 'El saldo no puede ser negativo',
+    },
   })
   saldo: number;
 
@@ -105,6 +117,12 @@ export class Agencia extends Document {
     required: true,
     default: 1,
     type: Number,
+    min: 1,
+    max: 100,
+    validate: {
+      validator: (v: number) => Number.isInteger(v) && v >= 1 && v <= 100,
+      message: 'El límite de usuarios debe ser un número entero entre 1 y 100',
+    },
   })
   userLimit: number;
 

@@ -14,8 +14,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
@@ -78,7 +76,18 @@ export class ReservasController {
 
   @Post('/change-status')
   @HttpCode(200)
-  cambiarEstadoPagoReserva(@Body() payload: any) {
+  cambiarEstadoPagoReserva(
+    @Body()
+    payload: {
+      external_ref_id: string;
+      transaction_id?: string;
+      payment_status: string;
+      details: {
+        id: string;
+        pay_platform?: string;
+      };
+    },
+  ) {
     return this.reservasService.cambiarEstadoPagoAutocore(payload);
   }
 

@@ -4,7 +4,8 @@ import {
   UploadApiResponse,
   v2 as cloudinary,
 } from 'cloudinary';
-import toStream = require('buffer-to-stream');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const toStream = require('buffer-to-stream');
 
 @Injectable()
 export class CloudinaryService {
@@ -15,8 +16,11 @@ export class CloudinaryService {
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         { folder },
-        (error, result) => {
+        (error: Error | undefined, result: UploadApiResponse | undefined) => {
           if (error) return reject(error);
+          if (!result) {
+            return reject(new Error('No se recibió respuesta de Cloudinary'));
+          }
           resolve(result);
         },
       );

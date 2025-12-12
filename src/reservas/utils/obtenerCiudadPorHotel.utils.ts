@@ -2,8 +2,9 @@ import { hotelesAutocore } from 'src/config';
 
 export const obtenerCiudadPorNombre = (name: string): string | undefined => {
   for (const key in hotelesAutocore) {
-    if (hotelesAutocore[key].name === name) {
-      return hotelesAutocore[key].city;
+    const hotelInfo = hotelesAutocore[key as keyof typeof hotelesAutocore];
+    if (hotelInfo && hotelInfo.name === name) {
+      return hotelInfo.city;
     }
   }
   return undefined;

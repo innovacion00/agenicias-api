@@ -12,10 +12,12 @@ import {
   CreateCotizacionDto,
   ResponderCotizacionDto,
   GeneratePdfDto,
+  UpdateCotizacionDto,
 } from './dto';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities';
 import { ValidRoles } from '../auth/interfaces';
+import { Types } from 'mongoose';
 
 @Controller('cotizaciones')
 @Auth()
@@ -27,7 +29,7 @@ export class CotizacionesController {
   create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
     return this.cotizacionesService.create(
       createCotizacionDto,
-      user._id.toString(),
+      (user._id as Types.ObjectId).toString(),
       user.agencia?.toString() || '',
     );
   }
@@ -67,7 +69,7 @@ export class CotizacionesController {
   ) {
     return this.cotizacionesService.createFromDisponibilidad(
       createCotizacionDto,
-      user._id.toString(),
+      (user._id as Types.ObjectId).toString(),
       user.agencia?.toString() || '',
     );
   }
@@ -139,7 +141,7 @@ export class CotizacionesController {
 
   @Patch(':id')
   @Auth()
-  update(@Param('id') id: string, @Body() updateCotizacionDto: any) {
+  update(@Param('id') id: string, @Body() updateCotizacionDto: UpdateCotizacionDto) {
     return this.cotizacionesService.update(id, updateCotizacionDto);
   }
 

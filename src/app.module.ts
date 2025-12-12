@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { LoggerModule } from 'nestjs-pino';
 
 import { envs } from './config';
 
@@ -25,9 +28,85 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
     BotReservasPendientesModule,
     CommonModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    // Logging estructurado con Pino
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport: process.env.NODE_ENV !== 'production'
+          ? {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                singleLine: false,
+                translateTime: 'SYS:standard',
+                ignore: 'pid,hostname',
+              },
+            }
+          : undefined,
+        serializers: {
+          req: (req: any) => ({
+            id: req.id,
+            method: req.method,
+            url: req.url,
+            query: req.query,
+            params: req.params,
+            headers: {
+              host: req.headers.host,
+              'user-agent': req.headers['user-agent'],
+              'content-type': req.headers['content-type'],
+            },
+          }),
+          res: (res: any) => ({
+            statusCode: res.statusCode,
+          }),
+          err: (err: any) => ({
+            type: err.type,
+            message: err.message,
+            stack: err.stack,
+          }),
+        },
+        customProps: (req: any) => ({
+          context: 'HTTP',
+        }),
+        autoLogging: {
+          ignore: (req: any) => {
+            // Ignorar logging de health checks y favicon
+            return req.url === '/health' || req.url === '/favicon.ico';
+          },
+        },
+      },
+    }),
     FilesModule,
     IntegrationsModule,
-    MongooseModule.forRoot(envs.mongoUrl),
+    MongooseModule.forRoot(envs.mongoUrl, {
+      maxPoolSize: 10, // Número máximo de conexiones en el pool
+      minPoolSize: 2, // Número mínimo de conexiones en el pool
+      serverSelectionTimeoutMS: 5000, // Timeout para seleccionar servidor
+      socketTimeoutMS: 45000, // Timeout para operaciones de socket
+      heartbeatFrequencyMS: 10000, // Frecuencia de heartbeat
+      retryWrites: true, // Reintentar escrituras fallidas
+      retryReads: true, // Reintentar lecturas fallidas
+      // Para producción con réplicas, descomentar:
+      // readPreference: 'secondaryPreferred', // Leer de réplicas secundarias cuando sea posible
+    }),
+    // Rate Limiting: 100 requests por 60 segundos por IP
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000, // 60 segundos
+        limit: 100, // 100 requests
+      },
+      {
+        name: 'medium',
+        ttl: 600000, // 10 minutos
+        limit: 500, // 500 requests
+      },
+      {
+        name: 'long',
+        ttl: 3600000, // 1 hora
+        limit: 2000, // 2000 requests
+      },
+    ]),
     MyToolModule,
     NotificacionesModule,
     ReservasModule,
@@ -37,6 +116,12 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
     CotizacionesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Aplicar rate limiting globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -18,12 +18,27 @@ export class Reserva extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Agencia', required: true, index: true })
   agenciaId: Types.ObjectId;
 
-  @Prop({ type: String, required: true, index: true })
+  @Prop({
+    type: String,
+    required: true,
+    index: true,
+    trim: true,
+    validate: {
+      validator: (v: string) => v.length > 0 && v.length <= 200,
+      message: 'El nombre del hotel debe tener entre 1 y 200 caracteres',
+    },
+  })
   hotel: string;
 
   @Prop({
     type: Number,
     required: true,
+    min: 1,
+    max: 100,
+    validate: {
+      validator: (v: number) => Number.isInteger(v) && v > 0 && v <= 100,
+      message: 'La cantidad de habitaciones debe ser un número entero entre 1 y 100',
+    },
   })
   cantidadHabitaciones: number;
 
@@ -45,12 +60,22 @@ export class Reserva extends Document {
   @Prop({
     type: Number,
     required: true,
+    min: 0,
+    validate: {
+      validator: (v: number) => v > 0,
+      message: 'El total debe ser mayor a 0',
+    },
   })
   total: number;
 
   @Prop({
     type: Number,
     default: 0,
+    min: 0,
+    validate: {
+      validator: (v: number) => v >= 0,
+      message: 'El totalMitad no puede ser negativo',
+    },
   })
   totalMitad: number;
 
@@ -330,3 +355,10 @@ export class Reserva extends Document {
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);
+
+// Índices compuestos para optimizar queries comunes
+ReservaSchema.index({ userId: 1, status: 1, createdAt: -1 });
+ReservaSchema.index({ agenciaId: 1, status: 1, createdAt: -1 });
+ReservaSchema.index({ reservaChatbotId: 1 }, { unique: true });
+ReservaSchema.index({ fechaLimitePago: 1, status: 1 }); // Para queries de pagos pendientes
+ReservaSchema.index({ status: 1, createdAt: -1 }); // Para listados por estado

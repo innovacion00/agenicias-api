@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
@@ -56,6 +56,14 @@ export class AgenciasService {
         createAgenciaDto.telefonoContacto,
       );
 
+      if (!formattedNumber) {
+        throw new BadRequestException('Número de teléfono inválido');
+      }
+
+      if (!bolsilloInfo) {
+        throw new InternalServerErrorException('Error al crear bolsillo en Cobre');
+      }
+
       const autocoreAgenciaInfo =
         await this.httpCustomService.crearAgenciaAutocore({
           cobre_account_id: bolsilloInfo.id,
@@ -70,6 +78,10 @@ export class AgenciasService {
           is_preloaded: true,
           name: createAgenciaDto.fullName,
         });
+
+      if (!autocoreAgenciaInfo) {
+        throw new InternalServerErrorException('Error al crear agencia en Autocore');
+      }
 
       //? Set limites de recarga en autocore
       await this.httpCustomService.setLimiteRecargaAgencia(
@@ -114,6 +126,10 @@ export class AgenciasService {
 
       const agenciaInfo = await this.agenciaModel.findById(agencia);
 
+      if (!agenciaInfo) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
       const linkRecargaInfo =
         await this.httpCustomService.recargarCarteraAutocore(
           amount,
@@ -131,6 +147,10 @@ export class AgenciasService {
   async obtenerSaldoBilletera(agencia: Types.ObjectId) {
     try {
       const agenciaInfo = await this.agenciaModel.findById(agencia);
+
+      if (!agenciaInfo) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
 
       const agenciaSaldo = await this.httpCustomService.obtenerSaldoCartera(
         agenciaInfo.autocoreInfo.id,
@@ -175,6 +195,10 @@ export class AgenciasService {
     try {
       const agenciaDoc = await this.agenciaModel.findById(agenciaId).exec();
 
+      if (!agenciaDoc) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
       await agenciaDoc.updateOne({
         ...agenciaDoc.toJSON(),
         isActive: !agenciaDoc.isActive,
@@ -191,6 +215,10 @@ export class AgenciasService {
   async updateAgencias(id: Types.ObjectId, updateAgenciaDto: UpdateAgenciaDto) {
     try {
       const agenciasDoc = await this.agenciaModel.findById(id);
+
+      if (!agenciasDoc) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
 
       await agenciasDoc.updateOne(updateAgenciaDto);
 

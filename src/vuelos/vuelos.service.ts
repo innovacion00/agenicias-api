@@ -3,12 +3,10 @@ import { AmadeusService } from './amadeus.service';
 import { FlightEnrichmentService } from './services/flight-enrichment.service';
 import { 
   SearchLocationsDto, 
-  FlightSearchDto,
   FlightOrderDto
 } from './dto';
 import { 
   AmadeusLocationResponse,
-  AmadeusFlightOffersResponse,
   AmadeusFlightOrderRequest,
   AmadeusFlightOrderResponse
 } from './interfaces';
@@ -64,7 +62,12 @@ export class VuelosService {
    * @param searchDto - Parámetros de búsqueda de ciudades
    * @returns Lista de ciudades encontradas
    */
-  async searchCities(searchDto: any): Promise<any> {
+  async searchCities(searchDto: {
+    countryCode?: string;
+    keyword: string;
+    max?: number;
+    include?: string[];
+  }): Promise<AmadeusLocationResponse> {
     return this.amadeusService.searchCities(searchDto);
   }
 

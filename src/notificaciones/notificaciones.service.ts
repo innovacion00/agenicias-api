@@ -76,20 +76,39 @@ export class NotificacionesService {
 
             await reserva.updateOne({ $set: { status: 4 } });
 
+            if (!userDoc) {
+              continue;
+            }
+
+            const agenciaNombre = 
+              userDoc.agencia && 
+              typeof userDoc.agencia === 'object' && 
+              'fullName' in userDoc.agencia
+                ? (userDoc.agencia.fullName as string)
+                : 'Agencia desconocida';
+
             const mensaje = notificacionCancelacionVencimiento(
               reserva.reservaChatbotId,
-              // @ts-ignore
-              userDoc.agencia.fullName,
+              agenciaNombre,
               reserva.pagadoPrimeraMitad,
               fechaLimitePago,
               reserva.totalMitad,
             );
+
             await this.emailService.sendEmail(
               'reservas@gehsuites.com',
-              // @ts-ignore
-              `Booking connect - Notificacion de cancelacion de reserva para la agencia ${userDoc.agencia.fullName}`,
+              `Booking connect - Notificacion de cancelacion de reserva para la agencia ${agenciaNombre}`,
               mensaje,
             );
+          }
+
+          if (!userDoc) {
+            continue;
+          }
+
+          if (!notiFields.subject) {
+            this.logger.warn('Subject no proporcionado para notificación');
+            continue;
           }
 
           notificaciones.push(

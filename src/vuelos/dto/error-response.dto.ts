@@ -4,9 +4,9 @@ import { ErrorResponse } from '../interfaces/error-response.interface';
  * DTO para respuestas de error estandarizadas
  */
 export class ErrorResponseDto implements ErrorResponse {
-  success: false;
+  success!: false;
 
-  error: {
+  error!: {
     code: string;
     message: string;
     details?: string;
@@ -16,14 +16,14 @@ export class ErrorResponseDto implements ErrorResponse {
     statusCode: number;
   };
 
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 /**
  * DTO para errores de Amadeus específicos
  */
 export class AmadeusErrorResponseDto extends ErrorResponseDto {
-  data: {
+  override data!: {
     amadeusErrors: Array<{
       code: string;
       title: string;
@@ -42,9 +42,9 @@ export class AmadeusErrorResponseDto extends ErrorResponseDto {
  * DTO para errores de validación
  */
 export class ValidationErrorResponseDto extends ErrorResponseDto {
-  data: {
+  override data!: {
     field: string;
-    value: any;
+    value: unknown;
     constraint: string;
     message: string;
   };

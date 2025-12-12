@@ -17,11 +17,11 @@ import { LogContext } from '../interfaces/error-response.interface';
 export class ErrorHandlerInterceptor implements NestInterceptor {
   private readonly logger = new Logger(ErrorHandlerInterceptor.name);
 
-  constructor(private readonly errorHandlerService: ErrorHandlerService) {}
+  constructor(private readonly _errorHandlerService: ErrorHandlerService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
+    const _response = context.switchToHttp().getResponse();
     
     // Crear contexto de logging
     const logContext: LogContext = {

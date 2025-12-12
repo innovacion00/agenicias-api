@@ -26,7 +26,7 @@ declare global {
 export class ErrorHandlerFilter implements ExceptionFilter {
   private readonly logger = new Logger(ErrorHandlerFilter.name);
 
-  constructor(private readonly errorHandlerService: ErrorHandlerService) {}
+  constructor(private readonly _errorHandlerService: ErrorHandlerService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();

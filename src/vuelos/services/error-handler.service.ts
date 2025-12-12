@@ -2,7 +2,6 @@ import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { 
   ErrorResponse, 
-  ErrorDetails, 
   AmadeusErrorDetails, 
   InternalErrorDetails,
   ValidationErrorDetails,
@@ -156,7 +155,7 @@ export class ErrorHandlerService {
     const requestId = context.requestId || this.generateRequestId();
     const timestamp = new Date().toISOString();
     
-    const validationError: ValidationErrorDetails = {
+    const _validationError: ValidationErrorDetails = {
       source: 'validation',
       field,
       value,
@@ -255,7 +254,7 @@ export class ErrorHandlerService {
   /**
    * Obtiene el código de error específico para errores de Amadeus
    */
-  private getAmadeusErrorCode(statusCode: number, amadeusErrors: any[]): string {
+  private getAmadeusErrorCode(statusCode: number, amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
     if (statusCode === 401) return 'AMADEUS_AUTHENTICATION_FAILED';
     if (statusCode === 403) return 'AMADEUS_FORBIDDEN';
     if (statusCode === 404) return 'AMADEUS_NOT_FOUND';
@@ -275,7 +274,7 @@ export class ErrorHandlerService {
   /**
    * Obtiene el mensaje de error para errores de Amadeus
    */
-  private getAmadeusErrorMessage(statusCode: number, amadeusErrors: any[]): string {
+  private getAmadeusErrorMessage(statusCode: number, amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
     if (statusCode === 401) return 'Error de autenticación con Amadeus';
     if (statusCode === 403) return 'Acceso denegado por Amadeus';
     if (statusCode === 404) return 'Recurso no encontrado en Amadeus';
@@ -295,7 +294,7 @@ export class ErrorHandlerService {
   /**
    * Obtiene los detalles del error de Amadeus
    */
-  private getAmadeusErrorDetails(amadeusErrors: any[]): string {
+  private getAmadeusErrorDetails(amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
     if (!amadeusErrors || amadeusErrors.length === 0) {
       return 'No se proporcionaron detalles del error';
     }
