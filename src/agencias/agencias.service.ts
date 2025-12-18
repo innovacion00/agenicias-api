@@ -164,10 +164,36 @@ export class AgenciasService {
   }
 
   // #region Encontrar todas las agencias
-  async findAll() {
+  async findAll(page = 1, limit = 50, fields?: string) {
     try {
-      const agencias = await this.agenciaModel.find().exec();
-      return agencias;
+      const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+      const currentPage = Math.max(1, page);
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      // Campos por defecto (excluir datos sensibles)
+      const selectFields = fields || '-cobreInfo -autocoreInfo -documentInfo';
+
+      // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+      const [data, total] = await Promise.all([
+        this.agenciaModel
+          .find()
+          .select(selectFields)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
+        this.agenciaModel.countDocuments(),
+      ]);
+
+      return {
+        data,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

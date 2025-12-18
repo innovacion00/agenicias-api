@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
 import {
@@ -76,15 +77,23 @@ export class CotizacionesController {
 
   @Get()
   @Auth()
-  findAll(@GetUser() user: User) {
+  findAll(
+    @GetUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const isSuperAdmin = user.role?.includes(ValidRoles.superAdmin);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 25;
 
     if (isSuperAdmin) {
-      return this.cotizacionesService.findAll();
+      return this.cotizacionesService.findAll(pageNum, limitNum);
     }
 
     return this.cotizacionesService.findAllByAgencia(
       user.agencia?.toString() || '',
+      pageNum,
+      limitNum,
     );
   }
 

@@ -776,12 +776,17 @@ export class ReservasService {
         throw new BadRequestException('Formato de ID de usuario no válido');
       }
 
+      // OPTIMIZACIÓN: Agregar populate, select y lean() para mejor rendimiento
       const [reservas, total] = await Promise.all([
         this.reservasModel
           .find({ userId: userIdObjectId })
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 })
           .skip(skip)
-          .limit(PAGE_SIZE),
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
         this.reservasModel.countDocuments({ userId: userIdObjectId }),
       ]);
 
@@ -807,14 +812,17 @@ export class ReservasService {
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;
 
+      // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
       const [reservas, total] = await Promise.all([
         this.reservasModel
           .find({ agenciaId })
+          .populate('userId', 'fullName email')
+          .populate('agenciaId', 'fullName _id')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(PAGE_SIZE)
-          .populate('userId', 'fullName')
-          .populate('agenciaId', 'fullName _id'),
+          .lean(), // Mejor rendimiento al retornar objetos planos
         this.reservasModel.countDocuments({ agenciaId }),
       ]);
 
@@ -902,14 +910,17 @@ export class ReservasService {
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;
 
+      // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
       const [allReservas, total] = await Promise.all([
         this.reservasModel
           .find()
           .populate('agenciaId', 'fullName _id')
-          .populate('userId', 'fullName')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 })
           .skip(skip)
-          .limit(PAGE_SIZE),
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
         this.reservasModel.countDocuments(),
       ]);
 

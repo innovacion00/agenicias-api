@@ -57,12 +57,19 @@ export class AgenciasController {
   //? Traer todas las agencias
   @ApiOperation({ summary: 'Obtener todas las agencias (solo superAdmin)' })
   @ApiBearerAuth('JWT-auth')
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Número de página' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Límite de resultados por página' })
   @ApiResponse({ status: 200, description: 'Lista de agencias' })
   @ApiResponse({ status: 403, description: 'Solo superAdmin' })
   @Get()
   @Auth(ValidRoles.superAdmin)
-  findAll() {
-    return this.agenciasService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.agenciasService.findAll(pageNum, limitNum);
   }
 
   //? Obtener agencias por propiedad

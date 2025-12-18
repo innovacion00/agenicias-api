@@ -356,6 +356,465 @@ const reservas = await this.reservasModel.aggregate([
 
 ---
 
+## 📋 **PLAN DE OPTIMIZACIÓN DE QUERIES - ALTO RENDIMIENTO**
+
+### **Objetivo:** Optimizar todas las queries para respuestas rápidas en endpoints (< 200ms)
+
+### **Estrategia General:**
+1. **Eliminar queries N+1** usando `populate()` o agregaciones
+2. **Usar `.lean()`** cuando no se necesiten métodos de Mongoose
+3. **Implementar paginación** en todos los listados
+4. **Usar `select()`** para limitar campos retornados
+5. **Aplicar índices** en campos de búsqueda frecuentes
+6. **Usar `Promise.all()`** para queries paralelas independientes
+
+---
+
+### **🔴 CRÍTICO - Problemas N+1 Identificados**
+
+#### **1. NotificacionesService - notificacionPago()**
+**Ubicación:** `src/notificaciones/notificaciones.service.ts:53-67`
+
+**Problema Actual:**
+```typescript
+for (const reserva of reservasNotification) {
+  const userDoc = await this.userModel
+    .findById(reserva.userId)
+    .lean()
+    .populate('agencia', 'fullName');
+  // ... procesamiento
+}
+```
+
+**Impacto:** Si hay 100 reservas, se ejecutan 100 queries adicionales.
+
+**Solución Optimizada:**
+```typescript
+// Obtener todos los userIds únicos
+const userIds = [...new Set(reservasNotification.map(r => r.userId))];
+
+// Una sola query para todos los usuarios con populate
+const usersMap = new Map();
+const users = await this.userModel
+  .find({ _id: { $in: userIds } })
+  .populate('agencia', 'fullName')
+  .lean();
+
+// Crear mapa para acceso O(1)
+users.forEach(user => {
+  usersMap.set(user._id.toString(), user);
+});
+
+// Usar el mapa en el loop
+for (const reserva of reservasNotification) {
+  const userDoc = usersMap.get(reserva.userId.toString());
+  if (!userDoc) continue;
+  // ... procesamiento
+}
+```
+
+**Mejora Esperada:** De N+1 queries a 2 queries (1 para reservas, 1 para usuarios)
+**Tiempo Estimado:** 30 minutos
+**Prioridad:** 🔴 Crítica
+
+---
+
+#### **2. ReservasService - getReservasByUser()**
+**Ubicación:** `src/reservas/reservas.service.ts:757-801`
+
+**Problema Actual:**
+```typescript
+const [reservas, total] = await Promise.all([
+  this.reservasModel
+    .find({ userId: userIdObjectId })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(PAGE_SIZE),
+  this.reservasModel.countDocuments({ userId: userIdObjectId }),
+]);
+```
+
+**Problema:** No incluye relaciones (agenciaId, userId) que probablemente se necesiten en el frontend.
+
+**Solución Optimizada:**
+```typescript
+const [reservas, total] = await Promise.all([
+  this.reservasModel
+    .find({ userId: userIdObjectId })
+    .populate('agenciaId', 'fullName _id emailContacto')
+    .populate('userId', 'fullName email')
+    .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(PAGE_SIZE)
+    .lean(), // Mejor rendimiento
+  this.reservasModel.countDocuments({ userId: userIdObjectId }),
+]);
+```
+
+**Mejora Esperada:** Reduce queries adicionales y mejora tiempo de respuesta
+**Tiempo Estimado:** 15 minutos
+**Prioridad:** 🔴 Alta
+
+---
+
+#### **3. CotizacionesService - findAll() y findAllByAgencia()**
+**Ubicación:** `src/cotizaciones/cotizaciones.service.ts:196-212`
+
+**Problema Actual:**
+```typescript
+async findAll(): Promise<Cotizacion[]> {
+  return await this.cotizacionModel
+    .find()
+    .populate('userId', 'firstName lastName email telephone')
+    .populate('agenciaId', 'nombre telefono email')
+    .sort({ createdAt: -1 })
+    .exec();
+}
+```
+
+**Problemas:**
+- No tiene paginación (puede retornar miles de registros)
+- No usa `.lean()` (más lento)
+- No limita campos retornados
+
+**Solución Optimizada:**
+```typescript
+async findAll(page = 1, limit = 25): Promise<{
+  data: Cotizacion[];
+  meta: { total: number; page: number; pageSize: number; totalPages: number };
+}> {
+  const PAGE_SIZE = Math.min(limit, 100); // Máximo 100
+  const currentPage = Math.max(1, page);
+  const skip = (currentPage - 1) * PAGE_SIZE;
+
+  const [data, total] = await Promise.all([
+    this.cotizacionModel
+      .find()
+      .populate('userId', 'firstName lastName email telephone')
+      .populate('agenciaId', 'nombre telefono email')
+      .select('-landingHtml') // Excluir HTML pesado si no se necesita
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(PAGE_SIZE)
+      .lean(),
+    this.cotizacionModel.countDocuments(),
+  ]);
+
+  return {
+    data,
+    meta: {
+      total,
+      page: currentPage,
+      pageSize: PAGE_SIZE,
+      totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+    },
+  };
+}
+
+async findAllByAgencia(agenciaId: string, page = 1, limit = 25): Promise<{
+  data: Cotizacion[];
+  meta: { total: number; page: number; pageSize: number; totalPages: number };
+}> {
+  const PAGE_SIZE = Math.min(limit, 100);
+  const currentPage = Math.max(1, page);
+  const skip = (currentPage - 1) * PAGE_SIZE;
+
+  const [data, total] = await Promise.all([
+    this.cotizacionModel
+      .find({ agenciaId })
+      .populate('userId', 'firstName lastName email telephone')
+      .populate('agenciaId', 'nombre telefono email')
+      .select('-landingHtml')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(PAGE_SIZE)
+      .lean(),
+    this.cotizacionModel.countDocuments({ agenciaId }),
+  ]);
+
+  return {
+    data,
+    meta: {
+      total,
+      page: currentPage,
+      pageSize: PAGE_SIZE,
+      totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+    },
+  };
+}
+```
+
+**Mejora Esperada:** Reduce tiempo de respuesta de ~500ms a ~50ms con paginación
+**Tiempo Estimado:** 45 minutos (incluye actualizar DTOs y controladores)
+**Prioridad:** 🔴 Alta
+
+---
+
+#### **4. AgenciasService - findAll()**
+**Ubicación:** `src/agencias/agencias.service.ts:167-175`
+
+**Problema Actual:**
+```typescript
+async findAll() {
+  try {
+    const agencias = await this.agenciaModel.find().exec();
+    return agencias;
+  } catch (error) {
+    this.logger.error(error);
+    this.errorManager.handle(error);
+  }
+}
+```
+
+**Problemas:**
+- Sin paginación
+- Sin límite
+- Sin `.lean()`
+- Retorna todos los campos (incluyendo datos sensibles)
+
+**Solución Optimizada:**
+```typescript
+async findAll(page = 1, limit = 50, fields?: string): Promise<{
+  data: Agencia[];
+  meta: { total: number; page: number; pageSize: number; totalPages: number };
+}> {
+  try {
+    const PAGE_SIZE = Math.min(limit, 100);
+    const currentPage = Math.max(1, page);
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    // Campos por defecto (excluir datos sensibles)
+    const selectFields = fields || '-cobreInfo -autocoreInfo -documentInfo';
+
+    const [data, total] = await Promise.all([
+      this.agenciaModel
+        .find()
+        .select(selectFields)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(),
+      this.agenciaModel.countDocuments(),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
+  } catch (error) {
+    this.logger.error(error);
+    this.errorManager.handle(error);
+  }
+}
+```
+
+**Mejora Esperada:** Reduce tiempo de respuesta y uso de memoria
+**Tiempo Estimado:** 30 minutos
+**Prioridad:** 🟡 Media-Alta
+
+---
+
+### **🟡 MODERADO - Optimizaciones Adicionales**
+
+#### **5. ReservasService - getReservasByAgencia()**
+**Ubicación:** `src/reservas/reservas.service.ts:804-834`
+
+**Estado Actual:** Ya usa populate, pero puede mejorarse.
+
+**Mejora Sugerida:**
+```typescript
+async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
+  try {
+    const PAGE_SIZE = 25;
+    const currentPage = Number(page) > 0 ? Number(page) : 1;
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    const [reservas, total] = await Promise.all([
+      this.reservasModel
+        .find({ agenciaId })
+        .populate('userId', 'fullName email')
+        .populate('agenciaId', 'fullName _id')
+        .select('-reservation.roomsData') // Excluir si no se necesita
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Agregar lean
+      this.reservasModel.countDocuments({ agenciaId }),
+    ]);
+
+    return {
+      data: reservas,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
+  } catch (error) {
+    this.logger.error(error);
+    this.errorManager.handle(error);
+  }
+}
+```
+
+**Tiempo Estimado:** 10 minutos
+**Prioridad:** 🟡 Media
+
+---
+
+#### **6. ReservasService - getAllReservas()**
+**Ubicación:** `src/reservas/reservas.service.ts:899-929`
+
+**Mejora Sugerida:**
+```typescript
+async getAllReservas(page = 1) {
+  try {
+    const PAGE_SIZE = 25;
+    const currentPage = Number(page) > 0 ? Number(page) : 1;
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    const [allReservas, total] = await Promise.all([
+      this.reservasModel
+        .find()
+        .populate('agenciaId', 'fullName _id')
+        .populate('userId', 'fullName email')
+        .select('-reservation.roomsData') // Excluir datos pesados
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Agregar lean
+      this.reservasModel.countDocuments(),
+    ]);
+
+    return {
+      data: allReservas,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
+  } catch (error) {
+    this.logger.error(error);
+    this.errorManager.handle(error);
+  }
+}
+```
+
+**Tiempo Estimado:** 10 minutos
+**Prioridad:** 🟡 Media
+
+---
+
+### **📊 Índices Recomendados para Mejorar Rendimiento**
+
+Agregar índices en campos frecuentemente consultados:
+
+```typescript
+// En reservas.entity.ts
+@Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+userId: Types.ObjectId;
+
+@Prop({ type: Types.ObjectId, ref: 'Agencia', required: true, index: true })
+agenciaId: Types.ObjectId;
+
+// Índice compuesto para búsquedas comunes
+// Agregar en el schema:
+reservasSchema.index({ agenciaId: 1, createdAt: -1 });
+reservasSchema.index({ userId: 1, createdAt: -1 });
+reservasSchema.index({ status: 1, fechaLimitePago: 1 });
+reservasSchema.index({ status: 1, pagadoPrimeraMitad: 1, fechaLimitePago2: 1 });
+
+// En cotizaciones.entity.ts
+cotizacionSchema.index({ agenciaId: 1, createdAt: -1 });
+cotizacionSchema.index({ userId: 1, createdAt: -1 });
+cotizacionSchema.index({ tokenAcceso: 1 }, { unique: true });
+cotizacionSchema.index({ status: 1, createdAt: -1 });
+```
+
+**Tiempo Estimado:** 20 minutos
+**Prioridad:** 🟡 Media
+
+---
+
+### **📈 Métricas de Éxito**
+
+**Objetivos de Rendimiento:**
+- ✅ Endpoints de listado: < 200ms (p95)
+- ✅ Endpoints de detalle: < 100ms (p95)
+- ✅ Reducir queries N+1: 0 casos
+- ✅ Todas las listas con paginación
+- ✅ Uso de `.lean()` en 90%+ de queries de lectura
+
+**Herramientas de Monitoreo:**
+- Agregar logging de tiempo de queries
+- Usar `mongoose.set('debug', true)` en desarrollo
+- Considerar APM (Application Performance Monitoring)
+
+---
+
+### **🎯 Plan de Implementación por Prioridad**
+
+#### **Fase 1 - Crítico (Semana 1)**
+1. ✅ NotificacionesService - notificacionPago() (30 min)
+2. ✅ ReservasService - getReservasByUser() (15 min)
+3. ✅ Agregar índices básicos (20 min)
+**Total:** ~1.5 horas
+
+#### **Fase 2 - Alta Prioridad (Semana 1-2)**
+4. ✅ CotizacionesService - findAll() y findAllByAgencia() (45 min)
+5. ✅ AgenciasService - findAll() (30 min)
+**Total:** ~1.5 horas
+
+#### **Fase 3 - Optimizaciones Adicionales (Semana 2)**
+6. ✅ ReservasService - getReservasByAgencia() (10 min)
+7. ✅ ReservasService - getAllReservas() (10 min)
+8. ✅ Revisar y optimizar otros endpoints menores (1 hora)
+**Total:** ~1.5 horas
+
+**Tiempo Total Estimado:** ~4.5 horas
+
+---
+
+### **✅ Checklist de Implementación**
+
+Para cada optimización:
+- [ ] Identificar el problema específico
+- [ ] Implementar la solución optimizada
+- [ ] Agregar paginación si es listado
+- [ ] Usar `.lean()` cuando sea apropiado
+- [ ] Limitar campos con `.select()`
+- [ ] Actualizar DTOs si es necesario
+- [ ] Actualizar controladores si cambia la firma
+- [ ] Probar con datos reales
+- [ ] Medir mejora de rendimiento
+- [ ] Documentar cambios
+
+---
+
+### **🔍 Queries a Revisar Adicionalmente**
+
+1. **AuthService** - Múltiples `findById` que podrían optimizarse
+2. **VuelosService** - Revisar queries de enriquecimiento
+3. **EventosService** - Verificar si hay problemas similares
+4. **BotReservasPendientesService** - Ya optimizado, pero revisar
+
+---
+
+**Última Actualización:** $(date)
+**Responsable:** Equipo de Desarrollo
+**Estado:** 📋 Planificado
+
+---
+
 ### 🟡 **Moderado: Falta de Paginación en Algunos Endpoints**
 
 **Problema:**

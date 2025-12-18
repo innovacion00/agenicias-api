@@ -193,22 +193,74 @@ export class CotizacionesService {
   }
 
   // #region Obtener todas por agencia
-  async findAll(): Promise<Cotizacion[]> {
-    return await this.cotizacionModel
-      .find()
-      .populate('userId', 'firstName lastName email telephone')
-      .populate('agenciaId', 'nombre telefono email')
-      .sort({ createdAt: -1 })
-      .exec();
+  async findAll(page = 1, limit = 25): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+    const currentPage = Math.max(1, page);
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    const [data, total] = await Promise.all([
+      this.cotizacionModel
+        .find()
+        .populate('userId', 'firstName lastName email telephone')
+        .populate('agenciaId', 'nombre telefono email')
+        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Mejor rendimiento al retornar objetos planos
+      this.cotizacionModel.countDocuments(),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
   }
 
-  async findAllByAgencia(agenciaId: string): Promise<Cotizacion[]> {
-    return await this.cotizacionModel
-      .find({ agenciaId })
-      .populate('userId', 'firstName lastName email telephone')
-      .populate('agenciaId', 'nombre telefono email')
-      .sort({ createdAt: -1 })
-      .exec();
+  async findAllByAgencia(
+    agenciaId: string,
+    page = 1,
+    limit = 25,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+    const currentPage = Math.max(1, page);
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    const [data, total] = await Promise.all([
+      this.cotizacionModel
+        .find({ agenciaId })
+        .populate('userId', 'firstName lastName email telephone')
+        .populate('agenciaId', 'nombre telefono email')
+        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Mejor rendimiento al retornar objetos planos
+      this.cotizacionModel.countDocuments({ agenciaId }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
   }
 
   // #region Obtener una por ID
