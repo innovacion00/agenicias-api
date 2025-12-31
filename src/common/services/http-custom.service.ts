@@ -26,6 +26,7 @@ import {
   IPagoBilletera,
   IreservaAutocoreResp,
   IreservaInfo,
+  IreservaInfoBd,
   IrespuestaAuthCobre,
   IrespuestaCounterParty,
   IrespuestaCreateBolcillo,
@@ -265,6 +266,93 @@ export class HttpCustomService {
     }
   }
 
+  //? Obtener disponibilidad para personas
+  public async getDisponibilidadPersonas(
+    hotelId: string,
+    checkin: string,
+    nights: number,
+    adults: number,
+    childrenAges?: string,
+    roomType?: string,
+    dev?: boolean,
+  ) {
+    try {
+      // Construir query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('hotel_id', hotelId);
+      queryParams.append('checkin', checkin);
+      queryParams.append('nights', nights.toString());
+      queryParams.append('adults', adults.toString());
+      
+      if (childrenAges) {
+        queryParams.append('children_ages', childrenAges);
+      }
+      
+      if (roomType) {
+        queryParams.append('room_type', roomType);
+      }
+
+      const url = `${dev ? envs.autocoreUrlDev : envs.autocoreUrl}/v2/bookings/availability?${queryParams.toString()}`;
+      const headers = dev ? autocoreHeadersDev : autocoreHeaders;
+      
+      // Log detallado de la solicitud
+      this.logger.log('🌐 Llamando a Autocore API (Personas):', {
+        url,
+        method: 'GET',
+        hotelId,
+        checkin,
+        nights,
+        adults,
+        childrenAges,
+        roomType,
+        headers: {
+          access_key: headers.headers.access_key ? '***' : 'MISSING',
+          secret_key: headers.headers.secret_key ? '***' : 'MISSING',
+        },
+        isDev: dev,
+      });
+      
+      // Hacer la solicitud con interceptor para debugging
+      const axiosConfig = {
+        ...headers,
+        validateStatus: (status: number) => status < 600, // No lanzar error aún
+      };
+
+      const response = await axios.get<Iavailability[]>(
+        url,
+        axiosConfig,
+      );
+
+      // Log de respuesta
+      this.logger.log(`📡 Respuesta de Autocore (Personas) [Status: ${response.status}]:`, {
+        status: response.status,
+        statusText: response.statusText,
+        hasData: !!response.data,
+        dataPreview: response.data ? JSON.stringify(response.data).substring(0, 200) : 'No data',
+      });
+
+      if (response.status !== 200 && response.status !== 201) {
+        this.logger.error('❌ Autocore retornó un status no exitoso (Personas):', {
+          status: response.status,
+          data: response.data,
+        });
+        throw new InternalServerErrorException(
+          `Autocore retornó status ${response.status}: ${JSON.stringify(response.data)}`,
+        );
+      }
+
+      this.logger.log('✅ Respuesta Autocore exitosa (Personas)');
+      return response.data;
+    } catch (error) {
+      this.logger.error('❌ ERROR en getDisponibilidadPersonas:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      this.axiosError(error, this.getDisponibilidadPersonas.name);
+    }
+  }
+
   //? Crear reserva autocore agencia
   public async createReservaAutocore(
     hotelId: string,
@@ -294,6 +382,47 @@ export class HttpCustomService {
       return data as IreservaAutocoreResp;
     } catch (error) {
       this.axiosError(error, this.createReservaAutocore.name);
+    }
+  }
+
+  //? Crear reserva autocore personas
+  public async createReservaPersonasAutocore(
+    hotelId: string,
+    reservation: IreservaInfoBd,
+  ) {
+    const reservationBody = {
+      reservation: {
+        ...reservation,
+        source_of_business: reservation.source_of_bussiness || 'Booking Personas',
+      },
+    };
+
+    delete reservationBody.reservation.source_of_bussiness;
+    
+    try {
+      this.logger.log('🌐 Creando reserva de persona en Autocore:', {
+        hotelId,
+        url: `${envs.autocoreUrl}/v2/bookings/agencies/retailer/hotel_id=${hotelId}?send_link=false`,
+        reservation: JSON.stringify(reservationBody),
+      });
+
+      const { data } = await axios.post(
+        envs.autocoreUrl.concat(
+          `/v2/bookings/agencies/retailer/hotel_id=${hotelId}?send_link=false`,
+        ),
+        reservationBody,
+        autocoreHeaders,
+      );
+
+      this.logger.log('✅ Reserva de persona creada exitosamente en Autocore');
+      return data as IreservaAutocoreResp;
+    } catch (error) {
+      this.logger.error('❌ ERROR al crear reserva de persona en Autocore:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      this.axiosError(error, this.createReservaPersonasAutocore.name);
     }
   }
 
@@ -379,6 +508,65 @@ export class HttpCustomService {
       this.axiosError(error, this.createLinkPagoAutocore.name);
     }
   }
+
+  //? Crear link de pago para personas (sin agency_id)
+  public async createLinkPagoPersonasAutocore(
+    hotelId: number,
+    guestName: string,
+    email: string,
+    phone: string,
+    amount: number,
+    bookingDates: string,
+    description: string,
+    currency: string = 'COP',
+    externalRefId?: string,
+  ) {
+    try {
+      const paymentLinkBody = {
+        hotel_id: hotelId,
+        guest_name: guestName,
+        email,
+        phone,
+        amount,
+        booking_dates: bookingDates,
+        description,
+        available_hours: 0.1666, // 10 minutos
+        currency,
+        source: 'Booking Personas',
+        external_ref_id: externalRefId || `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        reservation_id: '', // Se llenará después de crear la reserva
+        temp_webhook_url: 'https://gehsuitesapps.com/agencias/v1/booking-personas/change-status',
+        redirect: {
+          success_url: 'https://personas.gehsuites.com/reserva-exitosa',
+          failure_url: 'https://personas.gehsuites.com/reserva-error',
+        },
+      };
+
+      this.logger.log('🌐 Creando link de pago para personas:', {
+        hotelId,
+        amount,
+        guestName,
+        email,
+      });
+
+      const { data } = await axios.post<ICreatePaymentLinkResponse>(
+        envs.autocoreUrl.concat('/v2/links/schedule/'),
+        paymentLinkBody,
+        autocoreHeaders,
+      );
+
+      this.logger.log(' Link de pago creado exitosamente');
+      return data;
+    } catch (error) {
+      this.logger.error(' ERROR al crear link de pago para personas:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      this.axiosError(error, this.createLinkPagoPersonasAutocore.name);
+    }
+  }
+
 
   //? Reliazar pago con balance de agencia
   public async pagoBalanceAutocore(code: string) {

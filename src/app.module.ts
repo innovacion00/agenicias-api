@@ -17,6 +17,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { EventosModule } from './eventos/eventos.module';
 import { VuelosModule } from './vuelos/vuelos.module';
 import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
+import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
     EventosModule,
     VuelosModule,
     CotizacionesModule,
+    BookingPersonasModule,
   ],
   controllers: [],
   providers: [],

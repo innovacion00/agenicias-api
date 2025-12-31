@@ -57,6 +57,9 @@ interface EnvVars {
   AMADEUS_API_KEY: string;
   AMADEUS_API_SECRET: string;
   AMADEUS_BASE_URL: string;
+
+  //? Booking Personas
+  BOOKING_PERSONAS_TOKEN: string;
 }
 
 // API_1525: joi.string().required(),
@@ -115,6 +118,9 @@ const envSchema = joi
     AMADEUS_API_KEY: joi.string().required(),
     AMADEUS_API_SECRET: joi.string().required(),
     AMADEUS_BASE_URL: joi.string().required(),
+
+    //? Booking Personas
+    BOOKING_PERSONAS_TOKEN: joi.string().required(),
   })
   .unknown(true);
 
@@ -181,4 +187,7 @@ export const envs = {
   amadeusApiKey: envVars.AMADEUS_API_KEY,
   amadeusApiSecret: envVars.AMADEUS_API_SECRET,
   amadeusBaseUrl: envVars.AMADEUS_BASE_URL,
+
+  //? Booking Personas
+  bookingPersonasToken: envVars.BOOKING_PERSONAS_TOKEN,
 };
