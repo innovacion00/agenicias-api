@@ -58,12 +58,12 @@ export class BookingPersonasService {
         );
       }
 
-      this.logger.log(`🔍 Encontrados ${hotelesDeLaCiudad.length} hoteles en ${normalizedCity}:`, 
+      this.logger.log(` Encontrados ${hotelesDeLaCiudad.length} hoteles en ${normalizedCity}:`, 
         hotelesDeLaCiudad.map(h => ({ id: h.id, name: h.name }))
       );
 
       // Hacer consultas paralelas a Autocore para cada hotel
-      this.logger.log(`🔄 Iniciando ${hotelesDeLaCiudad.length} consultas paralelas a Autocore...`);
+      this.logger.log(` Iniciando ${hotelesDeLaCiudad.length} consultas paralelas a Autocore...`);
       
       const consultasDisponibilidad = await Promise.allSettled(
         hotelesDeLaCiudad.map((hotel) =>
@@ -77,7 +77,7 @@ export class BookingPersonasService {
             false, // Usar URL de producción
           ).then((data) => {
             const dataAny = data as any;
-            this.logger.log(`✅ Hotel ${hotel.id} (${hotel.name}): Disponibilidad obtenida`, {
+            this.logger.log(` Hotel ${hotel.id} (${hotel.name}): Disponibilidad obtenida`, {
               hasData: !!data,
               isArray: Array.isArray(data),
               hasAvailableRooms: dataAny && !!dataAny.available_rooms,
@@ -90,7 +90,7 @@ export class BookingPersonasService {
               data,
             };
           }).catch((error) => {
-            this.logger.error(`❌ Error al consultar disponibilidad para hotel ${hotel.id} (${hotel.name}):`, {
+            this.logger.error(` Error al consultar disponibilidad para hotel ${hotel.id} (${hotel.name}):`, {
               message: error.message,
               response: error.response?.data,
               status: error.response?.status,
@@ -106,7 +106,7 @@ export class BookingPersonasService {
         )
       );
       
-      this.logger.log(`📊 Resultados de consultas:`, {
+      this.logger.log(` Resultados de consultas:`, {
         total: consultasDisponibilidad.length,
         fulfilled: consultasDisponibilidad.filter(r => r.status === 'fulfilled').length,
         rejected: consultasDisponibilidad.filter(r => r.status === 'rejected').length,
@@ -121,7 +121,7 @@ export class BookingPersonasService {
         normalizedCity,
       );
 
-      this.logger.log('✅ Disponibilidad normalizada exitosamente');
+      this.logger.log(' Disponibilidad normalizada exitosamente');
       return disponibilidadNormalizada;
     } catch (error) {
       this.logger.error('ERROR en getDisponibilidad (Personas):', error);
@@ -134,27 +134,27 @@ export class BookingPersonasService {
     // Normalizar a formato usado en hotelesAutocore
     const cityLower = city.toLowerCase().trim();
     
-    this.logger.log(`🔍 Normalizando ciudad: "${city}" -> "${cityLower}"`);
+    this.logger.log(` Normalizando ciudad: "${city}" -> "${cityLower}"`);
     
     if (cityLower.includes('cartagena')) {
       const normalized = 'Cartagena';
-      this.logger.log(`✅ Ciudad normalizada: "${city}" -> "${normalized}"`);
+      this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
       return normalized;
     }
     if (cityLower.includes('bogota') || cityLower.includes('bogotá')) {
       const normalized = 'Bogota';
-      this.logger.log(`✅ Ciudad normalizada: "${city}" -> "${normalized}"`);
+      this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
       return normalized;
     }
     if (cityLower.includes('santa marta') || cityLower.includes('santamarta') || cityLower === 'santa marta') {
       const normalized = 'Santa marta';
-      this.logger.log(`✅ Ciudad normalizada: "${city}" -> "${normalized}"`);
+      this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
       return normalized;
     }
     
     // Si no coincide, retornar el original capitalizado
     const normalized = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-    this.logger.warn(`⚠️ Ciudad no reconocida, usando formato capitalizado: "${city}" -> "${normalized}"`);
+    this.logger.warn(` Ciudad no reconocida, usando formato capitalizado: "${city}" -> "${normalized}"`);
     return normalized;
   }
 
@@ -162,14 +162,14 @@ export class BookingPersonasService {
   private obtenerHotelesPorCiudad(city: string): Array<{ id: string; name: string; city: string }> {
     const hoteles: Array<{ id: string; name: string; city: string }> = [];
     
-    this.logger.log(`🔍 Buscando hoteles para ciudad: "${city}"`);
-    this.logger.log(`📋 Hoteles disponibles en hotelesAutocore:`, 
+    this.logger.log(` Buscando hoteles para ciudad: "${city}"`);
+    this.logger.log(` Hoteles disponibles en hotelesAutocore:`, 
       Object.entries(hotelesAutocore).map(([id, info]) => ({ id, city: info.city, name: info.name }))
     );
     
     Object.entries(hotelesAutocore).forEach(([hotelId, hotelInfo]) => {
       const cityMatch = hotelInfo.city === city;
-      this.logger.log(`🔍 Comparando: "${hotelInfo.city}" === "${city}" -> ${cityMatch}`);
+      this.logger.log(` Comparando: "${hotelInfo.city}" === "${city}" -> ${cityMatch}`);
       
       if (cityMatch) {
         hoteles.push({
@@ -177,11 +177,11 @@ export class BookingPersonasService {
           name: hotelInfo.name,
           city: hotelInfo.city,
         });
-        this.logger.log(`✅ Hotel agregado: ${hotelId} - ${hotelInfo.name}`);
+        this.logger.log(` Hotel agregado: ${hotelId} - ${hotelInfo.name}`);
       }
     });
     
-    this.logger.log(`📊 Total hoteles encontrados para "${city}": ${hoteles.length}`);
+    this.logger.log(` Total hoteles encontrados para "${city}": ${hoteles.length}`);
     
     return hoteles;
   }
@@ -201,17 +201,17 @@ export class BookingPersonasService {
         const { hotelId, hotelName, data, error } = resultado.value;
         
         if (error) {
-          this.logger.warn(`⚠️ Hotel ${hotelId} (${hotelName}) tiene error: ${error}`);
+          this.logger.warn(` Hotel ${hotelId} (${hotelName}) tiene error: ${error}`);
           return;
         }
 
         if (!data) {
-          this.logger.warn(`⚠️ Hotel ${hotelId} (${hotelName}) no retornó datos`);
+          this.logger.warn(` Hotel ${hotelId} (${hotelName}) no retornó datos`);
           return;
         }
 
         hotelesProcesados++;
-        this.logger.log(`🔄 Procesando hotel ${hotelId} (${hotelName}):`, {
+        this.logger.log(` Procesando hotel ${hotelId} (${hotelName}):`, {
           hasData: !!data,
           isArray: Array.isArray(data),
           hasAvailableRooms: data && !!data.available_rooms,
@@ -219,7 +219,7 @@ export class BookingPersonasService {
         });
         
         // Usar los datos directamente sin filtrar por rateDescription
-        this.logger.log(`🔄 Procesando hotel ${hotelId} (${hotelName}):`, {
+        this.logger.log(` Procesando hotel ${hotelId} (${hotelName}):`, {
           hasData: !!data,
           isArray: Array.isArray(data),
           hasAvailableRooms: data && !!data.available_rooms,
@@ -245,17 +245,15 @@ export class BookingPersonasService {
             if (data.total_count) {
               totalCount += data.total_count;
             }
-            this.logger.log(`✅ Hotel ${hotelId} (${hotelName}): ${roomsConHotel.length} habitaciones agregadas`);
+            this.logger.log(` Hotel ${hotelId} (${hotelName}): ${roomsConHotel.length} habitaciones agregadas`);
           } else {
-            this.logger.warn(`⚠️ Hotel ${hotelId} (${hotelName}): No hay habitaciones disponibles`);
+            this.logger.warn(` Hotel ${hotelId} (${hotelName}): No hay habitaciones disponibles`);
           }
         }
-        // Si la respuesta es un array (estructura antigua)
         else if (Array.isArray(data)) {
           let roomsAgregadas = 0;
           data.forEach((hotel: any) => {
             if (hotel.availability && hotel.availability.length > 0) {
-              // Convertir estructura antigua a nueva
               hotel.availability.forEach((availability: any) => {
                 if (availability.available_rooms) {
                   availability.available_rooms.forEach((room: any) => {
@@ -273,21 +271,21 @@ export class BookingPersonasService {
           });
           if (roomsAgregadas > 0) {
             hotelesConDisponibilidad++;
-            this.logger.log(`✅ Hotel ${hotelId} (${hotelName}): ${roomsAgregadas} habitaciones agregadas (estructura antigua)`);
+            this.logger.log(` Hotel ${hotelId} (${hotelName}): ${roomsAgregadas} habitaciones agregadas (estructura antigua)`);
           }
         } else {
-          this.logger.warn(`⚠️ Hotel ${hotelId} (${hotelName}): Estructura de datos desconocida`, {
+          this.logger.warn(` Hotel ${hotelId} (${hotelName}): Estructura de datos desconocida`, {
             type: typeof data,
             isArray: Array.isArray(data),
             keys: data ? Object.keys(data) : [],
           });
         }
       } else if (resultado.status === 'rejected') {
-        this.logger.error(`❌ Consulta rechazada en índice ${index}:`, resultado.reason);
+        this.logger.error(` Consulta rechazada en índice ${index}:`, resultado.reason);
       }
     });
 
-    this.logger.log(`📊 Resumen de normalización:`, {
+    this.logger.log(` Resumen de normalización:`, {
       city,
       hotelesProcesados,
       hotelesConDisponibilidad,
@@ -357,7 +355,7 @@ export class BookingPersonasService {
                     const filteredProducts = availableRoom.products.filter((product: any) => {
                       const coincide = coincideConPermitido(product.rateDescription || '');
                       if (!coincide && product.rateDescription) {
-                        this.logger.debug(`🔍 Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
+                        this.logger.debug(` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
                       }
                       return coincide;
                     });
@@ -400,7 +398,7 @@ export class BookingPersonasService {
             const filteredProducts = room.products.filter((product: any) => {
               const coincide = coincideConPermitido(product.rateDescription || '');
               if (!coincide && product.rateDescription) {
-                this.logger.debug(`🔍 Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
+                this.logger.debug(` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
               }
               return coincide;
             });
@@ -425,14 +423,14 @@ export class BookingPersonasService {
       }
 
       // Si no coincide con ninguna estructura conocida, retornar sin filtrar
-      this.logger.warn('⚠️ Estructura de respuesta desconocida, retornando sin filtrar:', {
+      this.logger.warn(' Estructura de respuesta desconocida, retornando sin filtrar:', {
         isArray: Array.isArray(data),
         hasAvailableRooms: data && !!data.available_rooms,
         keys: data ? Object.keys(data) : [],
       });
       return data;
     } catch (error) {
-      this.logger.error('❌ Error al filtrar disponibilidad:', error);
+      this.logger.error(' Error al filtrar disponibilidad:', error);
       // En caso de error, retornar los datos originales
       return data;
     }
@@ -482,7 +480,7 @@ export class BookingPersonasService {
         currency: generatePaymentLinkDto.currency || 'COP',
       });
 
-      this.logger.log(`✅ Link de pago generado exitosamente: ${linkPago.code}`);
+      this.logger.log(` Link de pago generado exitosamente: ${linkPago.code}`);
       return {
         payment_url: linkPago.url,
         payment_code: linkPago.code,
@@ -511,7 +509,7 @@ export class BookingPersonasService {
         );
       }
 
-      this.logger.log('🔍 Verificando pago antes de crear reserva:', { paymentCode });
+      this.logger.log(' Verificando pago antes de crear reserva:', { paymentCode });
       
       // Buscar el pago pendiente en la base de datos
       const pagoPendiente = await this.paymentPendingModel.findOne({
@@ -530,7 +528,7 @@ export class BookingPersonasService {
         );
       }
 
-      this.logger.log('✅ Pago verificado exitosamente');
+      this.logger.log(' Pago verificado exitosamente');
 
       let planAlimentario = '';
 
@@ -597,7 +595,7 @@ export class BookingPersonasService {
       // Marcar el pago como usado (opcional: eliminar o marcar como procesado)
       await this.paymentPendingModel.deleteOne({ payment_code: paymentCode });
 
-      this.logger.log(`✅ Reserva de persona creada exitosamente: ${reserva._id}`);
+      this.logger.log(` Reserva de persona creada exitosamente: ${reserva._id}`);
       return {
         reservaId: reserva._id,
         chatbotId: reservaAutocoreInfo.chatbot_id,
@@ -620,7 +618,7 @@ export class BookingPersonasService {
     };
   }) {
     try {
-      this.logger.log('📥 Webhook recibido para cambio de estado de pago:', payload);
+      this.logger.log(' Webhook recibido para cambio de estado de pago:', payload);
 
       // Buscar el pago pendiente por external_ref_id
       const pagoPendiente = await this.paymentPendingModel.findOne({
@@ -628,7 +626,7 @@ export class BookingPersonasService {
       });
 
       if (!pagoPendiente) {
-        this.logger.warn(`⚠️ Pago pendiente no encontrado para external_ref_id: ${payload.external_ref_id}`);
+        this.logger.warn(` Pago pendiente no encontrado para external_ref_id: ${payload.external_ref_id}`);
         return { success: false, message: 'Pago pendiente no encontrado' };
       }
 
@@ -641,7 +639,7 @@ export class BookingPersonasService {
           pagoPendiente.transaction_id = payload.transaction_id;
           pagoPendiente.paid_at = new Date();
           await pagoPendiente.save();
-          this.logger.log(`✅ Pago marcado como pagado: ${pagoPendiente.payment_code}`);
+          this.logger.log(` Pago marcado como pagado: ${pagoPendiente.payment_code}`);
           break;
 
         case 'rechazado':
@@ -649,16 +647,16 @@ export class BookingPersonasService {
         case 'tarjeta no válida':
           pagoPendiente.status = PaymentStatus.REJECTED;
           await pagoPendiente.save();
-          this.logger.log(`❌ Pago marcado como rechazado: ${pagoPendiente.payment_code}`);
+          this.logger.log(` Pago marcado como rechazado: ${pagoPendiente.payment_code}`);
           break;
 
         case 'en proceso':
           // Mantener como pendiente
-          this.logger.log(`⏳ Pago en proceso: ${pagoPendiente.payment_code}`);
+          this.logger.log(` Pago en proceso: ${pagoPendiente.payment_code}`);
           break;
 
         default:
-          this.logger.warn(`⚠️ Estado de pago desconocido: ${status}`);
+          this.logger.warn(` Estado de pago desconocido: ${status}`);
       }
 
       return { success: true, status: pagoPendiente.status };
