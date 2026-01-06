@@ -191,8 +191,18 @@ export class BookingPersonasService {
     consultas: PromiseSettledResult<any>[],
     city: string,
   ): any {
-    const disponibilidadCombinada: any[] = [];
-    let totalCount = 0;
+    // Estructura para agrupar por hotel
+    const hotelesMap = new Map<string, {
+      hotelId: string;
+      hotelName: string;
+      city: string;
+      availability: Map<string, {
+        adults: number;
+        children_ages: string | null;
+        available_rooms: any[];
+      }>;
+    }>();
+
     let hotelesProcesados = 0;
     let hotelesConDisponibilidad = 0;
 
@@ -211,68 +221,86 @@ export class BookingPersonasService {
         }
 
         hotelesProcesados++;
-        this.logger.log(` Procesando hotel ${hotelId} (${hotelName}):`, {
-          hasData: !!data,
-          isArray: Array.isArray(data),
-          hasAvailableRooms: data && !!data.available_rooms,
-          dataKeys: data ? Object.keys(data) : [],
-        });
         
-        // Usar los datos directamente sin filtrar por rateDescription
-        this.logger.log(` Procesando hotel ${hotelId} (${hotelName}):`, {
-          hasData: !!data,
-          isArray: Array.isArray(data),
-          hasAvailableRooms: data && !!data.available_rooms,
-          availableRoomsCount: data && data.available_rooms 
-            ? data.available_rooms.length 
-            : 0,
-        });
-        
-        // Si la respuesta es un objeto con available_rooms en la raíz
-        if (data && data.available_rooms && Array.isArray(data.available_rooms)) {
-          // Agregar información del hotel a cada habitación
-          const roomsConHotel = data.available_rooms.map((room: any) => ({
-            ...room,
-            hotel_id: hotelId,
-            hotel_name: hotelName,
-            city: city,
-          }));
-          
-          if (roomsConHotel.length > 0) {
-            hotelesConDisponibilidad++;
-            disponibilidadCombinada.push(...roomsConHotel);
-            // Sumar el total_count si existe
-            if (data.total_count) {
-              totalCount += data.total_count;
-            }
-            this.logger.log(` Hotel ${hotelId} (${hotelName}): ${roomsConHotel.length} habitaciones agregadas`);
-          } else {
-            this.logger.warn(` Hotel ${hotelId} (${hotelName}): No hay habitaciones disponibles`);
-          }
+        // Inicializar el hotel en el mapa si no existe
+        if (!hotelesMap.has(hotelId)) {
+          hotelesMap.set(hotelId, {
+            hotelId,
+            hotelName,
+            city,
+            availability: new Map(),
+          });
         }
-        else if (Array.isArray(data)) {
-          let roomsAgregadas = 0;
-          data.forEach((hotel: any) => {
-            if (hotel.availability && hotel.availability.length > 0) {
-              hotel.availability.forEach((availability: any) => {
-                if (availability.available_rooms) {
-                  availability.available_rooms.forEach((room: any) => {
-                    disponibilidadCombinada.push({
-                      ...room,
-                      hotel_id: hotelId,
-                      hotel_name: hotelName,
-                      city: city,
-                    });
-                    roomsAgregadas++;
+
+        const hotelData = hotelesMap.get(hotelId)!;
+        let hotelTieneDisponibilidad = false;
+
+        // Si la respuesta es un array de Iavailability (estructura de Autocore)
+        if (Array.isArray(data)) {
+          data.forEach((hotelResponse: any) => {
+            // Verificar que tenga la estructura correcta
+            if (hotelResponse && hotelResponse.availability && Array.isArray(hotelResponse.availability)) {
+              hotelResponse.availability.forEach((availabilityItem: any) => {
+                const adults = availabilityItem.adults || 0;
+                const children_ages = availabilityItem.children_ages || null;
+                const key = `${adults}_${children_ages || 'null'}`;
+                
+                if (!hotelData.availability.has(key)) {
+                  hotelData.availability.set(key, {
+                    adults,
+                    children_ages,
+                    available_rooms: [],
                   });
+                }
+
+                const availabilityData = hotelData.availability.get(key)!;
+                if (availabilityItem.available_rooms && Array.isArray(availabilityItem.available_rooms)) {
+                  availabilityData.available_rooms.push(...availabilityItem.available_rooms);
+                  hotelTieneDisponibilidad = hotelTieneDisponibilidad || availabilityItem.available_rooms.length > 0;
                 }
               });
             }
           });
-          if (roomsAgregadas > 0) {
-            hotelesConDisponibilidad++;
-            this.logger.log(` Hotel ${hotelId} (${hotelName}): ${roomsAgregadas} habitaciones agregadas (estructura antigua)`);
+        }
+        // Si la respuesta es un objeto único con hotel y availability
+        else if (data && data.hotel && data.availability && Array.isArray(data.availability)) {
+          data.availability.forEach((availabilityItem: any) => {
+            const adults = availabilityItem.adults || 0;
+            const children_ages = availabilityItem.children_ages || null;
+            const key = `${adults}_${children_ages || 'null'}`;
+            
+            if (!hotelData.availability.has(key)) {
+              hotelData.availability.set(key, {
+                adults,
+                children_ages,
+                available_rooms: [],
+              });
+            }
+
+            const availabilityData = hotelData.availability.get(key)!;
+            if (availabilityItem.available_rooms && Array.isArray(availabilityItem.available_rooms)) {
+              availabilityData.available_rooms.push(...availabilityItem.available_rooms);
+              hotelTieneDisponibilidad = hotelTieneDisponibilidad || availabilityItem.available_rooms.length > 0;
+            }
+          });
+        }
+        // Si la respuesta es un objeto con available_rooms en la raíz (estructura antigua)
+        else if (data && data.available_rooms && Array.isArray(data.available_rooms)) {
+          const adults = data.adults || 0;
+          const children_ages = data.children_ages || null;
+          const key = `${adults}_${children_ages || 'null'}`;
+          
+          if (!hotelData.availability.has(key)) {
+            hotelData.availability.set(key, {
+              adults,
+              children_ages,
+              available_rooms: [],
+            });
           }
+
+          const availabilityData = hotelData.availability.get(key)!;
+          availabilityData.available_rooms.push(...data.available_rooms);
+          hotelTieneDisponibilidad = data.available_rooms.length > 0;
         } else {
           this.logger.warn(` Hotel ${hotelId} (${hotelName}): Estructura de datos desconocida`, {
             type: typeof data,
@@ -280,28 +308,91 @@ export class BookingPersonasService {
             keys: data ? Object.keys(data) : [],
           });
         }
+
+        if (hotelTieneDisponibilidad) {
+          hotelesConDisponibilidad++;
+        }
       } else if (resultado.status === 'rejected') {
         this.logger.error(` Consulta rechazada en índice ${index}:`, resultado.reason);
       }
+    });
+
+    // Construir la respuesta final en el formato solicitado
+    const resultado: any[] = [];
+
+    hotelesMap.forEach((hotelData, hotelId) => {
+      // Obtener el ID numérico del hotel desde hotelesAutocorePaymenLink
+      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelPaymentId = hotelInfo 
+        ? hotelesAutocorePaymenLink[hotelInfo.name as keyof typeof hotelesAutocorePaymenLink]
+        : null;
+
+      // Calcular largest_room_beds (máximo de beds en todas las habitaciones)
+      let largest_room_beds = 0;
+      const availabilityArray: any[] = [];
+
+      hotelData.availability.forEach((availabilityData) => {
+        let total_count = 0;
+        const available_rooms: any[] = [];
+
+        availabilityData.available_rooms.forEach((room: any) => {
+          // Calcular largest_room_beds
+          if (room.beds && room.beds > largest_room_beds) {
+            largest_room_beds = room.beds;
+          }
+
+          // Sumar count al total
+          if (room.count) {
+            total_count += room.count;
+          }
+
+          available_rooms.push(room);
+        });
+
+        // Normalizar children_ages: convertir string vacío o "null" a null
+        let children_ages = availabilityData.children_ages;
+        if (children_ages === '' || children_ages === 'null' || children_ages === null || children_ages === undefined) {
+          children_ages = null;
+        }
+
+        availabilityArray.push({
+          adults: availabilityData.adults,
+          children_ages: children_ages,
+          total_count,
+          available_rooms,
+        });
+      });
+
+      // Si no hay disponibilidad, agregar un objeto vacío
+      if (availabilityArray.length === 0) {
+        availabilityArray.push({
+          adults: 0,
+          children_ages: null,
+          total_count: 0,
+          available_rooms: [],
+        });
+      }
+
+      resultado.push({
+        hotel: {
+          id: hotelPaymentId || 0,
+          name: hotelData.hotelName,
+          roomcloud_id: hotelId,
+          city: hotelData.city.toUpperCase(),
+          largest_room_beds: largest_room_beds,
+        },
+        availability: availabilityArray,
+      });
     });
 
     this.logger.log(` Resumen de normalización:`, {
       city,
       hotelesProcesados,
       hotelesConDisponibilidad,
-      totalHabitaciones: disponibilidadCombinada.length,
-      totalCount,
+      totalHoteles: resultado.length,
     });
 
-    // Retornar estructura normalizada
-    return {
-      city: city,
-      total_count: totalCount || disponibilidadCombinada.length,
-      adults: consultas.length > 0 && consultas[0].status === 'fulfilled' 
-        ? consultas[0].value.data?.adults || 0 
-        : 0,
-      available_rooms: disponibilidadCombinada,
-    };
+    return resultado;
   }
 
   // #region Filtrar disponibilidad por rateDescription
