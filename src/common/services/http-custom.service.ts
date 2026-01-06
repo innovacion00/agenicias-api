@@ -520,9 +520,14 @@ export class HttpCustomService {
     description: string,
     currency: string = 'COP',
     externalRefId?: string,
+    reservationId?: string, // Opcional: ID de reserva si ya existe
   ) {
     try {
-      const paymentLinkBody = {
+      // Según la documentación de Autocore API:
+      // reservation_id: TYPE String, REQ.: No
+      // "Reference to the associated reservation, if available."
+      // Por lo tanto, es OPCIONAL y solo se incluye si hay una reserva existente
+      const paymentLinkBody: any = {
         hotel_id: hotelId,
         guest_name: guestName,
         email,
@@ -534,13 +539,18 @@ export class HttpCustomService {
         currency,
         source: 'Booking Personas',
         external_ref_id: externalRefId || `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        reservation_id: '', // Se llenará después de crear la reserva
         temp_webhook_url: 'https://gehsuitesapps.com/agencias/v1/booking-personas/change-status',
         redirect: {
           success_url: 'https://personas.gehsuites.com/reserva-exitosa',
           failure_url: 'https://personas.gehsuites.com/reserva-error',
         },
       };
+
+      // Solo incluir reservation_id si se proporciona un valor válido
+      // Si no se proporciona, el campo no se envía (es opcional según Autocore)
+      if (reservationId && reservationId.trim() !== '') {
+        paymentLinkBody.reservation_id = reservationId;
+      }
 
       this.logger.log('🌐 Creando link de pago para personas:', {
         hotelId,

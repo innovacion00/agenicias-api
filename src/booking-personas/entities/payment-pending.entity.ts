@@ -30,6 +30,18 @@ export class PaymentPending extends Document {
 
   @Prop({ type: Date })
   paid_at?: Date;
+
+  @Prop({ type: String })
+  hotel_id?: string;
+
+  @Prop({ type: Object })
+  reservation_data?: any; // Datos de la reserva para crear automáticamente
+
+  @Prop({ type: String })
+  reserva_id?: string; // ID de la reserva creada (para evitar duplicados)
+
+  @Prop({ type: Boolean, default: false })
+  reserva_creada?: boolean; // Flag para saber si ya se creó la reserva
 }
 
 export const PaymentPendingSchema = SchemaFactory.createForClass(PaymentPending);

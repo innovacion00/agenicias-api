@@ -471,20 +471,25 @@ export class BookingPersonasService {
         throw new InternalServerErrorException('Error al generar link de pago');
       }
 
-      // Guardar el pago pendiente en la base de datos
+      // Guardar el pago pendiente en la base de datos con información de la reserva
       await this.paymentPendingModel.create({
         payment_code: linkPago.code,
         external_ref_id: externalRefId,
         status: PaymentStatus.PENDING,
         amount: generatePaymentLinkDto.amount,
         currency: generatePaymentLinkDto.currency || 'COP',
+        hotel_id: hotelId,
+        reservation_data: generatePaymentLinkDto.reservation_data || null,
+        reserva_creada: false,
       });
 
       this.logger.log(` Link de pago generado exitosamente: ${linkPago.code}`);
       return {
         payment_url: linkPago.url,
         payment_code: linkPago.code,
-        message: 'Link de pago generado exitosamente. Realiza el pago y luego crea la reserva con el código de pago.',
+        message: generatePaymentLinkDto.reservation_data 
+          ? 'Link de pago generado exitosamente. La reserva se creará automáticamente después de que el pago sea completado.'
+          : 'Link de pago generado exitosamente. Realiza el pago y luego crea la reserva con el código de pago.',
       };
     } catch (error) {
       this.logger.error('ERROR en generarLinkPago (Personas):', error);
@@ -522,13 +527,27 @@ export class BookingPersonasService {
         );
       }
 
+      // Si la reserva ya fue creada automáticamente, retornar la información
+      if (pagoPendiente.reserva_creada && pagoPendiente.reserva_id) {
+        const reservaExistente = await this.bookingPersonaModel.findById(pagoPendiente.reserva_id);
+        if (reservaExistente) {
+          this.logger.log(`ℹ️ Reserva ya fue creada automáticamente: ${pagoPendiente.reserva_id}`);
+          return {
+            reservaId: reservaExistente._id,
+            chatbotId: reservaExistente.reservaChatbotId,
+            message: 'La reserva ya fue creada automáticamente después del pago.',
+            yaExiste: true,
+          };
+        }
+      }
+
       if (pagoPendiente.status !== PaymentStatus.PAID) {
         throw new BadRequestException(
           `El pago no ha sido completado. Estado actual: ${pagoPendiente.status}. Por favor, completa el pago antes de crear la reserva.`,
         );
       }
 
-      this.logger.log(' Pago verificado exitosamente');
+      this.logger.log('✅ Pago verificado exitosamente');
 
       let planAlimentario = '';
 
@@ -639,7 +658,26 @@ export class BookingPersonasService {
           pagoPendiente.transaction_id = payload.transaction_id;
           pagoPendiente.paid_at = new Date();
           await pagoPendiente.save();
-          this.logger.log(` Pago marcado como pagado: ${pagoPendiente.payment_code}`);
+          this.logger.log(`✅ Pago marcado como pagado: ${pagoPendiente.payment_code}`);
+          
+          // Crear reserva automáticamente si hay datos de reserva y no se ha creado ya
+          if (pagoPendiente.reservation_data && !pagoPendiente.reserva_creada && pagoPendiente.hotel_id) {
+            try {
+              this.logger.log(`🔄 Creando reserva automáticamente para pago ${pagoPendiente.payment_code}`);
+              await this.crearReservaAutomatica(pagoPendiente);
+            } catch (error) {
+              this.logger.error(`❌ Error al crear reserva automáticamente:`, error);
+              // No lanzamos el error para no afectar el webhook
+              // La reserva se puede crear manualmente después
+            }
+          } else {
+            if (!pagoPendiente.reservation_data) {
+              this.logger.warn(`⚠️ No hay datos de reserva para crear automáticamente: ${pagoPendiente.payment_code}`);
+            }
+            if (pagoPendiente.reserva_creada) {
+              this.logger.log(`ℹ️ Reserva ya fue creada anteriormente: ${pagoPendiente.payment_code}`);
+            }
+          }
           break;
 
         case 'rechazado':
@@ -663,6 +701,107 @@ export class BookingPersonasService {
     } catch (error) {
       this.logger.error('ERROR en cambiarEstadoPagoAutocore (Personas):', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // #region Crear reserva automáticamente desde webhook
+  private async crearReservaAutomatica(pagoPendiente: PaymentPending) {
+    try {
+      // Verificar que no se haya creado ya
+      if (pagoPendiente.reserva_creada && pagoPendiente.reserva_id) {
+        this.logger.log(`ℹ️ Reserva ya existe: ${pagoPendiente.reserva_id}`);
+        return { reservaId: pagoPendiente.reserva_id, yaExiste: true };
+      }
+
+      if (!pagoPendiente.reservation_data || !pagoPendiente.hotel_id) {
+        throw new BadRequestException('Datos de reserva o hotel_id faltantes');
+      }
+
+      const createBookingPersonaDto = pagoPendiente.reservation_data as CreateBookingPersonaDto;
+      const hotelId = pagoPendiente.hotel_id;
+      const cantidadHabitacion = createBookingPersonaDto.reservation.roomsData.length;
+
+      let planAlimentario = '';
+
+      // Determinar si es reserva de grupo (10 o más habitaciones)
+      const isReservaGrupo = cantidadHabitacion >= 10;
+      
+      // Calcular fechas límite usando la nueva lógica
+      const fechasLimite = calcularFechaLimitePago(
+        createBookingPersonaDto.reservation.checkin,
+        isReservaGrupo,
+      );
+      
+      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
+
+      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      if (!hotelInfo) {
+        throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+      }
+
+      // Establecer source_of_business
+      createBookingPersonaDto.reservation.source_of_bussiness = 'Booking Personas';
+
+      // Crear reserva en Autocore
+      const reservaAutocoreInfo =
+        await this.httpCustomService.createReservaPersonasAutocore(
+          hotelId,
+          createBookingPersonaDto.reservation,
+        );
+
+      if (!reservaAutocoreInfo) {
+        throw new InternalServerErrorException('Error al crear reserva en Autocore');
+      }
+
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException(reservaAutocoreInfo.msg);
+      }
+
+      if (createBookingPersonaDto.planAlimentario) {
+        planAlimentario = createBookingPersonaDto.planAlimentario;
+      }
+
+      // Crear reserva en la base de datos (marcada como pagada)
+      const reserva = await this.bookingPersonaModel.create({
+        hotel: hotelInfo.name,
+        cantidadHabitaciones: cantidadHabitacion,
+        total: createBookingPersonaDto.total,
+        reservation: createBookingPersonaDto.reservation,
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        titularInfo: createBookingPersonaDto.titularInfo,
+        fechaLimitePago,
+        fechaLimitePago2,
+        exentoIva: createBookingPersonaDto.exentoIva || false,
+        planAlimentario,
+        adicionCena: createBookingPersonaDto.adicionCena || false,
+        adicionAlmuerzo: createBookingPersonaDto.adicionAlmuerzo || false,
+        mascotas: createBookingPersonaDto.mascotas || false,
+        mascotasNumber: createBookingPersonaDto.mascotasNumber || 0,
+        origenIata: createBookingPersonaDto.origenIata || '',
+        status: ValidPaymentStatus.total, // Pago Aprobado (ya está pagado)
+        pagadoPrimeraMitad: true, // Pago completo
+        paymenIds: [pagoPendiente.transaction_id || pagoPendiente.payment_code], // Guardar código de pago
+      });
+
+      // Actualizar PaymentPending con el ID de la reserva creada
+      pagoPendiente.reserva_id = reserva._id.toString();
+      pagoPendiente.reserva_creada = true;
+      // Nota: No podemos actualizar el reservation_id en el link de pago de Autocore
+      // porque no hay endpoint para actualizar links existentes, pero esto está bien
+      // porque según la documentación de Autocore, reservation_id es opcional
+      // y solo se usa como referencia si está disponible al crear el link
+      await pagoPendiente.save();
+
+      this.logger.log(`✅ Reserva creada automáticamente: ${reserva._id} para pago ${pagoPendiente.payment_code}`);
+      
+      return {
+        reservaId: reserva._id,
+        chatbotId: reservaAutocoreInfo.chatbot_id,
+        message: 'Reserva creada automáticamente con pago completo',
+      };
+    } catch (error) {
+      this.logger.error('ERROR en crearReservaAutomatica:', error);
+      throw error;
     }
   }
 }

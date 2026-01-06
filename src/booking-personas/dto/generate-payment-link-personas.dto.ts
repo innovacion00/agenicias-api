@@ -5,8 +5,12 @@ import {
   IsPhoneNumber,
   MinLength,
   MaxLength,
+  IsOptional,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { CreateBookingPersonaDto } from './create-booking-persona.dto';
 
 export class GeneratePaymentLinkPersonasDto {
   @ApiProperty({
@@ -82,5 +86,15 @@ export class GeneratePaymentLinkPersonasDto {
   @IsString()
   @IsNotEmpty()
   description: string;
+
+  @ApiProperty({
+    description: 'Datos de la reserva para crear automáticamente después del pago',
+    type: CreateBookingPersonaDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateBookingPersonaDto)
+  reservation_data?: CreateBookingPersonaDto;
 }
 
