@@ -99,7 +99,7 @@ export class Agencia extends Document {
     type: [{ type: Types.ObjectId, ref: 'User' }],
     default: [],
   })
-  usuarios: User[];
+  usuarios: Types.ObjectId[];
 
   @Prop({
     required: true,

@@ -261,7 +261,7 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
       });
 
-      agenciaDoc.usuarios.push(user._id as User);
+      agenciaDoc.usuarios.push(user._id as Types.ObjectId);
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
@@ -317,7 +317,7 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
       });
 
-      agenciaDoc.usuarios.push(user._id as User);
+      agenciaDoc.usuarios.push(user._id as Types.ObjectId);
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();

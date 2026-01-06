@@ -54,6 +54,25 @@ export class CotizacionesService {
     userId: string,
     agenciaId: string,
   ): Promise<Cotizacion> {
+    const { reservaInfo, ...restDto } = createCotizacionDto;
+
+    this.logger.log('Creando cotización (POST /cotizaciones)', {
+      userId,
+      agenciaId,
+      hasReservaInfo: !!reservaInfo,
+      hasReservation: !!reservaInfo?.reservation,
+      reservaInfoKeys: reservaInfo ? Object.keys(reservaInfo) : [],
+    });
+
+    if (!reservaInfo?.reservation) {
+      this.logger.error(
+        'Payload inválido: falta reservation dentro de reservaInfo',
+      );
+      throw new BadRequestException(
+        'El payload debe incluir reservaInfo.reservation con la información de la reserva.',
+      );
+    }
+
     const tokenAcceso = uuid();
     const landingUrl = `${process.env.FRONTEND_URL}/cotizacion/${tokenAcceso}`;
 
@@ -68,7 +87,7 @@ export class CotizacionesService {
       createCotizacionDto.total * (1 + porcentajemarkup / 100);
 
     const cotizacion = new this.cotizacionModel({
-      ...createCotizacionDto,
+      ...restDto,
       porcentajemarkup,
       montoconmarkup,
       userId,
@@ -77,6 +96,7 @@ export class CotizacionesService {
       landingUrl,
       fechaLimiteRespuesta: fechaLimite,
       status: CotizacionStatus.EN_ESPERA,
+      reservation: reservaInfo.reservation,
     });
 
     return await cotizacion.save();
