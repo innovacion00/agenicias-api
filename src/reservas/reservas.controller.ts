@@ -8,6 +8,7 @@ import {
   HttpCode,
   Query,
   Put,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +31,7 @@ import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { ParseCheckinCheckoutPipe, ParseHotelIdPipe } from './pipes';
 import { ValidRoles } from 'src/auth/interfaces';
+import { ValidPaymentStatus } from './interfaces';
 
 @ApiTags('reservas')
 @Controller('reservas')
@@ -182,6 +184,140 @@ export class ReservasController {
     return this.reservasService.getDisponibilidad(
       agencia,
       disponibilidadAutoCoreDto,
+    );
+  }
+
+  // #region Búsquedas
+  @ApiOperation({ 
+    summary: 'Buscar reservas por reservaChatbotId',
+    description: 'Busca reservas por ID del chatbot. Primero intenta búsqueda exacta, luego parcial. No requiere paginación ya que retorna todos los resultados encontrados (máximo 100).'
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
+  @Get('buscar/chatbot-id')
+  @Auth()
+  buscarPorChatbotId(
+    @Query('reservaChatbotId') reservaChatbotId: string,
+    @GetUser('_id') userId: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    if (!reservaChatbotId) {
+      throw new BadRequestException('El parámetro reservaChatbotId es requerido');
+    }
+    return this.reservasService.buscarPorChatbotId(
+      reservaChatbotId,
+      userId,
+      agenciaId,
+      user.role,
+    );
+  }
+
+  @ApiOperation({ summary: 'Buscar reservas por nombre del agente' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
+  @Get('buscar/agente')
+  @Auth()
+  buscarPorNombreAgente(
+    @Query('nombre') nombre: string,
+    @Query('page') page: number = 1,
+    @GetUser('_id') userId: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    if (!nombre) {
+      throw new BadRequestException('El parámetro nombre es requerido');
+    }
+    return this.reservasService.buscarPorNombreAgente(
+      nombre,
+      userId,
+      agenciaId,
+      user.role,
+      page,
+    );
+  }
+
+  @ApiOperation({ summary: 'Buscar reservas por nombre de agencia' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
+  @Get('buscar/agencia')
+  @Auth()
+  buscarPorNombreAgencia(
+    @Query('nombre') nombre: string,
+    @Query('page') page: number = 1,
+    @GetUser('_id') userId: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    if (!nombre) {
+      throw new BadRequestException('El parámetro nombre es requerido');
+    }
+    return this.reservasService.buscarPorNombreAgencia(
+      nombre,
+      userId,
+      agenciaId,
+      user.role,
+      page,
+    );
+  }
+
+  @ApiOperation({ summary: 'Buscar reservas por nombre del huésped' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
+  @Get('buscar/huesped')
+  @Auth()
+  buscarPorNombreHuesped(
+    @Query('nombre') nombre: string,
+    @Query('page') page: number = 1,
+    @GetUser('_id') userId: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    if (!nombre) {
+      throw new BadRequestException('El parámetro nombre es requerido');
+    }
+    return this.reservasService.buscarPorNombreHuesped(
+      nombre,
+      userId,
+      agenciaId,
+      user.role,
+      page,
+    );
+  }
+
+  @ApiOperation({ 
+    summary: 'Buscar reservas por estado',
+    description: 'Busca reservas por estado. Usa page para paginación o all=true para obtener todas las reservas (máximo 1000).'
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
+  @Get('buscar/estado')
+  @Auth()
+  buscarPorEstado(
+    @Query('status') status: string,
+    @Query('page') page: number = 1,
+    @Query('all') all: string,
+    @GetUser('_id') userId: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    if (!status) {
+      throw new BadRequestException('El parámetro status es requerido');
+    }
+    const statusNumber = parseInt(status, 10);
+    if (isNaN(statusNumber) || statusNumber < 0 || statusNumber > 5) {
+      throw new BadRequestException(
+        'El status debe ser un número entre 0 y 5 (0: espera, 1: proceso, 2: rejected, 3: total, 4: cancelado, 5: mitad)',
+      );
+    }
+    const getAll = all === 'true' || all === '1';
+    return this.reservasService.buscarPorEstado(
+      statusNumber as ValidPaymentStatus,
+      userId,
+      agenciaId,
+      user.role,
+      page,
+      getAll,
     );
   }
 

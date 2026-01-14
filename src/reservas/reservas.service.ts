@@ -805,6 +805,371 @@ export class ReservasService {
     }
   }
 
+  // #region Búsquedas de reservas
+  /**
+   * Helper para construir filtro base según el rol del usuario
+   */
+  private construirFiltroPorRol(
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+  ): any {
+    const esSuperAdmin = roles.includes('super-admin');
+    const esAdmin = roles.includes('admin');
+
+    if (esSuperAdmin) {
+      // SuperAdmin: sin filtros, puede ver todas las reservas
+      return {};
+    } else if (esAdmin) {
+      // Admin: solo reservas de su agencia
+      return { agenciaId };
+    } else {
+      // User: solo sus propias reservas
+      return { userId };
+    }
+  }
+
+  //? Buscar reserva por reservaChatbotId
+  // Nota: reservaChatbotId es único, por lo tanto la búsqueda es exacta
+  // No requiere paginación porque siempre retorna 0 o 1 resultado
+  async buscarPorChatbotId(
+    reservaChatbotId: string,
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+  ): Promise<{
+    data: any | null;
+    found: boolean;
+  }> {
+    try {
+      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
+
+      // Búsqueda exacta (reservaChatbotId es único)
+      const filtroBusqueda = {
+        ...filtroRol,
+        reservaChatbotId: reservaChatbotId, // Búsqueda exacta, sin regex
+      };
+
+      const reserva = await this.reservasModel
+        .findOne(filtroBusqueda)
+        .populate('agenciaId', 'fullName _id emailContacto')
+        .populate('userId', 'fullName email')
+        .select('-reservation.roomsData')
+        .lean();
+
+      return {
+        data: reserva,
+        found: !!reserva,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  //? Buscar reservas por nombre del agente
+  async buscarPorNombreAgente(
+    nombreAgente: string,
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+    page = 1,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    try {
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
+      const esSuperAdmin = roles.includes('super-admin');
+      const esAdmin = roles.includes('admin');
+
+      // Construir filtro para buscar usuarios según el rol
+      let filtroUsuario: any = {
+        fullName: { $regex: nombreAgente, $options: 'i' },
+      };
+
+      // Si es admin, solo buscar usuarios de su agencia
+      if (esAdmin && !esSuperAdmin) {
+        filtroUsuario.agencia = agenciaId;
+      }
+      // Si es user, solo puede buscar su propio nombre
+      if (!esAdmin && !esSuperAdmin) {
+        filtroUsuario._id = userId;
+      }
+
+      // Buscar usuarios que coincidan con el nombre
+      const usuarios = await this.userModel
+        .find(filtroUsuario)
+        .select('_id')
+        .lean();
+
+      const userIds = usuarios.map((user) => user._id);
+
+      if (userIds.length === 0) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            page: currentPage,
+            pageSize: PAGE_SIZE,
+            totalPages: 0,
+          },
+        };
+      }
+
+      // Aplicar filtro de rol a las reservas
+      const filtroBusqueda = {
+        ...filtroRol,
+        userId: { $in: userIds },
+      };
+
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.reservasModel.countDocuments(filtroBusqueda),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  //? Buscar reservas por nombre de agencia
+  async buscarPorNombreAgencia(
+    nombreAgencia: string,
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+    page = 1,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    try {
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
+      const esSuperAdmin = roles.includes('super-admin');
+      const esAdmin = roles.includes('admin');
+
+      // Construir filtro para buscar agencias según el rol
+      let filtroAgencia: any = {
+        fullName: { $regex: nombreAgencia, $options: 'i' },
+      };
+
+      // Si es admin o user, solo puede buscar su propia agencia
+      if (!esSuperAdmin) {
+        filtroAgencia._id = agenciaId;
+      }
+
+      // Buscar agencias que coincidan con el nombre
+      const agencias = await this.agenciaModel
+        .find(filtroAgencia)
+        .select('_id')
+        .lean();
+
+      const agenciaIds = agencias.map((agencia) => agencia._id);
+
+      if (agenciaIds.length === 0) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            page: currentPage,
+            pageSize: PAGE_SIZE,
+            totalPages: 0,
+          },
+        };
+      }
+
+      // Aplicar filtro de rol a las reservas
+      const filtroBusqueda = {
+        ...filtroRol,
+        agenciaId: { $in: agenciaIds },
+      };
+
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.reservasModel.countDocuments(filtroBusqueda),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  //? Buscar reservas por nombre del huésped
+  async buscarPorNombreHuesped(
+    nombreHuesped: string,
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+    page = 1,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    try {
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
+
+      // Buscar por firstName o lastName en reservation
+      const filtroBusqueda = {
+        ...filtroRol,
+        $or: [
+          { 'reservation.firstName': { $regex: nombreHuesped, $options: 'i' } },
+          { 'reservation.lastName': { $regex: nombreHuesped, $options: 'i' } },
+        ],
+      };
+
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.reservasModel.countDocuments(filtroBusqueda),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  //? Buscar reservas por estado
+  async buscarPorEstado(
+    status: ValidPaymentStatus,
+    userId: Types.ObjectId,
+    agenciaId: Types.ObjectId,
+    roles: string[],
+    page = 1,
+    all = false,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page?: number; pageSize?: number; totalPages?: number };
+  }> {
+    try {
+      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
+
+      const filtroBusqueda = {
+        ...filtroRol,
+        status,
+      };
+
+      // Si all=true, retornar TODAS las reservas sin límite
+      // ADVERTENCIA: Esto puede ser lento si hay muchas reservas (miles o millones)
+      if (all) {
+        const [reservas, total] = await Promise.all([
+          this.reservasModel
+            .find(filtroBusqueda)
+            .populate('agenciaId', 'fullName _id emailContacto')
+            .populate('userId', 'fullName email')
+            .select('-reservation.roomsData')
+            .sort({ createdAt: -1 })
+            // Sin límite - retorna todas las reservas que cumplan el filtro
+            .lean(),
+          this.reservasModel.countDocuments(filtroBusqueda),
+        ]);
+
+        return {
+          data: reservas,
+          meta: {
+            total,
+          },
+        };
+      }
+
+      // Paginación normal
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.reservasModel.countDocuments(filtroBusqueda),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
   // #region Obtener reservas por agencia
   async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
     try {
