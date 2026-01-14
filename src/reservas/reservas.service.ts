@@ -874,15 +874,12 @@ export class ReservasService {
     agenciaId: Types.ObjectId,
     roles: string[],
     page = 1,
+    all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page: number; pageSize: number; totalPages: number };
+    meta: { total: number; page?: number; pageSize?: number; totalPages?: number };
   }> {
     try {
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-      const skip = (currentPage - 1) * PAGE_SIZE;
-
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
       const esSuperAdmin = roles.includes('super-admin');
       const esAdmin = roles.includes('admin');
@@ -914,9 +911,7 @@ export class ReservasService {
           data: [],
           meta: {
             total: 0,
-            page: currentPage,
-            pageSize: PAGE_SIZE,
-            totalPages: 0,
+            ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
           },
         };
       }
@@ -926,6 +921,32 @@ export class ReservasService {
         ...filtroRol,
         userId: { $in: userIds },
       };
+
+      // Si all=true, retornar TODAS las reservas sin límite
+      if (all) {
+        const [reservas, total] = await Promise.all([
+          this.reservasModel
+            .find(filtroBusqueda)
+            .populate('agenciaId', 'fullName _id emailContacto')
+            .populate('userId', 'fullName email')
+            .select('-reservation.roomsData')
+            .sort({ createdAt: -1 })
+            .lean(),
+          this.reservasModel.countDocuments(filtroBusqueda),
+        ]);
+
+        return {
+          data: reservas,
+          meta: {
+            total,
+          },
+        };
+      }
+
+      // Paginación normal
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
 
       const [reservas, total] = await Promise.all([
         this.reservasModel
@@ -962,15 +983,12 @@ export class ReservasService {
     agenciaId: Types.ObjectId,
     roles: string[],
     page = 1,
+    all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page: number; pageSize: number; totalPages: number };
+    meta: { total: number; page?: number; pageSize?: number; totalPages?: number };
   }> {
     try {
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-      const skip = (currentPage - 1) * PAGE_SIZE;
-
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
       const esSuperAdmin = roles.includes('super-admin');
       const esAdmin = roles.includes('admin');
@@ -998,9 +1016,7 @@ export class ReservasService {
           data: [],
           meta: {
             total: 0,
-            page: currentPage,
-            pageSize: PAGE_SIZE,
-            totalPages: 0,
+            ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
           },
         };
       }
@@ -1010,6 +1026,32 @@ export class ReservasService {
         ...filtroRol,
         agenciaId: { $in: agenciaIds },
       };
+
+      // Si all=true, retornar TODAS las reservas sin límite
+      if (all) {
+        const [reservas, total] = await Promise.all([
+          this.reservasModel
+            .find(filtroBusqueda)
+            .populate('agenciaId', 'fullName _id emailContacto')
+            .populate('userId', 'fullName email')
+            .select('-reservation.roomsData')
+            .sort({ createdAt: -1 })
+            .lean(),
+          this.reservasModel.countDocuments(filtroBusqueda),
+        ]);
+
+        return {
+          data: reservas,
+          meta: {
+            total,
+          },
+        };
+      }
+
+      // Paginación normal
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
 
       const [reservas, total] = await Promise.all([
         this.reservasModel
@@ -1046,15 +1088,12 @@ export class ReservasService {
     agenciaId: Types.ObjectId,
     roles: string[],
     page = 1,
+    all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page: number; pageSize: number; totalPages: number };
+    meta: { total: number; page?: number; pageSize?: number; totalPages?: number };
   }> {
     try {
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-      const skip = (currentPage - 1) * PAGE_SIZE;
-
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
 
       // Buscar por firstName o lastName en reservation
@@ -1065,6 +1104,32 @@ export class ReservasService {
           { 'reservation.lastName': { $regex: nombreHuesped, $options: 'i' } },
         ],
       };
+
+      // Si all=true, retornar TODAS las reservas sin límite
+      if (all) {
+        const [reservas, total] = await Promise.all([
+          this.reservasModel
+            .find(filtroBusqueda)
+            .populate('agenciaId', 'fullName _id emailContacto')
+            .populate('userId', 'fullName email')
+            .select('-reservation.roomsData')
+            .sort({ createdAt: -1 })
+            .lean(),
+          this.reservasModel.countDocuments(filtroBusqueda),
+        ]);
+
+        return {
+          data: reservas,
+          meta: {
+            total,
+          },
+        };
+      }
+
+      // Paginación normal
+      const PAGE_SIZE = 15;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
 
       const [reservas, total] = await Promise.all([
         this.reservasModel
@@ -1269,8 +1334,30 @@ export class ReservasService {
 
   // #region Administracion
   //? Obtener todas las reservas
-  async getAllReservas(page = 1) {
+  async getAllReservas(page = 1, all = false) {
     try {
+      // Si all=true, retornar TODAS las reservas sin límite
+      if (all) {
+        const [allReservas, total] = await Promise.all([
+          this.reservasModel
+            .find()
+            .populate('agenciaId', 'fullName _id')
+            .populate('userId', 'fullName email')
+            .select('-reservation.roomsData')
+            .sort({ createdAt: -1 })
+            .lean(),
+          this.reservasModel.countDocuments(),
+        ]);
+
+        return {
+          data: allReservas,
+          meta: {
+            total,
+          },
+        };
+      }
+
+      // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;

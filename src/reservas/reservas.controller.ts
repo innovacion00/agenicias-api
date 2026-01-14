@@ -213,7 +213,10 @@ export class ReservasController {
     );
   }
 
-  @ApiOperation({ summary: 'Buscar reservas por nombre del agente' })
+  @ApiOperation({ 
+    summary: 'Buscar reservas por nombre del agente',
+    description: 'Busca reservas por nombre del agente. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+  })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
   @Get('buscar/agente')
@@ -221,6 +224,7 @@ export class ReservasController {
   buscarPorNombreAgente(
     @Query('nombre') nombre: string,
     @Query('page') page: number = 1,
+    @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
     @GetUser() user: User,
@@ -228,16 +232,21 @@ export class ReservasController {
     if (!nombre) {
       throw new BadRequestException('El parámetro nombre es requerido');
     }
+    const getAll = all === 'true' || all === '1';
     return this.reservasService.buscarPorNombreAgente(
       nombre,
       userId,
       agenciaId,
       user.role,
       page,
+      getAll,
     );
   }
 
-  @ApiOperation({ summary: 'Buscar reservas por nombre de agencia' })
+  @ApiOperation({ 
+    summary: 'Buscar reservas por nombre de agencia',
+    description: 'Busca reservas por nombre de agencia. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+  })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
   @Get('buscar/agencia')
@@ -245,6 +254,7 @@ export class ReservasController {
   buscarPorNombreAgencia(
     @Query('nombre') nombre: string,
     @Query('page') page: number = 1,
+    @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
     @GetUser() user: User,
@@ -252,16 +262,21 @@ export class ReservasController {
     if (!nombre) {
       throw new BadRequestException('El parámetro nombre es requerido');
     }
+    const getAll = all === 'true' || all === '1';
     return this.reservasService.buscarPorNombreAgencia(
       nombre,
       userId,
       agenciaId,
       user.role,
       page,
+      getAll,
     );
   }
 
-  @ApiOperation({ summary: 'Buscar reservas por nombre del huésped' })
+  @ApiOperation({ 
+    summary: 'Buscar reservas por nombre del huésped',
+    description: 'Busca reservas por nombre del huésped. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+  })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
   @Get('buscar/huesped')
@@ -269,6 +284,7 @@ export class ReservasController {
   buscarPorNombreHuesped(
     @Query('nombre') nombre: string,
     @Query('page') page: number = 1,
+    @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
     @GetUser() user: User,
@@ -276,18 +292,20 @@ export class ReservasController {
     if (!nombre) {
       throw new BadRequestException('El parámetro nombre es requerido');
     }
+    const getAll = all === 'true' || all === '1';
     return this.reservasService.buscarPorNombreHuesped(
       nombre,
       userId,
       agenciaId,
       user.role,
       page,
+      getAll,
     );
   }
 
   @ApiOperation({ 
     summary: 'Buscar reservas por estado',
-    description: 'Busca reservas por estado. Usa page para paginación o all=true para obtener todas las reservas (máximo 1000).'
+    description: 'Busca reservas por estado. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -322,10 +340,19 @@ export class ReservasController {
   }
 
   // #region Administracion
+  @ApiOperation({ 
+    summary: 'Obtener todas las reservas (solo superAdmin)',
+    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+  })
+  @ApiBearerAuth('JWT-auth')
   @Get()
   @Auth(ValidRoles.superAdmin)
-  getAllReservas(@Query('page') page: number = 1) {
-    return this.reservasService.getAllReservas(page);
+  getAllReservas(
+    @Query('page') page: number = 1,
+    @Query('all') all: string,
+  ) {
+    const getAll = all === 'true' || all === '1';
+    return this.reservasService.getAllReservas(page, getAll);
   }
 
   @Delete('cancelar-reserva-admin/:reservaId')
