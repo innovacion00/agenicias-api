@@ -756,7 +756,7 @@ export class ReservasService {
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
     try {
-      const PAGE_SIZE = 25;
+      const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;
 
@@ -808,7 +808,7 @@ export class ReservasService {
   // #region Obtener reservas por agencia
   async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
     try {
-      const PAGE_SIZE = 25;
+      const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;
 
@@ -906,7 +906,7 @@ export class ReservasService {
   //? Obtener todas las reservas
   async getAllReservas(page = 1) {
     try {
-      const PAGE_SIZE = 25;
+      const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
       const skip = (currentPage - 1) * PAGE_SIZE;
 

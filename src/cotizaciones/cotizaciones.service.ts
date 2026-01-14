@@ -193,7 +193,7 @@ export class CotizacionesService {
   }
 
   // #region Obtener todas por agencia
-  async findAll(page = 1, limit = 25): Promise<{
+  async findAll(page = 1, limit = 15): Promise<{
     data: any[];
     meta: { total: number; page: number; pageSize: number; totalPages: number };
   }> {
@@ -229,7 +229,7 @@ export class CotizacionesService {
   async findAllByAgencia(
     agenciaId: string,
     page = 1,
-    limit = 25,
+    limit = 15,
   ): Promise<{
     data: any[];
     meta: { total: number; page: number; pageSize: number; totalPages: number };
