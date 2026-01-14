@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
@@ -23,6 +23,11 @@ export class EventosService {
   ) {
     try {
       const user = await this.userModel.findById(_id);
+      
+      if (!user) {
+        throw new BadRequestException('Usuario no encontrado');
+      }
+
       const evento = await this.eventoModel.create({
         ...createReservaEventoDto,
         userId: user._id,

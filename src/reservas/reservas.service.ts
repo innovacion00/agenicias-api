@@ -3,12 +3,13 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 
-import { Model, Types } from 'mongoose';
+import { Model, Types, Connection } from 'mongoose';
 
 import { addDay, format, addMinute } from '@formkit/tempo';
 import { isNotEmptyObject } from 'class-validator';
@@ -49,14 +50,12 @@ export class ReservasService {
 
   constructor(
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
-
     @InjectModel(User.name) private readonly userModel: Model<User>,
-
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
-
     private readonly emailService: SendEmailCustomService,
-
     private readonly httpCustomService: HttpCustomService,
+    @InjectConnection()
+    private readonly connection: Connection,
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
@@ -92,6 +91,14 @@ export class ReservasService {
         .findById(userId)
         .populate('agencia', 'fullName');
 
+      if (!userInfo) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (!userInfo.agencia || typeof userInfo.agencia === 'string') {
+        throw new BadRequestException('Información de agencia no disponible');
+      }
+
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
@@ -101,11 +108,19 @@ export class ReservasService {
           createReservaDto.reservaInfo,
         );
 
+      if (!reservaAutocoreInfo) {
+        throw new InternalServerErrorException('Error al crear reserva en Autocore');
+      }
+
       if (reservaAutocoreInfo.no_available_rooms) {
         throw new ConflictException(reservaAutocoreInfo.msg);
       }
 
-      const retenciones: any = {};
+      const retenciones: {
+        reteFuente?: CreateReservaDto['reteFuente'];
+        reteIca?: CreateReservaDto['reteIca'];
+        reteIva?: CreateReservaDto['reteIva'];
+      } = {};
       if (createReservaDto.reteFuente) {
         retenciones.reteFuente = createReservaDto.reteFuente;
       }
@@ -122,43 +137,66 @@ export class ReservasService {
         planAlimentario = createReservaDto.planAlimentario;
       }
 
-      const reserva = await this.reservasModel.create({
-        hotel: hotelesAutocore[hotelId].name,
-        agenciaId: userInfo.agencia._id,
-        userId,
-        cantidadHabitaciones:
-          createReservaDto.reservaInfo.reservation.roomsData.length,
-        total: createReservaDto.total,
-        totalMitad: createReservaDto.total / 2,
-        reservation: createReservaDto.reservaInfo.reservation,
-        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
-        titularInfo: createReservaDto.titularInfo,
-        fechaLimitePago,
-        fechaLimitePago2,
-        exentoIva: createReservaDto.exentoIva
-          ? createReservaDto.exentoIva
-          : false,
-        ...retenciones,
-        planAlimentario,
-        adicionCena: createReservaDto.adicionCena || false,
-        adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
-        infoTransporte: createReservaDto.infoTransporte || null,
-        infoToures: createReservaDto.infoToures || null,
-        mascotas: createReservaDto.mascotas,
-        mascotasNumber: createReservaDto.mascotasNumber,
-        origenIata: createReservaDto.origenIata,
-      });
+      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      if (!hotelInfo) {
+        throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+      }
 
-      userInfo.reservas.push(reserva._id as Types.ObjectId);
+      // Usar transacción para asegurar consistencia
+      const session = await this.connection.startSession();
+      session.startTransaction();
 
-      await userInfo.save();
+      try {
+        const [reserva] = await this.reservasModel.create([{
+          hotel: hotelInfo.name,
+          agenciaId: userInfo.agencia._id,
+          userId,
+          cantidadHabitaciones:
+            createReservaDto.reservaInfo.reservation.roomsData.length,
+          total: createReservaDto.total,
+          totalMitad: createReservaDto.total / 2,
+          reservation: createReservaDto.reservaInfo.reservation,
+          reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+          titularInfo: createReservaDto.titularInfo,
+          fechaLimitePago,
+          fechaLimitePago2,
+          exentoIva: createReservaDto.exentoIva
+            ? createReservaDto.exentoIva
+            : false,
+          ...retenciones,
+          planAlimentario,
+          adicionCena: createReservaDto.adicionCena || false,
+          adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
+          infoTransporte: createReservaDto.infoTransporte || null,
+          infoToures: createReservaDto.infoToures || null,
+          mascotas: createReservaDto.mascotas,
+          mascotasNumber: createReservaDto.mascotasNumber,
+          origenIata: createReservaDto.origenIata,
+        }], { session });
+
+        userInfo.reservas.push(reserva._id as Types.ObjectId);
+        await userInfo.save({ session });
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+      }
 
       if (
         createReservaDto.infoTransporte &&
-        // @ts-ignore
+        userInfo.agencia &&
+        typeof userInfo.agencia === 'object' &&
+        'fullName' in userInfo.agencia &&
         userInfo.agencia.fullName !== 'geh suites'
       ) {
-        const { name, city } = hotelesAutocore[hotelId];
+        const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+        if (!hotelInfo) {
+          throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+        }
+        const { name, city } = hotelInfo;
         const { tipoRecogida } = createReservaDto.infoTransporte;
         const contactInfo =
           city === 'Santa marta'
@@ -219,10 +257,16 @@ export class ReservasService {
 
       if (
         createReservaDto.infoToures &&
-        // @ts-ignore
+        userInfo.agencia &&
+        typeof userInfo.agencia === 'object' &&
+        'fullName' in userInfo.agencia &&
         userInfo.agencia.fullName !== 'geh suites'
       ) {
-        const { name, city } = hotelesAutocore[hotelId];
+        const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+        if (!hotelInfo) {
+          throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+        }
+        const { name, city } = hotelInfo;
         const email =
           city === 'Santa marta'
             ? 'reservasgocolombia@gmail.com'
@@ -251,13 +295,17 @@ export class ReservasService {
         await this.emailService
           .sendEmail(
             'reservas@gehsuites.com',
-            // @ts-ignore
-            `Reserva para grupo de ${cantidadHabitacion} para agencia ${userInfo.agencia.fullName}`,
+            `Reserva para grupo de ${cantidadHabitacion} para agencia ${
+              userInfo.agencia && typeof userInfo.agencia === 'object' && 'fullName' in userInfo.agencia
+                ? userInfo.agencia.fullName
+                : 'Agencia desconocida'
+            }`,
             notificaiconReservaGrupo(
-              // @ts-ignore
-              userInfo.agencia.fullName,
+              userInfo.agencia && typeof userInfo.agencia === 'object' && 'fullName' in userInfo.agencia
+                ? (userInfo.agencia.fullName as string)
+                : 'Agencia desconocida',
               cantidadHabitacion,
-              hotelesAutocore[hotelId].name,
+              hotelInfo.name,
               createReservaDto.reservaInfo.reservation.checkin,
               createReservaDto.reservaInfo.reservation.checkout,
               reservaAutocoreInfo.chatbot_id,
@@ -294,6 +342,10 @@ export class ReservasService {
         throw new NotFoundException('Reserva no encontrada');
       }
 
+      if (!agenciaInfo) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
       const hotel = reservaInfo.hotel;
 
       const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
@@ -310,7 +362,7 @@ export class ReservasService {
         email: agenciaInfo.emailContacto,
         external_ref_id: external_id,
         guest_name: agenciaInfo.fullName,
-        hotel_id: hotelesAutocorePaymenLink[hotel],
+        hotel_id: hotelesAutocorePaymenLink[hotel as keyof typeof hotelesAutocorePaymenLink] || 0,
         phone: agenciaInfo.telefonoContacto,
         redirect: {
           failure_url: 'https://agencia.gehsuites.com/misreservas',
@@ -321,6 +373,10 @@ export class ReservasService {
           'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
         reservation_id: reservaInfo.reservaChatbotId,
       });
+
+      if (!linkAutocore) {
+        throw new InternalServerErrorException('Error al generar link de pago');
+      }
 
       const linkInfo = {
         link: linkAutocore.url,
@@ -410,15 +466,16 @@ export class ReservasService {
       const titularInfoUpdates = reserva.titularInfo;
       const reservationUpdates = reserva.reservation;
 
-      const updateReservaDtoFields = Object.keys(updateReservaDto);
+      const updateReservaDtoFields = Object.keys(updateReservaDto) as Array<keyof UpdateReservaDto>;
 
       for (const field of updateReservaDtoFields) {
-        if (titularInfoUpdates[field]) {
-          titularInfoUpdates[field] = updateReservaDto[field];
+        const value = updateReservaDto[field];
+        if (value !== undefined && field in titularInfoUpdates) {
+          (titularInfoUpdates as Record<string, any>)[field] = value;
         }
 
-        if (reservationUpdates[field]) {
-          reservationUpdates[field] = updateReservaDto[field];
+        if (value !== undefined && field in reservationUpdates) {
+          (reservationUpdates as Record<string, any>)[field] = value;
         }
       }
 
@@ -458,6 +515,10 @@ export class ReservasService {
 
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (!agenciaDoc) {
+        throw new NotFoundException('Agencia no encontrada');
       }
 
       if (reserva.status === 4) {
@@ -520,7 +581,8 @@ export class ReservasService {
           reserva.reservation.checkin,
           reserva.reservation.checkout,
           reserva.infoToures?.firstContactNumber ||
-            reserva.infoTransporte?.firstContactNumber,
+            reserva.infoTransporte?.firstContactNumber ||
+            '',
         );
 
         const contactInfo =
@@ -541,9 +603,23 @@ export class ReservasService {
         mensajeReserva,
       );
 
-      await reserva.updateOne({
-        $set: { status: 4 },
-      });
+      // Usar transacción para asegurar consistencia
+      const session = await this.connection.startSession();
+      session.startTransaction();
+
+      try {
+        await reserva.updateOne(
+          { $set: { status: 4 } },
+          { session }
+        );
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+      }
 
       return data;
     } catch (error) {
@@ -553,7 +629,20 @@ export class ReservasService {
   }
 
   // #region Cambiar estado de la reserva autocore
-  async cambiarEstadoPagoAutocore(payload: any) {
+  async cambiarEstadoPagoAutocore(payload: {
+    external_ref_id: string;
+    transaction_id?: string;
+    payment_status: string;
+    details: {
+      id: string;
+      pay_platform?: string;
+    };
+  }) {
+    if (!payload.external_ref_id) {
+      this.logger.error('external_ref_id no proporcionado en payload');
+      return true;
+    }
+
     const valores = payload.external_ref_id.split(' ') as string[];
     const problemas = [
       '67ab755cedb19b9bad39f22d',
@@ -563,32 +652,37 @@ export class ReservasService {
       '67c084a87b358f891dd07448',
       '67c761d2be7b7404574c2513',
     ];
-    if (problemas.includes(valores[0].trim())) {
-      return true;
-    }
-    const autocoreId = payload.transaction_id;
-    this.logger.log(payload);
-    if (!valores[0].trim()) {
-      console.log(
+    
+    const firstValue = valores[0]?.trim();
+    if (!firstValue) {
+      this.logger.error(
         `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
       );
       return true;
     }
 
-    const id = valores[0].trim();
+    if (problemas.includes(firstValue)) {
+      return true;
+    }
 
-    let pagoValidator = null;
+    const autocoreId = payload.transaction_id;
+    this.logger.log(payload);
+
+    const id = firstValue;
+
+    let pagoValidator: string | null = null;
     if (valores[1]) {
       pagoValidator = valores[1].trim();
     }
 
     const reserva = await this.reservasModel.findById(id);
-    if (!reserva.paymenIds) {
-      reserva.paymenIds = [];
-    }
-
+    
     if (!reserva) {
       throw new NotFoundException(`Reserva con id: ${id}`);
+    }
+
+    if (!reserva.paymenIds) {
+      reserva.paymenIds = [];
     }
 
     if (
@@ -598,7 +692,7 @@ export class ReservasService {
       return true;
     }
 
-    if (reserva.paymenIds.includes(autocoreId)) {
+    if (autocoreId && reserva.paymenIds.includes(autocoreId)) {
       return true;
     } else if (autocoreId) {
       reserva.paymenIds.push(autocoreId);
@@ -610,7 +704,7 @@ export class ReservasService {
       typeOfPayment: payload.details.pay_platform
         ? payload.details.pay_platform
         : 'No identificado',
-      state: null,
+      state: undefined,
       fecha: new Date(),
     };
     switch (status.toLowerCase()) {
@@ -660,8 +754,12 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por usuario
-  async getReservasByUser(userId: Types.ObjectId | string) {
+  async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
     try {
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
       // Asegurar que userId sea un ObjectId válido para la búsqueda
       // Esto funciona tanto para reservas existentes como nuevas
       let userIdObjectId: Types.ObjectId;
@@ -678,11 +776,29 @@ export class ReservasService {
         throw new BadRequestException('Formato de ID de usuario no válido');
       }
 
-      const reservas = await this.reservasModel
-        .find({ userId: userIdObjectId })
-        .sort({ createdAt: -1 });
+      // OPTIMIZACIÓN: Agregar populate, select y lean() para mejor rendimiento
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find({ userId: userIdObjectId })
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
+        this.reservasModel.countDocuments({ userId: userIdObjectId }),
+      ]);
 
-      return reservas;
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -690,14 +806,35 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por agencia
-  async getReservasByAgencia(agenciaId: Types.ObjectId) {
+  async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
     try {
-      const reservas = await this.reservasModel
-        .find({ agenciaId })
-        .sort({ createdAt: -1 })
-        .populate('userId', 'fullName')
-        .populate('agenciaId', 'fullName _id');
-      return reservas;
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
+
+      // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find({ agenciaId })
+          .populate('userId', 'fullName email')
+          .populate('agenciaId', 'fullName _id')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
+        this.reservasModel.countDocuments({ agenciaId }),
+      ]);
+
+      return {
+        data: reservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -735,6 +872,11 @@ export class ReservasService {
       } else {
         console.log('Obteniendo info de agencia...');
         const agenciaInfo = await this.agenciaModel.findById(agenciaId);
+        
+        if (!agenciaInfo) {
+          throw new NotFoundException('Agencia no encontrada');
+        }
+
         console.log('Agencia encontrada:', {
           id: agenciaInfo._id,
           fullName: agenciaInfo.fullName,
@@ -762,15 +904,35 @@ export class ReservasService {
 
   // #region Administracion
   //? Obtener todas las reservas
-  async getAllReservas() {
+  async getAllReservas(page = 1) {
     try {
-      const allReservas = await this.reservasModel
-        .find()
-        .populate('agenciaId', 'fullName _id')
-        .populate('userId', 'fullName')
-        .sort({ createdAt: -1 });
+      const PAGE_SIZE = 25;
+      const currentPage = Number(page) > 0 ? Number(page) : 1;
+      const skip = (currentPage - 1) * PAGE_SIZE;
 
-      return allReservas;
+      // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
+      const [allReservas, total] = await Promise.all([
+        this.reservasModel
+          .find()
+          .populate('agenciaId', 'fullName _id')
+          .populate('userId', 'fullName email')
+          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(), // Mejor rendimiento al retornar objetos planos
+        this.reservasModel.countDocuments(),
+      ]);
+
+      return {
+        data: allReservas,
+        meta: {
+          total,
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+        },
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -781,6 +943,11 @@ export class ReservasService {
   async cancelarReservaAdmin(reservaId: Types.ObjectId) {
     try {
       const reserva = await this.reservasModel.findById(reservaId);
+      
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
       await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
       reserva.status = 4;
       await reserva.save();

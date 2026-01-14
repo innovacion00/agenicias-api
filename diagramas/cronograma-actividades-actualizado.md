@@ -87,7 +87,7 @@ gantt
     Integración Cobre Testing         :crit, dep5, after dep4, 3d
 ```
 
-## 📋 **DETALLES DEL CRONOGRAMA ACTUALIZADO**
+## 📋 **DETALLES DEL CRONOGRAMA**
 
 ### **⏱️ ESTIMACIÓN TOTAL**
 - **Duración Total:** 14-18 semanas
@@ -102,11 +102,6 @@ gantt
 5. **Sistema Completo** - Semana 17
 
 ### **📊 CAMBIOS PRINCIPALES**
-
-#### **✅ ELIMINADO:**
-- ~~Reservas solo vuelo~~
-- ~~Sistema de descuentos~~
-- ~~Lógica compleja de paquetes~~
 
 #### **🎯 ENFOQUE ACTUAL:**
 - **Flujo secuencial:** Hotel primero, vuelo después

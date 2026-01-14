@@ -11,7 +11,7 @@ import { CreateReservaDto } from '../dto';
 
 @Injectable()
 export class ParseCheckinCheckoutPipe implements PipeTransform {
-  transform(createReservaDto: CreateReservaDto, metadata: ArgumentMetadata) {
+  transform(createReservaDto: CreateReservaDto, _metadata: ArgumentMetadata) {
     const {
       checkin: primaryCheckin,
       checkout: primaryCheckout,
@@ -25,7 +25,13 @@ export class ParseCheckinCheckoutPipe implements PipeTransform {
     }
 
     for (let i = 0; i < roomsData.length; i++) {
-      const { checkin, checkout } = roomsData[i];
+      const roomData = roomsData[i];
+      if (!roomData) {
+        throw new BadRequestException(
+          `Datos de habitación en índice ${i} no válidos`,
+        );
+      }
+      const { checkin, checkout } = roomData;
 
       if (isAfter(checkin, checkout)) {
         throw new BadRequestException(

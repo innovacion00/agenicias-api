@@ -12,7 +12,6 @@ import {
   ArrayMaxSize
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { AMADEUS_CONSTANTS } from '../../config/constants';
 
 // DTOs anidados para validación
 export class OriginDestinationDto {

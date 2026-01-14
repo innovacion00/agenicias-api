@@ -94,6 +94,9 @@ export class HttpCustomService {
   public async createBolcillo(nombre: string) {
     try {
       const tokenInfo = await this.generateAuthToken();
+      if (!tokenInfo) {
+        throw new Error('No se pudo obtener token de autenticación');
+      }
       const { data } = await axios.post<IrespuestaCreateBolcillo>(
         envs.cobreApiUrl.concat('/v1/accounts'),
         {
@@ -124,6 +127,9 @@ export class HttpCustomService {
   ) {
     try {
       const tokenInfo = await this.generateAuthToken();
+      if (!tokenInfo) {
+        throw new Error('No se pudo obtener token de autenticación');
+      }
 
       const { data } = await axios.post<IrespuestaCounterParty>(
         envs.cobreApiUrl.concat('/v1/counterparties'),
@@ -162,6 +168,9 @@ export class HttpCustomService {
   ) {
     try {
       const tokenInfo = await this.generateAuthToken();
+      if (!tokenInfo) {
+        throw new Error('No se pudo obtener token de autenticación');
+      }
 
       const { data } = await axios.post<IrespuestaGenerarLinkPago>(
         envs.cobreApiUrl.concat('/v1/money_movements'),
@@ -227,7 +236,7 @@ export class HttpCustomService {
       // Hacer la solicitud con interceptor para debugging
       const axiosConfig = {
         ...headers,
-        validateStatus: (status) => status < 600, // No lanzar error aún
+        validateStatus: (status: number) => status < 600, // No lanzar error aún
       };
 
       const response = await axios.post<Iavailability[]>(
@@ -245,7 +254,7 @@ export class HttpCustomService {
       });
 
       if (response.status !== 200 && response.status !== 201) {
-        this.logger.error('❌ Autocore retornó un status no exitoso:', {
+        this.logger.error(' Autocore retornó un status no exitoso:', {
           status: response.status,
           data: response.data,
         });
@@ -254,10 +263,10 @@ export class HttpCustomService {
         );
       }
 
-      this.logger.log('✅ Respuesta Autocore exitosa');
+      this.logger.log(' Respuesta Autocore exitosa');
       return response.data;
     } catch (error) {
-      this.logger.error('❌ ERROR en getDisponibilidadAutocore:', {
+      this.logger.error(' ERROR en getDisponibilidadAutocore:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -361,15 +370,14 @@ export class HttpCustomService {
     // Cambio debio a un problema de la propiedad source_of_bussiness de la base de datos y source_of_business de autocore
     const { agency, reservation } = reservaInfo;
 
+    const { source_of_bussiness, ...reservationWithoutSource } = reservation;
     const reservationBody = {
       reservation: {
-        ...reservation,
+        ...reservationWithoutSource,
         source_of_business: reservation.source_of_bussiness,
       },
       agency,
     };
-
-    delete reservationBody.reservation.source_of_bussiness;
     try {
       const { data } = await axios.post(
         envs.autocoreUrl.concat(

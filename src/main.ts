@@ -1,14 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import { envs } from './config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'error', 'warn'],
+    bufferLogs: true,
   });
-  const logger = new Logger('Main');
+  
+  // Usar logger estructurado de Pino
+  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
 
   app.setGlobalPrefix('agencias/v1/');
 
@@ -28,7 +32,6 @@ async function bootstrap() {
       },
     }),
   );
-
   // Configuración de Swagger
   const config = new DocumentBuilder()
     .setTitle('API Agencias de Viajes')
@@ -75,7 +78,7 @@ async function bootstrap() {
   });
 
   await app.listen(envs.port);
-  logger.log(`Escuchando puerto ${envs.port}`);
-  logger.log(` Documentación Swagger disponible en: http://localhost:${envs.port}/agencias/v1/api-docs`);
+  logger.log(`🚀 Aplicación iniciada en puerto ${envs.port}`);
+  logger.log(`📚 Documentación Swagger: http://localhost:${envs.port}/agencias/v1/api-docs`);
 }
 bootstrap();

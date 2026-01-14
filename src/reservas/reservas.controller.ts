@@ -14,8 +14,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
@@ -78,7 +76,18 @@ export class ReservasController {
 
   @Post('/change-status')
   @HttpCode(200)
-  cambiarEstadoPagoReserva(@Body() payload: any) {
+  cambiarEstadoPagoReserva(
+    @Body()
+    payload: {
+      external_ref_id: string;
+      transaction_id?: string;
+      payment_status: string;
+      details: {
+        id: string;
+        pay_platform?: string;
+      };
+    },
+  ) {
     return this.reservasService.cambiarEstadoPagoAutocore(payload);
   }
 
@@ -88,8 +97,11 @@ export class ReservasController {
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @Get('/reservas-by-user')
   @Auth()
-  getReservasByUser(@GetUser('_id') _id: Types.ObjectId) {
-    return this.reservasService.getReservasByUser(_id);
+  getReservasByUser(
+    @GetUser('_id') _id: Types.ObjectId,
+    @Query('page') page: number = 1,
+  ) {
+    return this.reservasService.getReservasByUser(_id, page);
   }
 
   @ApiOperation({ summary: 'Obtener reservas de la agencia (solo admin)' })
@@ -98,8 +110,11 @@ export class ReservasController {
   @ApiResponse({ status: 403, description: 'Solo admin' })
   @Get('reservas-by-agencia')
   @Auth(ValidRoles.admin)
-  getReservasByAgencia(@GetUser('agencia') agencia: Types.ObjectId) {
-    return this.reservasService.getReservasByAgencia(agencia);
+  getReservasByAgencia(
+    @GetUser('agencia') agencia: Types.ObjectId,
+    @Query('page') page: number = 1,
+  ) {
+    return this.reservasService.getReservasByAgencia(agencia, page);
   }
 
   @Post('generate-link')
@@ -173,8 +188,8 @@ export class ReservasController {
   // #region Administracion
   @Get()
   @Auth(ValidRoles.superAdmin)
-  getAllReservas() {
-    return this.reservasService.getAllReservas();
+  getAllReservas(@Query('page') page: number = 1) {
+    return this.reservasService.getAllReservas(page);
   }
 
   @Delete('cancelar-reserva-admin/:reservaId')

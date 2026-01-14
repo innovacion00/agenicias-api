@@ -6,16 +6,19 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
 import {
   CreateCotizacionDto,
   ResponderCotizacionDto,
   GeneratePdfDto,
+  UpdateCotizacionDto,
 } from './dto';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities';
 import { ValidRoles } from '../auth/interfaces';
+import { Types } from 'mongoose';
 
 @Controller('cotizaciones')
 @Auth()
@@ -27,7 +30,7 @@ export class CotizacionesController {
   create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
     return this.cotizacionesService.create(
       createCotizacionDto,
-      user._id.toString(),
+      (user._id as Types.ObjectId).toString(),
       user.agencia?.toString() || '',
     );
   }
@@ -67,22 +70,30 @@ export class CotizacionesController {
   ) {
     return this.cotizacionesService.createFromDisponibilidad(
       createCotizacionDto,
-      user._id.toString(),
+      (user._id as Types.ObjectId).toString(),
       user.agencia?.toString() || '',
     );
   }
 
   @Get()
   @Auth()
-  findAll(@GetUser() user: User) {
+  findAll(
+    @GetUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const isSuperAdmin = user.role?.includes(ValidRoles.superAdmin);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 25;
 
     if (isSuperAdmin) {
-      return this.cotizacionesService.findAll();
+      return this.cotizacionesService.findAll(pageNum, limitNum);
     }
 
     return this.cotizacionesService.findAllByAgencia(
       user.agencia?.toString() || '',
+      pageNum,
+      limitNum,
     );
   }
 
@@ -139,7 +150,7 @@ export class CotizacionesController {
 
   @Patch(':id')
   @Auth()
-  update(@Param('id') id: string, @Body() updateCotizacionDto: any) {
+  update(@Param('id') id: string, @Body() updateCotizacionDto: UpdateCotizacionDto) {
     return this.cotizacionesService.update(id, updateCotizacionDto);
   }
 

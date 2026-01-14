@@ -41,6 +41,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const agencia = await this.agenciaModel.findById(user.agencia);
 
+    if (!agencia) {
+      throw new ForbiddenException('Agencia no encontrada');
+    }
+
     if (!agencia.isActive) {
       throw new ForbiddenException(
         'Agencia no activa, comunicara a un administrador',

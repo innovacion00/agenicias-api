@@ -99,10 +99,10 @@ export class AuthService {
   }
 
   private async findOneByTerm(term: string) {
-    let user: User;
-    let agencia: Agencia;
+    let user: User | null = null;
+    let agencia: Agencia | null = null;
 
-    if (!user && isValidObjectId(term)) {
+    if (isValidObjectId(term)) {
       user = await this.userModel.findById(term);
     }
 
@@ -114,11 +114,9 @@ export class AuthService {
       return null;
     }
 
-    if (user) {
-      agencia = await this.agenciaModel.findById(user.agencia);
-      if (agencia && !agencia.isActive) {
-        return null;
-      }
+    agencia = await this.agenciaModel.findById(user.agencia);
+    if (agencia && !agencia.isActive) {
+      return null;
     }
 
     if (!user.isActive) {
@@ -129,7 +127,11 @@ export class AuthService {
   }
 
   private async sendValidationEmail(email: string, verificationCode: string) {
-    const html = `
+    try {
+      this.logger.log(`Enviando código OTP a: ${email}`);
+      this.logger.log(`Código OTP generado: ${verificationCode}`);
+      
+      const html = `
       <!DOCTYPE html>
 <html>
 <head>
@@ -198,19 +200,27 @@ export class AuthService {
 </body>
 </html>
       `;
-    await this.sendEmailCustomService.sendEmail(
-      email,
-      'Booking connect - Codigo de verificacion',
-      html,
-    );
+      
+      await this.sendEmailCustomService.sendEmail(
+        email,
+        'Booking connect - Codigo de verificacion',
+        html,
+      );
+      
+      this.logger.log(`Email OTP enviado exitosamente a: ${email}`);
+    } catch (error) {
+      this.logger.error(`Error al enviar email OTP a ${email}:`, error);
+      this.logger.error(`Stack trace: ${error.stack}`);
+      // Re-lanzar el error para que el método que lo llama pueda manejarlo
+      throw error;
+    }
   }
   // #region Crear Otp
   private async createOtpVerfication(userId: Types.ObjectId) {
     const otp = `${Math.floor(10000 + Math.random() * 90000)}`;
     const fechaPlus = Date.now() + 10 * 60 * 1000;
-    let otpVerification: OtpVerification;
 
-    otpVerification = await this.otpVerificationModel.findOne({ userId });
+    let otpVerification = await this.otpVerificationModel.findOne({ userId });
 
     if (!otpVerification) {
       otpVerification = await this.otpVerificationModel.create({
@@ -261,7 +271,11 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
       });
 
+<<<<<<< HEAD
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
+=======
+      agenciaDoc.usuarios.push(user._id as unknown as User);
+>>>>>>> 79e56389ee7b9763af2265cab75c54cded98c4da
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
@@ -299,6 +313,10 @@ export class AuthService {
 
       const agenciaDoc = await this.agenciaModel.findById(id);
 
+      if (!agenciaDoc) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
       const usuariosActivos = await this.userModel.countDocuments({
         agencia: agenciaDoc._id,
         isActive: true,
@@ -317,7 +335,11 @@ export class AuthService {
         password: bcrypt.hashSync(password, 10),
       });
 
+<<<<<<< HEAD
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
+=======
+      agenciaDoc.usuarios.push(user._id as unknown as User);
+>>>>>>> 79e56389ee7b9763af2265cab75c54cded98c4da
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
@@ -369,7 +391,7 @@ export class AuthService {
 
     if (user.settings.omitirOtp) {
       const { password, ...userWithoutPassword } = user.toJSON();
-      const tokens = await this.generateTokenPair(user._id.toString());
+      const tokens = await this.generateTokenPair((user._id as Types.ObjectId).toString());
       return {
         ...userWithoutPassword,
         ...tokens,
@@ -398,6 +420,10 @@ export class AuthService {
         .populate('agencia', 'category fullName empresa slug')
         .exec();
 
+      if (!userData) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
       const validacionDb = await this.otpVerificationModel.findById(
         userData.otpRef,
       );
@@ -423,7 +449,7 @@ export class AuthService {
       await validacionDb.save();
 
       const { password, ...userWithoutPassword } = userData.toJSON();
-      const tokens = await this.generateTokenPair(userData._id.toString());
+      const tokens = await this.generateTokenPair((userData._id as Types.ObjectId).toString());
       return {
         ...userWithoutPassword,
         ...tokens,
@@ -624,7 +650,7 @@ export class AuthService {
       await refreshTokenDoc.save();
 
       // Generar nuevos tokens
-      const tokens = await this.generateTokenPair(user._id.toString());
+      const tokens = await this.generateTokenPair((user._id as Types.ObjectId).toString());
 
       // Devolver usuario con nuevos tokens
       const { password, ...userWithoutPassword } = user.toJSON();
@@ -689,6 +715,11 @@ export class AuthService {
   // #region Cambiar estado de actividad en un usuario
   async switchActivationStatus(agencia: Types.ObjectId, userId: string) {
     const user = await this.userModel.findById(userId);
+    
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
     if (!agencia.equals(user.agencia)) {
       throw new BadRequestException('Agencia Invalida');
     }

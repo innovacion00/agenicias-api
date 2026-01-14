@@ -3,16 +3,17 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectModel, InjectConnection } from '@nestjs/mongoose';
+import { Model, Types, Connection } from 'mongoose';
 import { v4 as uuid } from 'uuid';
 import * as puppeteer from 'puppeteer';
 
 import { Cotizacion, CotizacionStatus } from './entities/cotizacion.entity';
-import { CreateCotizacionDto, ResponderCotizacionDto } from './dto';
+import { CreateCotizacionDto, ResponderCotizacionDto, UpdateCotizacionDto } from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { AgenciasService } from '../agencias/agencias.service';
 import { HttpCustomService } from 'src/common/services';
@@ -43,9 +44,10 @@ export class CotizacionesService {
     private cloudinaryService: CloudinaryService,
     private agenciasService: AgenciasService,
     private httpCustomService: HttpCustomService,
-    
     @Inject(forwardRef(() => ReservasService))
     private reservasService: ReservasService,
+    @InjectConnection()
+    private readonly connection: Connection,
   ) {}
 
   // #region Crear cotización
@@ -191,22 +193,74 @@ export class CotizacionesService {
   }
 
   // #region Obtener todas por agencia
-  async findAll(): Promise<Cotizacion[]> {
-    return await this.cotizacionModel
-      .find()
-      .populate('userId', 'firstName lastName email telephone')
-      .populate('agenciaId', 'nombre telefono email')
-      .sort({ createdAt: -1 })
-      .exec();
+  async findAll(page = 1, limit = 25): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+    const currentPage = Math.max(1, page);
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    const [data, total] = await Promise.all([
+      this.cotizacionModel
+        .find()
+        .populate('userId', 'firstName lastName email telephone')
+        .populate('agenciaId', 'nombre telefono email')
+        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Mejor rendimiento al retornar objetos planos
+      this.cotizacionModel.countDocuments(),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
   }
 
-  async findAllByAgencia(agenciaId: string): Promise<Cotizacion[]> {
-    return await this.cotizacionModel
-      .find({ agenciaId })
-      .populate('userId', 'firstName lastName email telephone')
-      .populate('agenciaId', 'nombre telefono email')
-      .sort({ createdAt: -1 })
-      .exec();
+  async findAllByAgencia(
+    agenciaId: string,
+    page = 1,
+    limit = 25,
+  ): Promise<{
+    data: any[];
+    meta: { total: number; page: number; pageSize: number; totalPages: number };
+  }> {
+    const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+    const currentPage = Math.max(1, page);
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    const [data, total] = await Promise.all([
+      this.cotizacionModel
+        .find({ agenciaId })
+        .populate('userId', 'firstName lastName email telephone')
+        .populate('agenciaId', 'nombre telefono email')
+        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean(), // Mejor rendimiento al retornar objetos planos
+      this.cotizacionModel.countDocuments({ agenciaId }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(total / PAGE_SIZE) || 1,
+      },
+    };
   }
 
   // #region Obtener una por ID
@@ -307,7 +361,7 @@ export class CotizacionesService {
       // Intentar crear la reserva automáticamente
       try {
         const resultadoReserva = await this.convertirAReservaAutomatica(
-          cotizacion._id.toString(),
+          (cotizacion._id as Types.ObjectId).toString(),
         );
 
         return {
@@ -433,7 +487,12 @@ export class CotizacionesService {
   }
 
   // #region Convertir a reserva automáticamente
-  async convertirAReservaAutomatica(cotizacionId: string): Promise<any> {
+  async convertirAReservaAutomatica(cotizacionId: string): Promise<{
+    message: string;
+    reservaId: Types.ObjectId;
+    reservaChatbotId: string;
+    cotizacionId: Types.ObjectId;
+  }> {
     const cotizacion = await this.findOne(cotizacionId);
 
     if (cotizacion.status !== CotizacionStatus.ACEPTADA) {
@@ -462,7 +521,10 @@ export class CotizacionesService {
       const adultsCount = parseInt(room.adults);
       
       // Procesar children_ages correctamente
-      const layoutRoom: any = {
+      const layoutRoom: {
+        adults: number;
+        children_ages?: number[];
+      } = {
         adults: adultsCount,
       };
 
@@ -561,7 +623,15 @@ export class CotizacionesService {
       agency: {
         is_agency: true,
         agency_type: agencyTypeString, // 'wholesale' o 'retailer'
-        external_ref_id: user.agencia['autocoreInfo']?.id?.toString() || '',
+        external_ref_id: 
+          user.agencia && 
+          typeof user.agencia === 'object' && 
+          'autocoreInfo' in user.agencia &&
+          user.agencia.autocoreInfo &&
+          typeof user.agencia.autocoreInfo === 'object' &&
+          'id' in user.agencia.autocoreInfo
+            ? (user.agencia.autocoreInfo.id as number).toString()
+            : '',
       },
       reservation: {
         ...reservationData,
@@ -589,6 +659,10 @@ export class CotizacionesService {
       reservaInfo,
     );
 
+    if (!reservaAutocoreInfo) {
+      throw new InternalServerErrorException('Error al crear reserva en Autocore');
+    }
+
     if (reservaAutocoreInfo.no_available_rooms) {
       throw new BadRequestException(
         `Error al crear reserva en Autocore: ${reservaAutocoreInfo.msg}`,
@@ -615,49 +689,62 @@ export class CotizacionesService {
       ? cotizacion.agenciaId 
       : new Types.ObjectId(cotizacion.agenciaId);
 
-    const reserva = await this.reservaModel.create({
-      hotel: cotizacion.hotel,
-      agenciaId: agenciaIdObjectId,
-      userId: userIdObjectId,
-      cantidadHabitaciones: cotizacion.cantidadHabitaciones,
-      total: cotizacion.total,
-      totalMitad: cotizacion.total / 2,
-      reservation: cotizacion.reservation,
-      reservaChatbotId: reservaAutocoreInfo.chatbot_id,
-      titularInfo: cotizacion.titularInfo,
-      fechaLimitePago: fechasLimite.fechaLimitePago,
-      fechaLimitePago2: fechasLimite.fechaLimitePago2,
-      exentoIva: cotizacion.exentoIva || false,
-      ...retenciones,
-      planAlimentario: cotizacion.planAlimentario,
-      adicionCena: cotizacion.adicionCena || false,
-      adicionAlmuerzo: cotizacion.adicionAlmuerzo || false,
-      infoTransporte: cotizacion.infoTransporte || null,
-      infoToures: cotizacion.infoToures || null,
-      mascotas: cotizacion.mascotas,
-      mascotasNumber: cotizacion.mascotasNumber,
-      origenIata: cotizacion.origenIata,
-    });
+    // Usar transacción para asegurar consistencia
+    const session = await this.connection.startSession();
+    session.startTransaction();
 
-    // Actualizar usuario con la nueva reserva
-    user.reservas.push(reserva._id as Types.ObjectId);
-    await user.save();
+    try {
+      const [reserva] = await this.reservaModel.create([{
+        hotel: cotizacion.hotel,
+        agenciaId: agenciaIdObjectId,
+        userId: userIdObjectId,
+        cantidadHabitaciones: cotizacion.cantidadHabitaciones,
+        total: cotizacion.total,
+        totalMitad: cotizacion.total / 2,
+        reservation: cotizacion.reservation,
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        titularInfo: cotizacion.titularInfo,
+        fechaLimitePago: fechasLimite.fechaLimitePago,
+        fechaLimitePago2: fechasLimite.fechaLimitePago2,
+        exentoIva: cotizacion.exentoIva || false,
+        ...retenciones,
+        planAlimentario: cotizacion.planAlimentario,
+        adicionCena: cotizacion.adicionCena || false,
+        adicionAlmuerzo: cotizacion.adicionAlmuerzo || false,
+        infoTransporte: cotizacion.infoTransporte || null,
+        infoToures: cotizacion.infoToures || null,
+        mascotas: cotizacion.mascotas,
+        mascotasNumber: cotizacion.mascotasNumber,
+        origenIata: cotizacion.origenIata,
+      }], { session });
 
-    // Actualizar cotización con el ID de la reserva
-    cotizacion.status = CotizacionStatus.CONVERTIDA_RESERVA;
-    cotizacion.reservaId = reserva._id as Types.ObjectId;
-    await cotizacion.save();
+      // Actualizar usuario con la nueva reserva
+      user.reservas.push(reserva._id as Types.ObjectId);
+      await user.save({ session });
 
-    this.logger.log(
-      `Cotización ${cotizacionId} convertida a reserva ${reserva._id}`,
-    );
+      // Actualizar cotización con el ID de la reserva
+      cotizacion.status = CotizacionStatus.CONVERTIDA_RESERVA;
+      cotizacion.reservaId = reserva._id as Types.ObjectId;
+      await cotizacion.save({ session });
 
-    return {
-      message: 'Reserva creada exitosamente desde cotización',
-      reservaId: reserva._id,
-      reservaChatbotId: reservaAutocoreInfo.chatbot_id,
-      cotizacionId: cotizacion._id,
-    };
+      await session.commitTransaction();
+
+      this.logger.log(
+        `Cotización ${cotizacionId} convertida a reserva ${reserva._id}`,
+      );
+
+      return {
+        message: 'Reserva creada exitosamente desde cotización',
+        reservaId: reserva._id as Types.ObjectId,
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+        cotizacionId: cotizacion._id as Types.ObjectId,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
+    }
   }
 
   // #region Convertir a reserva (manual)
@@ -675,7 +762,7 @@ export class CotizacionesService {
   }
 
   // #region Actualizar
-  async update(id: string, updateCotizacionDto: any): Promise<Cotizacion> {
+  async update(id: string, updateCotizacionDto: UpdateCotizacionDto): Promise<Cotizacion> {
     const cotizacion = await this.cotizacionModel.findByIdAndUpdate(
       id,
       updateCotizacionDto,
@@ -718,14 +805,30 @@ export class CotizacionesService {
   private async uploadPdfToCloudinary(
     pdfBuffer: Buffer,
     folder: string,
-  ): Promise<any> {
-    const file: any = {
-      buffer: pdfBuffer,
+  ): Promise<{ secure_url: string; public_id: string }> {
+    const file: Express.Multer.File = {
+      fieldname: 'file',
       originalname: `cotizacion-${Date.now()}.pdf`,
+      encoding: '7bit',
       mimetype: 'application/pdf',
+      size: pdfBuffer.length,
+      buffer: pdfBuffer,
+      destination: '',
+      filename: '',
+      path: '',
+      stream: null as any,
     };
 
-    return await this.cloudinaryService.uploadImage(file, folder);
+    const result = await this.cloudinaryService.uploadImage(file, folder);
+    
+    if ('secure_url' in result && 'public_id' in result) {
+      return {
+        secure_url: result.secure_url,
+        public_id: result.public_id,
+      };
+    }
+    
+    throw new Error('Error al subir PDF a Cloudinary');
   }
 
   // #region Método de prueba

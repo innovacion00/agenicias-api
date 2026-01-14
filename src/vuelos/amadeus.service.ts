@@ -1,6 +1,5 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import axios, { AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { envs } from '../config';
 import { AMADEUS_CONSTANTS } from '../config/constants';
 import { ErrorHandlerService } from './services/error-handler.service';
@@ -8,10 +7,8 @@ import { LogContext } from './interfaces/error-response.interface';
 import {
   AmadeusLocationResponse,
   AmadeusLocationQueryParams,
-  AmadeusErrorResponse,
   AmadeusFlightOffersRequest,
   AmadeusFlightOffersResponse,
-  AmadeusFlightOffersErrorResponse,
   AmadeusFlightOrderRequest,
   AmadeusFlightOrderResponse,
   AmadeusFlightOrderErrorResponse
@@ -24,7 +21,6 @@ export class AmadeusService {
   private tokenExpiry: number = 0;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly errorHandlerService: ErrorHandlerService,
   ) {}
 
@@ -37,7 +33,7 @@ export class AmadeusService {
     // Si el token aún es válido, lo retornamos
     if (this.accessToken && now < this.tokenExpiry) {
       this.logger.debug('Usando token de Amadeus existente');
-      return this.accessToken;
+      return this.accessToken; // Ya verificamos que no es null arriba
     }
 
     try {
@@ -80,18 +76,23 @@ export class AmadeusService {
       this.logger.log(`Token de Amadeus obtenido exitosamente. Expira en ${response.data.expires_in} segundos`);
       this.logger.debug(`Tipo de token: ${response.data.token_type}, Estado: ${response.data.state}`);
       
-      return this.accessToken;
-    } catch (error) {
-      this.logger.error('Error al obtener token de Amadeus:', error.response?.data || error.message);
+      if (!this.accessToken) {
+        throw new Error('Token de acceso no se pudo obtener');
+      }
       
-      if (error.response?.status === 401) {
+      return this.accessToken;
+    } catch (error: unknown) {
+      const axiosError = axios.isAxiosError(error) ? error : null;
+      this.logger.error('Error al obtener token de Amadeus:', axiosError?.response?.data || (error instanceof Error ? error.message : 'Error desconocido'));
+      
+      if (axiosError?.response?.status === 401) {
         throw new HttpException(
           'Credenciales de Amadeus inválidas. Verifica tu API Key y API Secret.',
           HttpStatus.UNAUTHORIZED,
         );
       }
       
-      if (error.response?.status === 429) {
+      if (axiosError?.response?.status === 429) {
         throw new HttpException(
           'Límite de solicitudes excedido en Amadeus. Intenta más tarde.',
           HttpStatus.TOO_MANY_REQUESTS,
@@ -99,7 +100,7 @@ export class AmadeusService {
       }
 
       throw new HttpException(
-        'Error al autenticarse con Amadeus: ' + (error.response?.data?.error_description || error.message),
+        'Error al autenticarse con Amadeus: ' + (axiosError?.response?.data?.error_description || (error instanceof Error ? error.message : 'Error desconocido')),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -159,7 +160,17 @@ export class AmadeusService {
 
       // Para peticiones GET, los parámetros van en la URL como query params
       // Para peticiones POST, los parámetros van en el body
-      const config: any = {
+      const config: {
+        method: 'GET' | 'POST' | 'DELETE';
+        url: string;
+        headers: {
+          Authorization: string;
+          Accept: string;
+          'Content-Type'?: string;
+        };
+        timeout: number;
+        data?: unknown;
+      } = {
         method,
         url,
         headers: {
@@ -224,9 +235,9 @@ export class AmadeusService {
       }
 
       // Error de red o timeout
-      if (error.code === 'ECONNABORTED') {
+      if (axios.isAxiosError(error) && (error as any).code === 'ECONNABORTED') {
         throw this.errorHandlerService.handleNetworkError(
-          error,
+          error instanceof Error ? error : new Error('Error de red'),
           logContext,
           `${envs.amadeusBaseUrl}${endpoint}`,
           method,
@@ -236,7 +247,7 @@ export class AmadeusService {
 
       // Error interno no manejado
       throw this.errorHandlerService.handleInternalError(
-        error,
+        error instanceof Error ? error : new Error('Error desconocido'),
         logContext,
         'AmadeusService',
         'makeAuthenticatedRequest',
@@ -314,10 +325,15 @@ export class AmadeusService {
     keyword: string;
     max?: number;
     include?: string[];
-  }): Promise<any> {
+  }): Promise<AmadeusLocationResponse> {
     this.logger.log(`Buscando ciudades con keyword: ${params.keyword}${params.countryCode ? ` en ${params.countryCode}` : ''}`);
     
-    const queryParams: any = {
+    const queryParams: {
+      keyword: string;
+      countryCode?: string;
+      max?: number;
+      include?: string;
+    } = {
       keyword: params.keyword,
     };
 
@@ -398,7 +414,7 @@ export class AmadeusService {
     } catch (error) {
       this.logger.error(`[FLIGHT_SEARCH_ERROR] Error en búsqueda de ofertas de vuelos`, {
         requestId: logContext.requestId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Error desconocido',
         searchRequest: {
           originDestinations: searchRequest.originDestinations.length,
           travelers: searchRequest.travelers?.length || 0,
@@ -419,7 +435,7 @@ export class AmadeusService {
   private transformFlightSearchRequest(searchRequest: any): any {
     const amadeusRequest: any = {
       currencyCode: searchRequest.currencyCode || 'USD',
-      originDestinations: searchRequest.originDestinations.map(od => ({
+      originDestinations: searchRequest.originDestinations.map((od: any) => ({
         id: od.id,
         originLocationCode: od.originLocationCode,
         destinationLocationCode: od.destinationLocationCode,
@@ -537,7 +553,7 @@ export class AmadeusService {
     } catch (error) {
       this.logger.error(`[FLIGHT_ORDER_ERROR] Error creando reserva de vuelo`, {
         requestId: logContext.requestId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Error desconocido',
         orderRequest: {
           travelers: orderRequest.data.travelers.length,
           flightOffers: orderRequest.data.flightOffers.length,

@@ -23,6 +23,11 @@ export class User extends Document {
   @Prop({
     required: true,
     type: String,
+    trim: true,
+    validate: {
+      validator: (v: string) => /^\+?[1-9]\d{1,14}$/.test(v.replace(/\s/g, '')),
+      message: 'El teléfono debe tener un formato válido',
+    },
   })
   telefono: string;
 
@@ -30,6 +35,13 @@ export class User extends Document {
     required: true,
     type: String,
     lowercase: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 100,
+    validate: {
+      validator: (v: string) => v.length >= 2 && v.length <= 100,
+      message: 'El nombre completo debe tener entre 2 y 100 caracteres',
+    },
   })
   fullName: string;
 
