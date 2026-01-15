@@ -1096,13 +1096,68 @@ export class ReservasService {
     try {
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
 
-      // Buscar por firstName o lastName en reservation
+      // Normalizar el texto de búsqueda: eliminar espacios extra
+      const nombreLimpio = nombreHuesped.trim().replace(/\s+/g, ' ');
+      
+      // Escapar caracteres especiales para regex de forma segura
+      const nombreEscapado = nombreLimpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Dividir el nombre en partes (por si es nombre completo como "Juan Pérez")
+      const partesNombre = nombreLimpio.split(/\s+/).filter(p => p.length > 0);
+
+      // Construir condiciones de búsqueda
+      const condicionesBusqueda: any[] = [
+        // Búsqueda en firstName (case-insensitive)
+        { 'reservation.firstName': { $regex: nombreEscapado, $options: 'i' } },
+        // Búsqueda en lastName (case-insensitive)
+        { 'reservation.lastName': { $regex: nombreEscapado, $options: 'i' } },
+      ];
+
+      // Si hay múltiples palabras, buscar también en la combinación
+      if (partesNombre.length > 1) {
+        // Buscar si alguna parte coincide con firstName y otra con lastName
+        // Ejemplo: "Juan Pérez" busca firstName="Juan" AND lastName contiene "Pérez"
+        // o firstName contiene "Pérez" AND lastName="Juan"
+        partesNombre.forEach((parte, index) => {
+          const parteEscapada = parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const otrasPartes = partesNombre
+            .filter((_, i) => i !== index)
+            .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('|');
+          
+          condicionesBusqueda.push({
+            $and: [
+              { 'reservation.firstName': { $regex: parteEscapada, $options: 'i' } },
+              { 'reservation.lastName': { $regex: otrasPartes, $options: 'i' } },
+            ],
+          });
+        });
+
+        // Buscar en la concatenación completa usando $expr (firstName + " " + lastName)
+        const nombreCompletoRegex = partesNombre
+          .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .join('.*');
+        condicionesBusqueda.push({
+          $expr: {
+            $regexMatch: {
+              input: {
+                $concat: [
+                  { $ifNull: ['$reservation.firstName', ''] },
+                  ' ',
+                  { $ifNull: ['$reservation.lastName', ''] },
+                ],
+              },
+              regex: nombreCompletoRegex,
+              options: 'i',
+            },
+          },
+        });
+      }
+
+      // Buscar por firstName, lastName o combinación en reservation
       const filtroBusqueda = {
         ...filtroRol,
-        $or: [
-          { 'reservation.firstName': { $regex: nombreHuesped, $options: 'i' } },
-          { 'reservation.lastName': { $regex: nombreHuesped, $options: 'i' } },
-        ],
+        $or: condicionesBusqueda,
       };
 
       // Si all=true, retornar TODAS las reservas sin límite
