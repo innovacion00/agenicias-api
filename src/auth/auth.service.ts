@@ -129,75 +129,85 @@ export class AuthService {
   }
 
   private async sendValidationEmail(email: string, verificationCode: string) {
-    const html = `
-      <!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Código de Verificación</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #ffffff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-    }
-    .header h1 {
-      color: #333;
-      margin: 0;
-      font-size: 24px;
-    }
-    .content {
-      text-align: center;
-      color: #555;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-    .code {
-      font-size: 32px;
-      font-weight: bold;
-      color: #4caf50;
-      letter-spacing: 8px;
-      margin: 20px 0;
-    }
-    .footer {
-      text-align: center;
-      color: #999;
-      font-size: 12px;
-      padding-top: 20px;
-      border-top: 1px solid #ddd;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Código de Verificación</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+table {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border-collapse: collapse;
+}
+td {
+  text-align: center;
+  padding: 0;
+}
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #000000;
+  margin: 40px 0 30px 0;
+  text-align: center;
+  display: block;
+}
+.code {
+  font-size: 48px;
+  font-weight: bold;
+  color: #4caf50;
+  margin: 30px 0;
+  letter-spacing: 4px;
+  text-align: center;
+  display: block;
+}
+.message {
+  font-size: 16px;
+  color: #000000;
+  margin: 20px 0;
+  text-align: center;
+  display: block;
+}
+.separator {
+  width: 100%;
+  max-width: 500px;
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 30px auto;
+  display: block;
+}
+.footer {
+  font-size: 14px;
+  color: #999999;
+  margin-top: 20px;
+  text-align: center;
+  display: block;
+}
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Código de Verificación Geh Suites</h1>
-    </div>
-    <div class="content">
-      <div class="code">${verificationCode}</div>
-      <p>Este código es válido por 10 minutos.</p>
-    </div>
-    <div class="footer">
-      <p>Si no solicitaste este código, puedes ignorar este mensaje.</p>
-    </div>
-  </div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+<tr>
+<td style="text-align: center; padding: 40px 20px;">
+<div class="title" style="text-align: center;">Código de Verificación Geh Suites</div>
+<div class="code" style="text-align: center;">${verificationCode}</div>
+<div class="message" style="text-align: center;">Este código es válido por 10 minutos.</div>
+<div class="separator" style="text-align: center; margin: 30px auto;"></div>
+<div class="footer" style="text-align: center;">Si no solicitaste este código, puedes ignorar este mensaje.</div>
+</td>
+</tr>
+</table>
 </body>
-</html>
-      `;
+</html>`;
     await this.sendEmailCustomService.sendEmail(
       email,
       'Booking connect - Codigo de verificacion',
