@@ -61,18 +61,20 @@ class RoomsDatumDto {
   children_ages: string;
 
   @IsString()
+  @IsNotEmpty()
   @IsNotFutureDate()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
-  checkin: Date;
+  checkin: string;
 
   @IsString()
+  @IsNotEmpty()
   @IsNotFutureDate()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'checkin debe venir en formato YYYY-MM-DD',
+    message: 'checkout debe venir en formato YYYY-MM-DD',
   })
-  checkout: Date;
+  checkout: string;
 
   @IsString()
   @IsNotEmpty()
@@ -105,20 +107,20 @@ class ReservaInfoDbDto {
   adults: string;
 
   @IsString()
+  @IsNotEmpty()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
-  @IsNotEmpty()
   @IsNotFutureDate()
-  checkin: Date;
+  checkin: string;
 
   @IsString()
+  @IsNotEmpty()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkout debe venir en formato YYYY-MM-DD',
   })
-  @IsNotEmpty()
   @IsNotFutureDate()
-  checkout: Date;
+  checkout: string;
 
   @IsString()
   @IsNotEmpty()
