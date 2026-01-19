@@ -22,7 +22,8 @@ import {
   SearchLocationsDto,
   FlightSearchDto,
   SearchCitiesDto,
-  FlightOrderDto
+  FlightOrderDto,
+  MaarLabFlightSearchDto
 } from './dto';
 import {
   AmadeusLocationResponse,
@@ -336,6 +337,59 @@ export class VuelosController {
       this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
     } catch (error) {
       this.logger.error(`Error cancelando reserva ${flightOrderId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar vuelos usando la API de MaarLab Oceanflights
+   * @param searchDto - Criterios de búsqueda de vuelos
+   * @returns Lista de ofertas de vuelos disponibles
+   */
+  @Post('maarlab/disponibilidad')
+  @HttpCode(HttpStatus.OK)
+  async searchFlightsMaarLab(
+    @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'searchFlightsMaarLab',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Búsqueda de vuelos MaarLab solicitada`, {
+      requestId: logContext.requestId,
+      origin: searchDto.origin,
+      destination: searchDto.destination,
+      departureDate: searchDto.departureDate,
+      returnDate: searchDto.returnDate,
+      adults: searchDto.adults,
+      ages: searchDto.ages,
+      currency: searchDto.currency
+    });
+
+    try {
+      const offers = await this.vuelosService.searchFlightsMaarLab(searchDto);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos MaarLab completada`, {
+        requestId: logContext.requestId,
+        hasResults: !!offers
+      });
+
+      return offers;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en búsqueda de vuelos MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        searchParams: {
+          origin: searchDto.origin,
+          destination: searchDto.destination,
+          departureDate: searchDto.departureDate,
+          adults: searchDto.adults
+        }
+      });
+      
       throw error;
     }
   }
