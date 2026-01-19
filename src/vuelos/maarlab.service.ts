@@ -117,7 +117,7 @@ export class MaarLabService {
           );
         }
         
-        if (error.response?.status >= 500) {
+        if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
             HttpStatus.INTERNAL_SERVER_ERROR,
