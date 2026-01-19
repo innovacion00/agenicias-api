@@ -918,7 +918,6 @@ export class ReservasService {
           .find(filter)
           .populate('agenciaId', 'fullName _id emailContacto')
           .populate('userId', 'fullName email')
-          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 }) // Usa índice compuesto { userId: 1, status: 1, createdAt: -1 }
           .skip(skip)
           .limit(PAGE_SIZE)
@@ -992,7 +991,6 @@ export class ReservasService {
           .findOne(filtroBusqueda)
           .populate('agenciaId', 'fullName _id emailContacto')
           .populate('userId', 'fullName email')
-          .select('-reservation.roomsData')
           .lean(),
         this.calcularSumaTotalesPorFiltro(filtroBusqueda),
       ]);
@@ -1073,7 +1071,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .lean(),
           this.getCachedCount(filtroBusqueda),
@@ -1101,7 +1098,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(PAGE_SIZE)
@@ -1186,7 +1182,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .lean(),
           this.getCachedCount(filtroBusqueda),
@@ -1214,7 +1209,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(PAGE_SIZE)
@@ -1327,7 +1321,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .lean(),
           this.getCachedCount(filtroBusqueda),
@@ -1355,7 +1348,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(PAGE_SIZE)
@@ -1410,7 +1402,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             // Sin límite - retorna todas las reservas que cumplan el filtro
             .lean(),
@@ -1439,7 +1430,6 @@ export class ReservasService {
             .find(filtroBusqueda)
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(PAGE_SIZE)
@@ -1479,7 +1469,6 @@ export class ReservasService {
           .find({ agenciaId })
           .populate('userId', 'fullName email')
           .populate('agenciaId', 'fullName _id')
-          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(PAGE_SIZE)
@@ -1577,7 +1566,6 @@ export class ReservasService {
             .find()
             .populate('agenciaId', 'fullName _id')
             .populate('userId', 'fullName email')
-            .select('-reservation.roomsData')
             .sort({ createdAt: -1 })
             .lean(),
           this.getCachedCount({}),
@@ -1608,7 +1596,6 @@ export class ReservasService {
           .find(filter)
           .populate('agenciaId', 'fullName _id')
           .populate('userId', 'fullName email')
-          .select('-reservation.roomsData') // Excluir datos pesados si no se necesitan
           .sort({ createdAt: -1 }) // Usa índice { status: 1, createdAt: -1 }
           .skip(skip)
           .limit(PAGE_SIZE)
