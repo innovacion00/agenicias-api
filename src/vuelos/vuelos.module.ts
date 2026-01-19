@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { VuelosController } from './vuelos.controller';
 import { VuelosService } from './vuelos.service';
 import { AmadeusService } from './amadeus.service';
+import { MaarLabService } from './maarlab.service';
 import { FlightEnrichmentService } from './services/flight-enrichment.service';
 import { ErrorHandlerService } from './services/error-handler.service';
 import { ErrorHandlerInterceptor } from './interceptors/error-handler.interceptor';
@@ -17,12 +18,13 @@ import { CommonModule } from '../common/common.module';
   controllers: [VuelosController],
   providers: [
     VuelosService, 
-    AmadeusService, 
+    AmadeusService,
+    MaarLabService,
     FlightEnrichmentService,
     ErrorHandlerService,
     ErrorHandlerInterceptor,
     ErrorHandlerFilter
   ],
-  exports: [VuelosService, AmadeusService, ErrorHandlerService],
+  exports: [VuelosService, AmadeusService, MaarLabService, ErrorHandlerService],
 })
 export class VuelosModule {}

@@ -362,3 +362,5 @@ ReservaSchema.index({ agenciaId: 1, status: 1, createdAt: -1 });
 ReservaSchema.index({ reservaChatbotId: 1 }, { unique: true });
 ReservaSchema.index({ fechaLimitePago: 1, status: 1 }); // Para queries de pagos pendientes
 ReservaSchema.index({ status: 1, createdAt: -1 }); // Para listados por estado
+// Índice adicional para optimizar paginación con sort por createdAt
+ReservaSchema.index({ createdAt: -1 }); // Para queries de paginación sin filtros adicionales

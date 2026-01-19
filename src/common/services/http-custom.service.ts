@@ -398,14 +398,13 @@ export class HttpCustomService {
     hotelId: string,
     reservation: IreservaInfoBd,
   ) {
+    const { source_of_bussiness, ...reservationWithoutSource } = reservation;
     const reservationBody = {
       reservation: {
-        ...reservation,
-        source_of_business: reservation.source_of_bussiness || 'Booking Personas',
+        ...reservationWithoutSource,
+        source_of_business: source_of_bussiness || 'Booking Personas',
       },
     };
-
-    delete reservationBody.reservation.source_of_bussiness;
     
     try {
       this.logger.log('🌐 Creando reserva de persona en Autocore:', {

@@ -22,7 +22,9 @@ import {
   SearchLocationsDto,
   FlightSearchDto,
   SearchCitiesDto,
-  FlightOrderDto
+  FlightOrderDto,
+  MaarLabFlightSearchDto,
+  CreatePackageDto
 } from './dto';
 import {
   AmadeusLocationResponse,
@@ -339,6 +341,109 @@ export class VuelosController {
       this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
     } catch (error) {
       this.logger.error(`Error cancelando reserva ${flightOrderId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar vuelos usando la API de MaarLab Oceanflights
+   * @param searchDto - Criterios de búsqueda de vuelos
+   * @returns Lista de ofertas de vuelos disponibles
+   */
+  @Post('maarlab/disponibilidad')
+  @HttpCode(HttpStatus.OK)
+  async searchFlightsMaarLab(
+    @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'searchFlightsMaarLab',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Búsqueda de vuelos MaarLab solicitada`, {
+      requestId: logContext.requestId,
+      origin: searchDto.origin,
+      destination: searchDto.destination,
+      departureDate: searchDto.departureDate,
+      returnDate: searchDto.returnDate,
+      adults: searchDto.adults,
+      ages: searchDto.ages,
+      currency: searchDto.currency
+    });
+
+    try {
+      const offers = await this.vuelosService.searchFlightsMaarLab(searchDto);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos MaarLab completada`, {
+        requestId: logContext.requestId,
+        hasResults: !!offers
+      });
+
+      return offers;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en búsqueda de vuelos MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        searchParams: {
+          origin: searchDto.origin,
+          destination: searchDto.destination,
+          departureDate: searchDto.departureDate,
+          adults: searchDto.adults
+        }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Crear un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param createPackageDto - Datos para crear el paquete
+   * @param info - Nivel de detalle de la respuesta (query param)
+   * @returns Información del paquete creado
+   */
+  @Post('maarlab/paquete')
+  @HttpCode(HttpStatus.CREATED)
+  async createPackageMaarLab(
+    @Body(new ValidationPipe({ transform: true })) createPackageDto: CreatePackageDto,
+    @Query('info') info: string = 'all'
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'createPackageMaarLab',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Creación de paquete MaarLab solicitada`, {
+      requestId: logContext.requestId,
+      flightId: createPackageDto.flightId,
+      currency: createPackageDto.currency,
+      language: createPackageDto.language,
+      info
+    });
+
+    try {
+      const packageResult = await this.vuelosService.createPackageMaarLab(createPackageDto, info);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Paquete MaarLab creado exitosamente`, {
+        requestId: logContext.requestId,
+        hasResult: !!packageResult
+      });
+
+      return packageResult;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en creación de paquete MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        packageParams: {
+          flightId: createPackageDto.flightId,
+          currency: createPackageDto.currency
+        }
+      });
+      
       throw error;
     }
   }

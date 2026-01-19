@@ -164,7 +164,7 @@ export class AgenciasService {
   }
 
   // #region Encontrar todas las agencias
-  async findAll(page = 1, limit = 50, fields?: string) {
+  async findAll(page = 1, limit = 15, fields?: string) {
     try {
       const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
       const currentPage = Math.max(1, page);

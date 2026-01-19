@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AmadeusService } from './amadeus.service';
+import { MaarLabService } from './maarlab.service';
 import { FlightEnrichmentService } from './services/flight-enrichment.service';
 import { 
   SearchLocationsDto, 
   FlightOrderDto
 } from './dto';
+import { MaarLabFlightSearchDto } from './dto/maarlab-flight-search.dto';
+import { CreatePackageDto } from './dto/create-package.dto';
 import { 
   AmadeusLocationResponse,
   AmadeusFlightOrderRequest,
@@ -18,6 +21,7 @@ export class VuelosService {
 
   constructor(
     private readonly amadeusService: AmadeusService,
+    private readonly maarlabService: MaarLabService,
     private readonly flightEnrichmentService: FlightEnrichmentService
   ) {}
 
@@ -169,6 +173,47 @@ export class VuelosService {
       this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
     } catch (error) {
       this.logger.error(`Error en VuelosService.cancelFlightOrder:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca vuelos usando la API de MaarLab Oceanflights
+   * @param searchDto - Parámetros de búsqueda de vuelos
+   * @returns Lista de ofertas de vuelos disponibles
+   */
+  async searchFlightsMaarLab(searchDto: MaarLabFlightSearchDto): Promise<any> {
+    try {
+      this.logger.log('Iniciando búsqueda de vuelos en MaarLab...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(searchDto)}`);
+      
+      const result = await this.maarlabService.searchFlights(searchDto);
+      
+      this.logger.log('Búsqueda completada exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.searchFlightsMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crea un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param createPackageDto - Datos para crear el paquete
+   * @param info - Nivel de detalle de la respuesta
+   * @returns Información del paquete creado
+   */
+  async createPackageMaarLab(createPackageDto: CreatePackageDto, info: string = 'all'): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de paquete de vuelo en MaarLab...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(createPackageDto)}`);
+      
+      const result = await this.maarlabService.createPackage(createPackageDto, info);
+      
+      this.logger.log('Paquete creado exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.createPackageMaarLab:', error);
       throw error;
     }
   }

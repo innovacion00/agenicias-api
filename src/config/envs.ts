@@ -28,6 +28,13 @@ interface EnvVars {
   //? SEND GRID
   SENDGRID_API_KEY: string;
 
+  //? Google Gmail API
+  GOOGLE_GMAIL_API_KEY: string; // Access Token (se refresca automáticamente)
+  GOOGLE_GMAIL_URL: string;
+  GOOGLE_GMAIL_CLIENT_ID: string;
+  GOOGLE_GMAIL_CLIENT_SECRET: string;
+  GOOGLE_GMAIL_REFRESH_TOKEN: string; // Refresh Token para obtener nuevos access tokens
+
   //? Autocore
   AUTOCORE_URL: string;
   AUTOCORE_ACCESS_KEY: string;
@@ -60,6 +67,10 @@ interface EnvVars {
 
   //? Booking Personas
   BOOKING_PERSONAS_TOKEN: string;
+
+  //? MaarLab
+  MAARLAB_BASE_URL: string;
+  MAARLAB_AUTH_TOKEN: string;
 }
 
 // API_1525: joi.string().required(),
@@ -89,6 +100,13 @@ const envSchema = joi
 
     //? SEND GRID
     SENDGRID_API_KEY: joi.string().required(),
+
+    //? Google Gmail API
+    GOOGLE_GMAIL_API_KEY: joi.string().required(),
+    GOOGLE_GMAIL_URL: joi.string().required(),
+    GOOGLE_GMAIL_CLIENT_ID: joi.string().required(),
+    GOOGLE_GMAIL_CLIENT_SECRET: joi.string().required(),
+    GOOGLE_GMAIL_REFRESH_TOKEN: joi.string().required(),
 
     //? Autocore
     AUTOCORE_URL: joi.string().required(),
@@ -121,6 +139,10 @@ const envSchema = joi
 
     //? Booking Personas
     BOOKING_PERSONAS_TOKEN: joi.string().required(),
+
+    //? MaarLab
+    MAARLAB_BASE_URL: joi.string().required(),
+    MAARLAB_AUTH_TOKEN: joi.string().required(),
   })
   .unknown(true);
 
@@ -159,6 +181,13 @@ export const envs = {
   //? SEND GRID
   sendgridApiKey: envVars.SENDGRID_API_KEY,
 
+  //? Google Gmail API
+  googleGmailApiKey: envVars.GOOGLE_GMAIL_API_KEY,
+  googleGmailUrl: envVars.GOOGLE_GMAIL_URL,
+  googleGmailClientId: envVars.GOOGLE_GMAIL_CLIENT_ID,
+  googleGmailClientSecret: envVars.GOOGLE_GMAIL_CLIENT_SECRET,
+  googleGmailRefreshToken: envVars.GOOGLE_GMAIL_REFRESH_TOKEN,
+
   //? Autocore
   autocoreUrl: envVars.AUTOCORE_URL,
   autocoreAccessKey: envVars.AUTOCORE_ACCESS_KEY,
@@ -190,4 +219,8 @@ export const envs = {
 
   //? Booking Personas
   bookingPersonasToken: envVars.BOOKING_PERSONAS_TOKEN,
+
+  //? MaarLab
+  maarlabBaseUrl: envVars.MAARLAB_BASE_URL,
+  maarlabAuthToken: envVars.MAARLAB_AUTH_TOKEN,
 };

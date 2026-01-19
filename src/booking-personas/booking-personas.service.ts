@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { ErrorManager } from 'src/common/helpers';
 import { HttpCustomService } from 'src/common/services';
@@ -875,7 +875,7 @@ export class BookingPersonasService {
       });
 
       // Actualizar PaymentPending con el ID de la reserva creada
-      pagoPendiente.reserva_id = reserva._id.toString();
+      pagoPendiente.reserva_id = (reserva._id as Types.ObjectId).toString();
       pagoPendiente.reserva_creada = true;
       // Nota: No podemos actualizar el reservation_id en el link de pago de Autocore
       // porque no hay endpoint para actualizar links existentes, pero esto está bien
