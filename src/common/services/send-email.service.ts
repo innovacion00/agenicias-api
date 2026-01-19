@@ -239,7 +239,6 @@ export class SendEmailCustomService {
     html: string,
     attachments?: Attachment[],
   ) {
-<<<<<<< HEAD
     // Validar que las variables de entorno estén configuradas
     if (!envs.googleGmailApiKey || !envs.googleGmailUrl || 
         !envs.googleGmailClientId || !envs.googleGmailClientSecret || 
