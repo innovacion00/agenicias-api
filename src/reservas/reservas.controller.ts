@@ -342,7 +342,7 @@ export class ReservasController {
   // #region Administracion
   @ApiOperation({ 
     summary: 'Obtener todas las reservas (solo superAdmin)',
-    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite. Opcionalmente filtra por hotel usando el parámetro hotel.'
   })
   @ApiBearerAuth('JWT-auth')
   @Get()
@@ -350,9 +350,10 @@ export class ReservasController {
   getAllReservas(
     @Query('page') page: number = 1,
     @Query('all') all: string,
+    @Query('hotel') hotel?: string,
   ) {
     const getAll = all === 'true' || all === '1';
-    return this.reservasService.getAllReservas(page, getAll);
+    return this.reservasService.getAllReservas(page, getAll, hotel);
   }
 
   @Delete('cancelar-reserva-admin/:reservaId')

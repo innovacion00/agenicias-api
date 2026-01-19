@@ -1554,8 +1554,17 @@ export class ReservasService {
 
   // #region Administracion
   //? Obtener todas las reservas
-  async getAllReservas(page = 1, all = false) {
+  async getAllReservas(page = 1, all = false, hotel?: string) {
     try {
+      // Construir el filtro
+      const filter: any = {};
+      
+      // Si se proporciona el parámetro hotel, agregarlo al filtro
+      if (hotel && hotel.trim()) {
+        // Búsqueda case-insensitive y parcial del nombre del hotel
+        filter.hotel = { $regex: hotel.trim(), $options: 'i' };
+      }
+
       // Obtener la suma de totales de reservas no canceladas (con caché)
       const totalSuma = await this.getSumaTotalesNoCanceladas();
 
@@ -1563,12 +1572,12 @@ export class ReservasService {
       if (all) {
         const [allReservas, total] = await Promise.all([
           this.reservasModel
-            .find()
+            .find(filter)
             .populate('agenciaId', 'fullName _id')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
             .lean(),
-          this.getCachedCount({}),
+          this.getCachedCount(filter),
         ]);
 
         return {
@@ -1576,6 +1585,7 @@ export class ReservasService {
           meta: {
             total,
             sumaTotalesNoCanceladas: totalSuma,
+            ...(hotel && { hotelFiltrado: hotel }),
           },
         };
       }
@@ -1587,8 +1597,6 @@ export class ReservasService {
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const filter = {};
 
       // OPTIMIZACIÓN: Usar caché para el total y optimizar query
       const [allReservas, total] = await Promise.all([
@@ -1611,6 +1619,7 @@ export class ReservasService {
           pageSize: PAGE_SIZE,
           totalPages: Math.ceil(total / PAGE_SIZE) || 1,
           sumaTotalesNoCanceladas: totalSuma,
+          ...(hotel && { hotelFiltrado: hotel }),
         },
       };
     } catch (error) {

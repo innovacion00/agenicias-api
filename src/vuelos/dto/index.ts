@@ -4,3 +4,4 @@ export * from './search-cities.dto';
 export * from './flight-order.dto';
 export * from './error-response.dto';
 export * from './maarlab-flight-search.dto';
+export * from './create-package.dto';

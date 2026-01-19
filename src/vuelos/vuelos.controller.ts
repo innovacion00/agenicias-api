@@ -23,7 +23,8 @@ import {
   FlightSearchDto,
   SearchCitiesDto,
   FlightOrderDto,
-  MaarLabFlightSearchDto
+  MaarLabFlightSearchDto,
+  CreatePackageDto
 } from './dto';
 import {
   AmadeusLocationResponse,
@@ -390,6 +391,56 @@ export class VuelosController {
           destination: searchDto.destination,
           departureDate: searchDto.departureDate,
           adults: searchDto.adults
+        }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Crear un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param createPackageDto - Datos para crear el paquete
+   * @param info - Nivel de detalle de la respuesta (query param)
+   * @returns Información del paquete creado
+   */
+  @Post('maarlab/paquete')
+  @HttpCode(HttpStatus.CREATED)
+  async createPackageMaarLab(
+    @Body(new ValidationPipe({ transform: true })) createPackageDto: CreatePackageDto,
+    @Query('info') info: string = 'all'
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'createPackageMaarLab',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Creación de paquete MaarLab solicitada`, {
+      requestId: logContext.requestId,
+      flightId: createPackageDto.flightId,
+      currency: createPackageDto.currency,
+      language: createPackageDto.language,
+      info
+    });
+
+    try {
+      const packageResult = await this.vuelosService.createPackageMaarLab(createPackageDto, info);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Paquete MaarLab creado exitosamente`, {
+        requestId: logContext.requestId,
+        hasResult: !!packageResult
+      });
+
+      return packageResult;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en creación de paquete MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        packageParams: {
+          flightId: createPackageDto.flightId,
+          currency: createPackageDto.currency
         }
       });
       

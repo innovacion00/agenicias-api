@@ -131,4 +131,106 @@ export class MaarLabService {
       );
     }
   }
+
+  /**
+   * Crea un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param createPackageDto - Datos para crear el paquete
+   * @param info - Nivel de detalle de la respuesta ('all' para información completa)
+   * @returns Respuesta con información del paquete creado
+   */
+  async createPackage(createPackageDto: any, info: string = 'all'): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de paquete de vuelo en MaarLab...');
+      this.logger.debug(`Parámetros de creación: ${JSON.stringify(createPackageDto)}`);
+
+      // Construir la URL base
+      let baseUrl = envs.maarlabBaseUrl.trim();
+      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      // Eliminar barra final si existe
+      baseUrl = baseUrl.replace(/\/$/, '');
+      
+      // Construir la URL con el endpoint
+      const endpoint = `${baseUrl}/createPackage`;
+
+      // Construir query parameters
+      const queryParams = new URLSearchParams();
+      if (info) {
+        queryParams.append('info', info);
+      }
+
+      const url = `${endpoint}?${queryParams.toString()}`;
+
+      this.logger.debug(`URL de creación de paquete: ${url}`);
+
+      // Preparar el body (solo flightId, currency, language y webhook - sin hotel)
+      const requestBody = {
+        flightId: createPackageDto.flightId,
+        ...(createPackageDto.currency && { currency: createPackageDto.currency }),
+        ...(createPackageDto.language && { language: createPackageDto.language }),
+        ...(createPackageDto.webhook && { webhook: createPackageDto.webhook }),
+      };
+
+      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody)}`);
+
+      // Realizar la petición POST
+      const response: AxiosResponse = await axios.post(url, requestBody, {
+        headers: {
+          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 segundos de timeout
+      });
+
+      this.logger.log('Paquete de vuelo creado exitosamente');
+      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error al crear paquete de vuelo en MaarLab:', error.response?.data || error.message);
+      
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 401) {
+          throw new HttpException(
+            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
+        
+        if (error.response?.status === 400) {
+          throw new HttpException(
+            error.response.data?.message || 'Parámetros de creación de paquete inválidos',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        
+        if (error.response?.status === 404) {
+          throw new HttpException(
+            'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.',
+            HttpStatus.NOT_FOUND,
+          );
+        }
+        
+        if (error.response?.status === 429) {
+          throw new HttpException(
+            'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
+        
+        if (error.response?.status && error.response.status >= 500) {
+          throw new HttpException(
+            'Error interno del servidor de MaarLab. Intenta más tarde.',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+
+      throw new HttpException(
+        `Error al crear paquete de vuelo: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
