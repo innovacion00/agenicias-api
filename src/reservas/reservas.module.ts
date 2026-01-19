@@ -1,10 +1,9 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { ReservasController } from './reservas.controller';
-
 import { ReservasService } from './reservas.service';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Reserva, ReservaSchema } from './entities/reserva.entity';
 import { CommonModule } from 'src/common/common.module';
 import { AgenciasModule } from 'src/agencias/agencias.module';

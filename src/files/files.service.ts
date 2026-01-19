@@ -23,8 +23,16 @@ export class FilesService {
         .findById(_id)
         .populate('agencia', 'fullName');
 
-      // @ts-ignore
-      const agenciaName = user.agencia.fullName as string;
+      if (!user) {
+        throw new BadRequestException('Usuario no encontrado');
+      }
+
+      const agenciaName = 
+        user.agencia && 
+        typeof user.agencia === 'object' && 
+        'fullName' in user.agencia
+          ? (user.agencia.fullName as string)
+          : 'default';
 
       if (user.imageUrl) {
         await this.cloudinaryService.deleteCloudinary(

@@ -27,7 +27,6 @@ import {
 } from './dto';
 import {
   AmadeusLocationResponse,
-  AmadeusFlightOffersResponse,
   AmadeusFlightOrderResponse
 } from './interfaces';
 
@@ -39,7 +38,6 @@ export class VuelosController {
 
   constructor(
     private readonly vuelosService: VuelosService,
-    private readonly errorHandlerService: ErrorHandlerService,
   ) {}
 
   /**
@@ -164,7 +162,12 @@ export class VuelosController {
       // Crear un request con la estructura exacta que espera Amadeus
       const basicRequest = {
         currencyCode: rawBody.currencyCode || 'USD',
-        originDestinations: rawBody.originDestinations.map(od => ({
+        originDestinations: rawBody.originDestinations.map((od: {
+          id: string;
+          originLocationCode: string;
+          destinationLocationCode: string;
+          departureDateTimeRange: { date: string; time?: string };
+        }) => ({
           id: od.id,
           originLocationCode: od.originLocationCode,
           destinationLocationCode: od.destinationLocationCode,
@@ -230,7 +233,7 @@ export class VuelosController {
     } catch (error) {
       this.logger.error(`[CONTROLLER_ERROR] Error en búsqueda de vuelos`, {
         requestId: logContext.requestId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Error desconocido',
         searchParams: {
           origin: searchDto.originDestinations[0]?.originLocationCode,
           destination: searchDto.originDestinations[0]?.destinationLocationCode,
@@ -283,7 +286,7 @@ export class VuelosController {
     } catch (error) {
       this.logger.error(`[CONTROLLER_ERROR] Error en reserva de vuelo`, {
         requestId: logContext.requestId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Error desconocido',
         orderParams: {
           flightOffers: orderDto.flightOffers.length,
           travelers: orderDto.travelers.length,

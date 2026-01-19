@@ -8,11 +8,10 @@ import {
   IsBoolean, 
   ValidateNested, 
   IsNumber,
-  IsObject,
   ArrayMinSize,
   IsNotEmpty
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 // Clases básicas primero
 export class NameDto {

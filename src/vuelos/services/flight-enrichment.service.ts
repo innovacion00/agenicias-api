@@ -80,8 +80,9 @@ export class FlightEnrichmentService {
 
     // Verificar cache para cada código
     for (const code of iataCodes) {
-      if (this.cityCache.has(code)) {
-        result.set(code, this.cityCache.get(code));
+      const cachedCity = this.cityCache.get(code);
+      if (cachedCity) {
+        result.set(code, cachedCity);
       } else {
         uncachedCodes.push(code);
       }
@@ -95,13 +96,18 @@ export class FlightEnrichmentService {
           
           if (response.data && response.data.length > 0) {
             const location = response.data[0];
-            const cityName = location.address?.cityName || 
-                           location.detailedName || 
-                           location.name || 
-                           code;
+            if (location) {
+              const cityName = location.address?.cityName || 
+                             location.detailedName || 
+                             location.name || 
+                             code;
             
-            result.set(code, cityName);
-            this.cityCache.set(code, cityName);
+              result.set(code, cityName);
+              this.cityCache.set(code, cityName);
+            } else {
+              result.set(code, code);
+              this.cityCache.set(code, code);
+            }
           } else {
             result.set(code, code);
             this.cityCache.set(code, code);

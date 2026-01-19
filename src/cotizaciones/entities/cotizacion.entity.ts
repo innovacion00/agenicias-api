@@ -345,3 +345,10 @@ export class Cotizacion extends Document {
 }
 
 export const CotizacionSchema = SchemaFactory.createForClass(Cotizacion);
+
+// Índices compuestos para optimizar queries comunes
+CotizacionSchema.index({ agenciaId: 1, createdAt: -1 });
+CotizacionSchema.index({ userId: 1, createdAt: -1 });
+CotizacionSchema.index({ tokenAcceso: 1 }, { unique: true });
+CotizacionSchema.index({ status: 1, createdAt: -1 });
+CotizacionSchema.index({ agenciaId: 1, status: 1, createdAt: -1 });

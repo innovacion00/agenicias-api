@@ -239,6 +239,7 @@ export class SendEmailCustomService {
     html: string,
     attachments?: Attachment[],
   ) {
+<<<<<<< HEAD
     // Validar que las variables de entorno estén configuradas
     if (!envs.googleGmailApiKey || !envs.googleGmailUrl || 
         !envs.googleGmailClientId || !envs.googleGmailClientSecret || 
@@ -295,7 +296,6 @@ export class SendEmailCustomService {
     };
 
     try {
-
       // Obtener un Access Token válido (refresca automáticamente si es necesario)
       const accessToken = await this.getValidAccessToken();
 
@@ -394,7 +394,6 @@ export class SendEmailCustomService {
       if (error.code) {
         this.logger.error(`Código de error: ${error.code}`);
       }
-
       throw new InternalServerErrorException(
         `Error en las notificaciones por email: ${error.message || 'Error desconocido'}`,
       );

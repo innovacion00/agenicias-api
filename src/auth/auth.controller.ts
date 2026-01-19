@@ -15,6 +15,7 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { Auth, GetUser } from './decorators';
 
@@ -42,6 +43,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // #region Iniciar secion/registrarse
+  @Throttle({ short: { limit: 3, ttl: 60000 } }) // 3 registros por minuto
   @ApiOperation({ summary: 'Crear usuario asociado a una agencia' })
   @ApiParam({ name: 'id', description: 'ID de la agencia (MongoId)' })
   @ApiResponse({ status: 201, description: 'Usuario creado exitosamente' })
@@ -70,6 +72,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Login exitoso, retorna tokens JWT' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto para login
   @Post('sign-in')
   loggin(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto);
@@ -118,6 +121,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Renovar token JWT usando refresh token' })
   @ApiResponse({ status: 200, description: 'Nuevo token generado' })
   @ApiResponse({ status: 401, description: 'Refresh token inválido' })
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests por minuto
   @Post('refresh-token')
   @HttpCode(200)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -125,12 +129,14 @@ export class AuthController {
   }
 
   // #region otp code
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto para OTP
   @Post('validate-otp')
   @HttpCode(200)
   validarOtp(@Body() otpValidation: OtpValidationDto) {
     return this.authService.validarOtpSign(otpValidation);
   }
 
+  @Throttle({ short: { limit: 3, ttl: 60000 } }) // 3 requests por minuto para cambio de contraseña
   @Post('request-password-change')
   @HttpCode(200)
   requestPasswordChange(
