@@ -232,6 +232,62 @@ export class SendEmailCustomService {
       throw error;
     }
   }
+
+  /**
+   * Envía un email con retry automático para errores 429 (Too Many Requests)
+   * Implementa backoff exponencial para manejar límites de cuota de Gmail API
+   */
+  private async sendEmailWithRetry(
+    apiUrl: string,
+    payload: any,
+    headers: any,
+    maxRetries: number = 3,
+    initialDelay: number = 1000,
+  ): Promise<any> {
+    let lastError: any = null;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.post(apiUrl, payload, { headers });
+        return response;
+      } catch (error: any) {
+        lastError = error;
+        
+        // Solo reintentar si es error 429 (Too Many Requests)
+        if (error.response?.status === 429 && attempt < maxRetries) {
+          // Calcular delay con backoff exponencial
+          const retryAfter = error.response.headers['retry-after'] || error.response.headers['Retry-After'];
+          let delay: number;
+          
+          if (retryAfter) {
+            // Usar el valor de Retry-After si está disponible (en segundos)
+            delay = parseInt(retryAfter, 10) * 1000;
+            this.logger.warn(
+              `Error 429 recibido. Gmail API indica esperar ${retryAfter} segundos. ` +
+              `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`
+            );
+          } else {
+            // Backoff exponencial: 1s, 2s, 4s, 8s...
+            delay = initialDelay * Math.pow(2, attempt);
+            this.logger.warn(
+              `Error 429 recibido (límite de cuota excedido). ` +
+              `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`
+            );
+          }
+          
+          // Esperar antes de reintentar
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Si no es 429 o ya se agotaron los reintentos, lanzar el error
+        throw error;
+      }
+    }
+    
+    // Si llegamos aquí, se agotaron todos los reintentos
+    throw lastError;
+  }
   
   public async sendEmail(
     target: string | string[],
@@ -324,8 +380,8 @@ export class SendEmailCustomService {
         this.logger.warn('No se pudo verificar el perfil de la cuenta (no crítico)');
       }
 
-      // Enviar el email usando la API de Gmail
-      const response = await axios.post(apiUrl, payload, { headers });
+      // Enviar el email usando la API de Gmail con retry para errores 429
+      const response = await this.sendEmailWithRetry(apiUrl, payload, headers);
 
       this.logger.log(`Email enviado exitosamente. MessageId: ${response.data.id}`);
       this.logger.log(`Respuesta de Gmail API: ${JSON.stringify(response.data)}`);
@@ -364,7 +420,7 @@ export class SendEmailCustomService {
             };
             
             this.logger.log('Reintentando envío con nuevo token...');
-            const retryResponse = await axios.post(apiUrl, payload, { headers: retryHeaders });
+            const retryResponse = await this.sendEmailWithRetry(apiUrl, payload, retryHeaders);
             
             this.logger.log(`Email enviado exitosamente después de refrescar token. MessageId: ${retryResponse.data.id}`);
             return {
@@ -386,6 +442,18 @@ export class SendEmailCustomService {
           throw new InternalServerErrorException(
             `Error de permisos con Gmail API: ${errorData?.error?.message || 'Sin permisos'}. ` +
             `Verifica que el token tenga el scope 'https://www.googleapis.com/auth/gmail.send'.`,
+          );
+        }
+
+        if (error.response.status === 429) {
+          const retryAfter = error.response.headers['retry-after'] || error.response.headers['Retry-After'];
+          const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : null;
+          
+          throw new InternalServerErrorException(
+            `Límite de solicitudes excedido en Gmail API (429 Too Many Requests). ` +
+            `${retryAfterSeconds ? `Intenta nuevamente después de ${retryAfterSeconds} segundos.` : 'Intenta nuevamente más tarde.'} ` +
+            `Gmail API tiene límites de cuota: 1 billón de cuotas por día por usuario. ` +
+            `Si el problema persiste, considera implementar un sistema de cola de emails.`,
           );
         }
       }
