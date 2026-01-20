@@ -5,3 +5,7 @@ export * from './flight-order.dto';
 export * from './error-response.dto';
 export * from './maarlab-flight-search.dto';
 export * from './create-package.dto';
+export * from './add-extras.dto';
+export * from './book-package.dto';
+export * from './search-engine-complete-process.dto';
+export * from './travel-agency-complete-process.dto';

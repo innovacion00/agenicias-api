@@ -66,14 +66,14 @@ class RoomsDatumDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkin debe venir en formato YYYY-MM-DD',
   })
-  checkin: Date;
+  checkin: string;
 
   @IsString()
   @IsNotFutureDate()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkout debe venir en formato YYYY-MM-DD',
   })
-  checkout: Date;
+  checkout: string;
 
   @IsString()
   @IsNotEmpty()
@@ -111,7 +111,7 @@ class ReservaInfoDbDto {
   })
   @IsNotEmpty()
   @IsNotFutureDate()
-  checkin: Date;
+  checkin: string;
 
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
@@ -119,7 +119,7 @@ class ReservaInfoDbDto {
   })
   @IsNotEmpty()
   @IsNotFutureDate()
-  checkout: Date;
+  checkout: string;
 
   @IsString()
   @IsNotEmpty()

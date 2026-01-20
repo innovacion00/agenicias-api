@@ -281,15 +281,8 @@ td {
         password: bcrypt.hashSync(password, 10),
       });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
-=======
-      agenciaDoc.usuarios.push(user._id as unknown as User);
->>>>>>> 79e56389ee7b9763af2265cab75c54cded98c4da
-=======
-      agenciaDoc.usuarios.push(user._id as Types.ObjectId);
->>>>>>> 677821a43ccb0869bf21d5ca94bf7393430d6ed4
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
@@ -349,15 +342,8 @@ td {
         password: bcrypt.hashSync(password, 10),
       });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
-=======
-      agenciaDoc.usuarios.push(user._id as unknown as User);
->>>>>>> 79e56389ee7b9763af2265cab75c54cded98c4da
-=======
-      agenciaDoc.usuarios.push(user._id as Types.ObjectId);
->>>>>>> 677821a43ccb0869bf21d5ca94bf7393430d6ed4
       await agenciaDoc.save();
 
       const { password: hashedPassword, ...userDbData } = user.toObject();
