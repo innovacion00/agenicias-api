@@ -1614,10 +1614,8 @@ export class ReservasService {
             $lte: fechaHasta.trim(),
           };
         } else if (fechaDesde) {
-          // Solo fechaDesde: checkin >= fechaDesde
-          filter['reservation.checkin'] = {
-            $gte: fechaDesde.trim(),
-          };
+          // Solo fechaDesde: filtrar solo ese día específico
+          filter['reservation.checkin'] = fechaDesde.trim();
         } else if (fechaHasta) {
           // Solo fechaHasta: checkin <= fechaHasta
           filter['reservation.checkin'] = {

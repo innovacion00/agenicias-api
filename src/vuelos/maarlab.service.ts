@@ -145,14 +145,19 @@ export class MaarLabService {
 
       // Construir la URL base
       let baseUrl = envs.maarlabBaseUrl.trim();
+      this.logger.debug(`MAARLAB_BASE_URL original: ${baseUrl}`);
+      
       if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
         baseUrl = `https://${baseUrl}`;
       }
+      
       // Eliminar barra final si existe
       baseUrl = baseUrl.replace(/\/$/, '');
+      this.logger.debug(`Base URL después de limpiar: ${baseUrl}`);
       
-      // Construir la URL con el endpoint
-      const endpoint = `${baseUrl}/createPackage`;
+      // Construir la URL con el endpoint (con barra final según documentación MaarLab)
+      const endpoint = `${baseUrl}/createPackage/`;
+      this.logger.debug(`Endpoint construido: ${endpoint}`);
 
       // Construir query parameters
       const queryParams = new URLSearchParams();
@@ -162,17 +167,28 @@ export class MaarLabService {
 
       const url = `${endpoint}?${queryParams.toString()}`;
 
-      this.logger.debug(`URL de creación de paquete: ${url}`);
+      this.logger.debug(`URL completa de creación de paquete: ${url}`);
+      this.logger.debug(`URL esperada: https://test-api.oceanflights.io/api/v1/createPackage/?info=${info}`);
 
-      // Preparar el body (solo flightId, currency, language y webhook - sin hotel)
-      const requestBody = {
+      // Preparar el body
+      // MaarLab requiere hotel y services, siempre se envían vacíos
+      const requestBody: any = {
         flightId: createPackageDto.flightId,
-        ...(createPackageDto.currency && { currency: createPackageDto.currency }),
-        ...(createPackageDto.language && { language: createPackageDto.language }),
-        ...(createPackageDto.webhook && { webhook: createPackageDto.webhook }),
+        hotel: {}, // Siempre vacío según requerimiento
+        services: {}, // Siempre vacío según requerimiento
       };
 
-      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody)}`);
+      // Agregar campos opcionales solo si están presentes
+      if (createPackageDto.currency) {
+        requestBody.currency = createPackageDto.currency;
+      }
+      if (createPackageDto.language) {
+        requestBody.language = createPackageDto.language;
+      }
+
+      this.logger.debug(`URL completa: ${url}`);
+      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody, null, 2)}`);
+      this.logger.debug(`Headers: Authorization: Bearer ${envs.maarlabAuthToken ? '***' : 'NO CONFIGURADO'}`);
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(url, requestBody, {
@@ -188,47 +204,118 @@ export class MaarLabService {
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al crear paquete de vuelo en MaarLab:', error.response?.data || error.message);
-      
+      // Log detallado del error
       if (error instanceof AxiosError) {
+        const errorDetails = {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+          method: error.config?.method,
+          requestBody: error.config?.data ? (typeof error.config.data === 'string' ? JSON.parse(error.config.data) : error.config.data) : null,
+        };
+        
+        this.logger.error('Error detallado de MaarLab al crear paquete:');
+        this.logger.error(JSON.stringify(errorDetails, null, 2));
+
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            {
+              message: 'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+              maarLabError: error.response.data,
+            },
             HttpStatus.UNAUTHORIZED,
           );
         }
         
         if (error.response?.status === 400) {
+          const maarLabMessage = error.response.data?.message || error.response.data?.error || JSON.stringify(error.response.data);
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de creación de paquete inválidos',
+            {
+              message: 'Parámetros de creación de paquete inválidos',
+              maarLabError: error.response.data,
+              maarLabMessage,
+            },
             HttpStatus.BAD_REQUEST,
           );
         }
         
-        if (error.response?.status === 404) {
+        if (error.response?.status === 422) {
+          const maarLabResponse = error.response.data;
+          const maarLabMessage = maarLabResponse?.message || maarLabResponse?.error || maarLabResponse?.detail || JSON.stringify(maarLabResponse);
+          const requestBodySent = error.config?.data ? (typeof error.config.data === 'string' ? JSON.parse(error.config.data) : error.config.data) : null;
+          
+          this.logger.error('Error 422 de MaarLab - Detalles de validación:');
+          this.logger.error(`MaarLab Response: ${JSON.stringify(maarLabResponse, null, 2)}`);
+          this.logger.error(`Request Body Sent: ${JSON.stringify(requestBodySent, null, 2)}`);
+          this.logger.error(`URL: ${error.config?.url}`);
+          
           throw new HttpException(
-            'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.',
+            {
+              message: 'Error de validación en MaarLab. Verifica los datos enviados.',
+              maarLabError: maarLabResponse,
+              maarLabMessage,
+              maarLabResponse: maarLabResponse, // Incluir respuesta completa
+              requestBody: requestBodySent,
+            },
+            HttpStatus.UNPROCESSABLE_ENTITY,
+          );
+        }
+        
+        if (error.response?.status === 404) {
+          // Verificar si el error es sobre un recurso específico (Flight ID, Package ID, etc.)
+          // o si es realmente un endpoint no encontrado
+          const maarLabMessage = error.response.data?.errors?.message || 
+                                 error.response.data?.message || 
+                                 error.response.data?.detail || 
+                                 JSON.stringify(error.response.data);
+          
+          // Si el mensaje contiene "not found" o "no encontrado", es un recurso no encontrado
+          const isResourceNotFound = maarLabMessage.toLowerCase().includes('not found') || 
+                                    maarLabMessage.toLowerCase().includes('no encontrado');
+          
+          const errorMessage = isResourceNotFound 
+            ? maarLabMessage 
+            : 'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.';
+          
+          throw new HttpException(
+            {
+              message: errorMessage,
+              maarLabError: error.response.data,
+              maarLabMessage,
+              url: error.config?.url,
+            },
             HttpStatus.NOT_FOUND,
           );
         }
         
         if (error.response?.status === 429) {
           throw new HttpException(
-            'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
+            {
+              message: 'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
+              maarLabError: error.response.data,
+            },
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
         
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
-            'Error interno del servidor de MaarLab. Intenta más tarde.',
+            {
+              message: 'Error interno del servidor de MaarLab. Intenta más tarde.',
+              maarLabError: error.response.data,
+            },
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
       }
 
+      this.logger.error('Error al crear paquete de vuelo en MaarLab:', error.message);
       throw new HttpException(
-        `Error al crear paquete de vuelo: ${error.message}`,
+        {
+          message: `Error al crear paquete de vuelo: ${error.message}`,
+          error: error instanceof Error ? error.stack : error,
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
