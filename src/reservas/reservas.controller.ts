@@ -342,7 +342,7 @@ export class ReservasController {
   // #region Administracion
   @ApiOperation({ 
     summary: 'Obtener todas las reservas (solo superAdmin)',
-    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite. Opcionalmente filtra por hotel usando el parámetro hotel.'
+    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite. Opcionalmente filtra por hotel, nombre de agencia (solo superAdmin) o por fecha (fechaDesde y fechaHasta en formato YYYY-MM-DD).'
   })
   @ApiBearerAuth('JWT-auth')
   @Get()
@@ -351,9 +351,22 @@ export class ReservasController {
     @Query('page') page: number = 1,
     @Query('all') all: string,
     @Query('hotel') hotel?: string,
+    @Query('nombreAgencia') nombreAgencia?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
     const getAll = all === 'true' || all === '1';
-    return this.reservasService.getAllReservas(page, getAll, hotel);
+    
+    // Validar formato de fechas si se proporcionan
+    const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (fechaDesde && !fechaRegex.test(fechaDesde)) {
+      throw new BadRequestException('fechaDesde debe tener formato YYYY-MM-DD');
+    }
+    if (fechaHasta && !fechaRegex.test(fechaHasta)) {
+      throw new BadRequestException('fechaHasta debe tener formato YYYY-MM-DD');
+    }
+    
+    return this.reservasService.getAllReservas(page, getAll, hotel, nombreAgencia, fechaDesde, fechaHasta);
   }
 
   @Delete('cancelar-reserva-admin/:reservaId')

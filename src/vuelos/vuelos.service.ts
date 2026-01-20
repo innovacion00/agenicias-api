@@ -260,4 +260,185 @@ export class VuelosService {
       throw error;
     }
   }
+
+  /**
+   * Elimina un extra específico de un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete del cual se elimina el extra
+   * @param itemId - ID del item a eliminar
+   * @param typeExtraId - ID del tipo de extra a eliminar
+   * @param info - Nivel de detalle de la respuesta
+   * @returns Información del paquete actualizado
+   */
+  async deleteExtrasMaarLab(
+    packageId: string,
+    itemId: number,
+    typeExtraId: number,
+    info: string = 'all'
+  ): Promise<any> {
+    try {
+      this.logger.log('Iniciando eliminación de extra en MaarLab...');
+      this.logger.log(
+        `Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`
+      );
+      
+      const result = await this.maarlabService.deleteExtras(packageId, itemId, typeExtraId, info);
+      
+      this.logger.log('Extra eliminado exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.deleteExtrasMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reserva un paquete de vuelo agregando información de pasajeros usando la API de MaarLab Oceanflights
+   * @param bookPackageDto - Datos para reservar el paquete (pasajeros, pago, etc.)
+   * @param info - Nivel de detalle de la respuesta
+   * @returns Información de la reserva/prebooking
+   */
+  async bookPackageMaarLab(bookPackageDto: any, info: string = 'all'): Promise<any> {
+    try {
+      this.logger.log('Iniciando reserva de paquete en MaarLab...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(bookPackageDto).substring(0, 200)}...`);
+      this.logger.log(`Info: ${info}`);
+      
+      const result = await this.maarlabService.bookPackage(bookPackageDto, info);
+      
+      this.logger.log('Paquete reservado exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.bookPackageMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el token de pago para un paquete específico usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete para obtener el token de pago
+   * @param paymentType - Tipo de pago (opcional)
+   * @param deferredPaymentDate - Fecha de pago diferido (opcional)
+   * @returns Token de pago
+   */
+  async getTokenPaymentMaarLab(
+    packageId: string,
+    paymentType?: string,
+    deferredPaymentDate?: string
+  ): Promise<any> {
+    try {
+      this.logger.log('Iniciando obtención de token de pago en MaarLab...');
+      this.logger.log(
+        `Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`
+      );
+      
+      const result = await this.maarlabService.getTokenPayment(packageId, paymentType, deferredPaymentDate);
+      
+      this.logger.log('Token de pago obtenido exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.getTokenPaymentMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene los detalles completos de un paquete específico usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete a obtener
+   * @param info - Nivel de detalle de la respuesta
+   * @returns Detalles completos del paquete
+   */
+  async getPackageMaarLab(packageId: string, info: string = 'all'): Promise<any> {
+    try {
+      this.logger.log('Iniciando obtención de detalles de paquete en MaarLab...');
+      this.logger.log(`Package ID: ${packageId}, Info: ${info}`);
+      
+      const result = await this.maarlabService.getPackage(packageId, info);
+      
+      this.logger.log('Detalles de paquete obtenidos exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.getPackageMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el contrato de factura ATOL para un paquete específico usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete para obtener el contrato ATOL
+   * @returns Contrato de factura ATOL
+   */
+  async getInvoiceATOLContractMaarLab(packageId: string): Promise<any> {
+    try {
+      this.logger.log('Iniciando obtención de contrato ATOL en MaarLab...');
+      this.logger.log(`Package ID: ${packageId}`);
+      
+      const result = await this.maarlabService.getInvoiceATOLContract(packageId);
+      
+      this.logger.log('Contrato ATOL obtenido exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.getInvoiceATOLContractMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crea hoteles con configuración por defecto usando la API de MaarLab Oceanflights
+   * @param completeProcessDto - Datos del hotel a crear
+   * @returns Información del hotel creado o actualizado
+   */
+  async searchEngineCompleteProcessMaarLab(completeProcessDto: any): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de hotel en MaarLab...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      
+      const result = await this.maarlabService.searchEngineCompleteProcess(completeProcessDto);
+      
+      this.logger.log('Hotel creado/actualizado exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.searchEngineCompleteProcessMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crea agencias de viajes con configuración por defecto usando la API de MaarLab Oceanflights
+   * @param completeProcessDto - Datos de la agencia de viajes a crear
+   * @returns Información de la agencia de viajes creada o actualizada
+   */
+  async travelAgencyCompleteProcessMaarLab(completeProcessDto: any): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de agencia de viajes en MaarLab...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      
+      const result = await this.maarlabService.travelAgencyCompleteProcess(completeProcessDto);
+      
+      this.logger.log('Agencia de viajes creada/actualizada exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.travelAgencyCompleteProcessMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el external ID de un hotel desde el ID interno de Oceanflight usando la API de MaarLab Oceanflights
+   * @param idSearchEngine - ID interno del search engine (Oceanflight)
+   * @returns External ID del hotel
+   */
+  async mappingExternalIdSearchEngineMaarLab(idSearchEngine: string): Promise<any> {
+    try {
+      this.logger.log('Iniciando obtención de external ID en MaarLab...');
+      this.logger.log(`ID Search Engine: ${idSearchEngine}`);
+      
+      const result = await this.maarlabService.mappingExternalIdSearchEngine(idSearchEngine);
+      
+      this.logger.log('External ID obtenido exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.mappingExternalIdSearchEngineMaarLab:', error);
+      throw error;
+    }
+  }
 }

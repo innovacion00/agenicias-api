@@ -1554,7 +1554,14 @@ export class ReservasService {
 
   // #region Administracion
   //? Obtener todas las reservas
-  async getAllReservas(page = 1, all = false, hotel?: string) {
+  async getAllReservas(
+    page = 1, 
+    all = false, 
+    hotel?: string, 
+    nombreAgencia?: string,
+    fechaDesde?: string,
+    fechaHasta?: string
+  ) {
     try {
       // Construir el filtro
       const filter: any = {};
@@ -1563,6 +1570,60 @@ export class ReservasService {
       if (hotel && hotel.trim()) {
         // Búsqueda case-insensitive y parcial del nombre del hotel
         filter.hotel = { $regex: hotel.trim(), $options: 'i' };
+      }
+
+      // Filtro por nombre de agencia (solo para superAdmin)
+      if (nombreAgencia && nombreAgencia.trim()) {
+        // Buscar agencias que coincidan con el nombre
+        const filtroAgencia: any = {
+          fullName: { $regex: nombreAgencia.trim(), $options: 'i' },
+        };
+        
+        const agencias = await this.agenciaModel
+          .find(filtroAgencia)
+          .select('_id')
+          .lean();
+        
+        const agenciaIds = agencias.map((agencia) => agencia._id);
+        
+        if (agenciaIds.length === 0) {
+          // Si no se encuentran agencias, retornar vacío
+          return {
+            data: [],
+            meta: {
+              total: 0,
+              ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
+              sumaTotalesNoCanceladas: 0,
+              ...(hotel && { hotelFiltrado: hotel }),
+              ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
+            },
+          };
+        }
+        
+        filter.agenciaId = { $in: agenciaIds };
+      }
+
+      // Filtro por fecha de checkin (fechaDesde y/o fechaHasta)
+      if (fechaDesde || fechaHasta) {
+        // El checkin está almacenado como string en formato YYYY-MM-DD
+        // Usamos comparación de strings ya que el formato es ISO (YYYY-MM-DD)
+        if (fechaDesde && fechaHasta) {
+          // Rango completo: desde fechaDesde hasta fechaHasta
+          filter['reservation.checkin'] = {
+            $gte: fechaDesde.trim(),
+            $lte: fechaHasta.trim(),
+          };
+        } else if (fechaDesde) {
+          // Solo fechaDesde: checkin >= fechaDesde
+          filter['reservation.checkin'] = {
+            $gte: fechaDesde.trim(),
+          };
+        } else if (fechaHasta) {
+          // Solo fechaHasta: checkin <= fechaHasta
+          filter['reservation.checkin'] = {
+            $lte: fechaHasta.trim(),
+          };
+        }
       }
 
       // Obtener la suma de totales de reservas no canceladas (con caché)
@@ -1586,6 +1647,9 @@ export class ReservasService {
             total,
             sumaTotalesNoCanceladas: totalSuma,
             ...(hotel && { hotelFiltrado: hotel }),
+            ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
+            ...(fechaDesde && { fechaDesde }),
+            ...(fechaHasta && { fechaHasta }),
           },
         };
       }
@@ -1620,6 +1684,9 @@ export class ReservasService {
           totalPages: Math.ceil(total / PAGE_SIZE) || 1,
           sumaTotalesNoCanceladas: totalSuma,
           ...(hotel && { hotelFiltrado: hotel }),
+          ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
+          ...(fechaDesde && { fechaDesde }),
+          ...(fechaHasta && { fechaHasta }),
         },
       };
     } catch (error) {
