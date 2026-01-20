@@ -41,9 +41,4 @@ export class CreatePackageDto {
   @IsOptional()
   @IsString()
   language?: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => WebhookDto)
-  webhook?: WebhookDto;
 }
