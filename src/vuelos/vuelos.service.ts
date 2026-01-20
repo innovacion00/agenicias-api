@@ -217,4 +217,47 @@ export class VuelosService {
       throw error;
     }
   }
+
+  /**
+   * Obtiene información de equipaje disponible para un paquete usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete obtenido después de su creación
+   * @returns Información de equipaje disponible
+   */
+  async getLuggageMaarLab(packageId: string): Promise<any> {
+    try {
+      this.logger.log('Iniciando consulta de equipaje en MaarLab...');
+      this.logger.log(`Package ID recibido en VuelosService: ${packageId}`);
+      
+      const result = await this.maarlabService.getLuggage(packageId);
+      
+      this.logger.log('Consulta de equipaje completada exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.getLuggageMaarLab:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Agrega extras seleccionados a un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete obtenido después de su creación
+   * @param extrasData - Datos de los extras a agregar
+   * @param info - Nivel de detalle de la respuesta
+   * @returns Información del paquete actualizado
+   */
+  async addExtrasMaarLab(packageId: string, extrasData: any, info: string = 'all'): Promise<any> {
+    try {
+      this.logger.log('Iniciando agregado de extras en MaarLab...');
+      this.logger.log(`Package ID recibido en VuelosService: ${packageId}, Info: ${info}`);
+      this.logger.log(`Extras data: ${JSON.stringify(extrasData)}`);
+      
+      const result = await this.maarlabService.addExtras(packageId, extrasData, info);
+      
+      this.logger.log('Extras agregados exitosamente en VuelosService');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.addExtrasMaarLab:', error);
+      throw error;
+    }
+  }
 }

@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   HttpStatus,
   HttpCode,
+  HttpException,
   Logger,
   UseInterceptors,
   UseFilters,
@@ -24,7 +25,8 @@ import {
   SearchCitiesDto,
   FlightOrderDto,
   MaarLabFlightSearchDto,
-  CreatePackageDto
+  CreatePackageDto,
+  AddExtrasDto
 } from './dto';
 import {
   AmadeusLocationResponse,
@@ -442,6 +444,113 @@ export class VuelosController {
           flightId: createPackageDto.flightId,
           currency: createPackageDto.currency
         }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener información de equipaje disponible para un paquete usando la API de MaarLab Oceanflights
+   * @param packageId - ID del paquete obtenido después de su creación (query param)
+   * @returns Información de equipaje disponible
+   */
+  @Get('maarlab/equipaje')
+  @HttpCode(HttpStatus.OK)
+  async getLuggageMaarLab(
+    @Query('packageId') packageId: string
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'getLuggageMaarLab',
+      method: 'GET',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Consulta de equipaje MaarLab solicitada`, {
+      requestId: logContext.requestId,
+      packageId
+    });
+
+    if (!packageId || packageId.trim() === '') {
+      throw new HttpException(
+        'El parámetro packageId es requerido',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const luggageResult = await this.vuelosService.getLuggageMaarLab(packageId.trim());
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Consulta de equipaje MaarLab completada exitosamente`, {
+        requestId: logContext.requestId,
+        hasResult: !!luggageResult
+      });
+
+      return luggageResult;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en consulta de equipaje MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        packageId
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Agregar extras seleccionados a un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param addExtrasDto - Datos de los extras a agregar
+   * @param packageId - ID del paquete obtenido después de su creación (query param)
+   * @param info - Nivel de detalle de la respuesta (query param, default: 'all')
+   * @returns Información del paquete actualizado
+   */
+  @Post('maarlab/extras')
+  @HttpCode(HttpStatus.OK)
+  async addExtrasMaarLab(
+    @Body(new ValidationPipe({ transform: true })) addExtrasDto: AddExtrasDto,
+    @Query('packageId') packageId: string,
+    @Query('info') info: string = 'all'
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'addExtrasMaarLab',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Agregado de extras MaarLab solicitado`, {
+      requestId: logContext.requestId,
+      packageId,
+      info
+    });
+
+    if (!packageId || packageId.trim() === '') {
+      throw new HttpException(
+        'El parámetro packageId es requerido',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const result = await this.vuelosService.addExtrasMaarLab(
+        packageId.trim(),
+        addExtrasDto.extras,
+        info
+      );
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Extras agregados exitosamente en MaarLab`, {
+        requestId: logContext.requestId,
+        hasResult: !!result
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en agregado de extras MaarLab`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        packageId
       });
       
       throw error;
