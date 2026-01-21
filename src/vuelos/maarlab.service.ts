@@ -341,14 +341,18 @@ export class MaarLabService {
 
       // Construir la URL base
       let baseUrl = envs.maarlabBaseUrl.trim();
+      this.logger.debug(`MAARLAB_BASE_URL original: ${baseUrl}`);
+      
       if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
         baseUrl = `https://${baseUrl}`;
       }
       // Eliminar barra final si existe
       baseUrl = baseUrl.replace(/\/$/, '');
+      this.logger.debug(`Base URL después de limpiar: ${baseUrl}`);
       
-      // Construir la URL con el endpoint
-      const endpoint = `${baseUrl}/getLuggage/`;
+      // Construir la URL con el endpoint (getLuggages con 's' según documentación MaarLab)
+      const endpoint = `${baseUrl}/getLuggages/`;
+      this.logger.debug(`Endpoint construido: ${endpoint}`);
 
       // Construir query parameters
       const queryParams = new URLSearchParams();
@@ -356,7 +360,7 @@ export class MaarLabService {
 
       const url = `${endpoint}?${queryParams.toString()}`;
 
-      this.logger.debug(`URL de consulta de equipaje: ${url}`);
+      this.logger.debug(`URL completa de consulta de equipaje: ${url}`);
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(url, {
@@ -372,26 +376,60 @@ export class MaarLabService {
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al consultar equipaje en MaarLab:', error.response?.data || error.message);
-      
+       // Log detallado del error
       if (error instanceof AxiosError) {
+        this.logger.error('Error detallado de MaarLab al consultar equipaje:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+          method: error.config?.method,
+          packageId,
+        });
+        
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            {
+              message: 'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+              maarLabError: error.response.data,
+            },
             HttpStatus.UNAUTHORIZED,
           );
         }
         
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de consulta de equipaje inválidos',
+            {
+              message: error.response.data?.message || 'Parámetros de consulta de equipaje inválidos',
+              maarLabError: error.response.data,
+            },
             HttpStatus.BAD_REQUEST,
           );
         }
         
         if (error.response?.status === 404) {
+          // Verificar si el error es sobre un recurso específico (Package ID) o si es realmente un endpoint no encontrado
+          const maarLabMessage = error.response.data?.errors?.message || 
+                                 error.response.data?.message || 
+                                 error.response.data?.detail || 
+                                 JSON.stringify(error.response.data);
+          
+          // Si el mensaje contiene "not found" o "no encontrado", es un recurso no encontrado
+          const isResourceNotFound = maarLabMessage.toLowerCase().includes('not found') || 
+                                    maarLabMessage.toLowerCase().includes('no encontrado');
+          
+          const errorMessage = isResourceNotFound 
+            ? maarLabMessage 
+            : 'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.';
+          
           throw new HttpException(
-            'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
+            {
+              message: errorMessage,
+              maarLabError: error.response.data,
+              maarLabMessage,
+              url: error.config?.url,
+              packageId,
+            },
             HttpStatus.NOT_FOUND,
           );
         }
