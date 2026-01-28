@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   Get,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -126,6 +127,49 @@ export class AuthController {
   @HttpCode(200)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);
+  }
+
+  @ApiOperation({ summary: 'Cerrar sesión (revocar refresh token actual)' })
+  @ApiResponse({ status: 200, description: 'Sesión cerrada' })
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @Post('logout')
+  @HttpCode(200)
+  logout(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.logout(refreshTokenDto);
+  }
+
+  @ApiOperation({ summary: 'Revocar todas las sesiones del usuario' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Todas las sesiones revocadas' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @Post('revoke-all-sessions')
+  @HttpCode(200)
+  @Auth()
+  revokeAllSessions(@GetUser('_id') userId: string) {
+    return this.authService.revokeUserRefreshTokens(userId);
+  }
+
+  @ApiOperation({ summary: 'Listar sesiones activas del usuario' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Lista de sesiones (sin token)' })
+  @Get('sessions')
+  @Auth()
+  getSessions(@GetUser('_id') userId: string) {
+    return this.authService.getSessions(userId);
+  }
+
+  @ApiOperation({ summary: 'Revocar una sesión por ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'sessionId', description: 'ID de la sesión (MongoId)' })
+  @ApiResponse({ status: 200, description: 'Sesión revocada' })
+  @ApiResponse({ status: 404, description: 'Sesión no encontrada' })
+  @Delete('sessions/:sessionId')
+  @Auth()
+  revokeSession(
+    @GetUser('_id') userId: string,
+    @Param('sessionId', ParseMongoIdPipe) sessionId: string,
+  ) {
+    return this.authService.revokeSessionById(userId, sessionId);
   }
 
   // #region otp code

@@ -47,9 +47,7 @@ import { IntegrationsModule } from 'src/integrations/integrations.module';
         return {
           secret: envs.jwtSecret,
           signOptions: {
-            // Access tokens con expiración corta (15 minutos)
-            // Los refresh tokens tendrán expiración más larga (7 días)
-            expiresIn: '60m',
+            expiresIn: envs.jwtAccessExpiresIn,
           },
         };
       },

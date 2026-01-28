@@ -1,6 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
+export interface DeviceInfo {
+  userAgent?: string;
+  deviceId?: string;
+}
+
 @Schema()
 export class RefreshToken extends Document {
   @Prop({
@@ -22,9 +27,29 @@ export class RefreshToken extends Document {
   expiresAt: Date;
 
   @Prop({
+    required: false,
+    default: Date.now,
+  })
+  lastUsedAt?: Date;
+
+  @Prop({
     default: true,
   })
   isActive: boolean;
+
+  @Prop({
+    type: {
+      userAgent: String,
+      deviceId: String,
+    },
+    required: false,
+  })
+  deviceInfo?: DeviceInfo;
+
+  @Prop({
+    required: false,
+  })
+  ip?: string;
 
   @Prop({
     default: Date.now,
@@ -43,6 +68,7 @@ export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);
 RefreshTokenSchema.index({ userId: 1 });
 RefreshTokenSchema.index({ token: 1 });
 RefreshTokenSchema.index({ expiresAt: 1 });
+RefreshTokenSchema.index({ userId: 1, isActive: 1 });
 
 // Middleware para actualizar updatedAt
 RefreshTokenSchema.pre('save', function (next) {

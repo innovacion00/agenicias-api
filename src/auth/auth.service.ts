@@ -28,8 +28,11 @@ import {
   ValidateAccessTokenDto,
 } from './dto';
 import { OtpVerification, RefreshToken } from './entities';
+import { DeviceInfo } from './entities/refresh-token.entity';
 import { randomBytes } from 'crypto';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SendEmailCustomService } from 'src/common/services';
+import { envs } from 'src/config';
 
 @Injectable()
 export class AuthService {
@@ -62,39 +65,62 @@ export class AuthService {
     return token;
   }
 
-  private async generateRefreshToken(userId: Types.ObjectId): Promise<string> {
-    // Generar token único usando crypto
+  private async generateRefreshToken(
+    userId: Types.ObjectId,
+    deviceInfo?: DeviceInfo,
+    ip?: string,
+  ): Promise<string> {
     const refreshToken = randomBytes(64).toString('hex');
-    
-    // Calcular fecha de expiración (7 días)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const now = new Date();
+    const slidingDays = envs.refreshTokenSlidingDays;
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + slidingDays);
 
-    // Desactivar refresh tokens anteriores del usuario
-    await this.refreshTokenModel.updateMany(
-      { userId, isActive: true },
-      { isActive: false }
-    );
+    const activeCount = await this.refreshTokenModel.countDocuments({
+      userId,
+      isActive: true,
+    });
+    const maxSessions = envs.maxSessionsPerUser;
+    if (activeCount >= maxSessions) {
+      const oldest = await this.refreshTokenModel
+        .findOne({ userId, isActive: true })
+        .sort({ lastUsedAt: 1 })
+        .exec();
+      if (oldest) {
+        oldest.isActive = false;
+        await oldest.save();
+      }
+    }
 
-    // Crear nuevo refresh token
     await this.refreshTokenModel.create({
       userId,
       token: refreshToken,
       expiresAt,
+      lastUsedAt: now,
       isActive: true,
+      deviceInfo: deviceInfo ?? undefined,
+      ip: ip ?? undefined,
     });
 
     return refreshToken;
   }
 
-  private async generateTokenPair(userId: string) {
+  private async generateTokenPair(
+    userId: string,
+    deviceInfo?: DeviceInfo,
+    ip?: string,
+  ) {
     const accessToken = this.generateJwt({ _id: userId });
-    const refreshToken = await this.generateRefreshToken(new Types.ObjectId(userId));
-    
+    const refreshToken = await this.generateRefreshToken(
+      new Types.ObjectId(userId),
+      deviceInfo,
+      ip,
+    );
+
     return {
       accessToken,
       refreshToken,
-      expiresIn: '15m', // 15 minutos para el access token
+      expiresIn: envs.jwtAccessExpiresIn,
     };
   }
 
@@ -608,11 +634,14 @@ td {
   }
 
   // #region Refresh Token
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+  async refreshToken(
+    refreshTokenDto: RefreshTokenDto,
+    deviceInfo?: DeviceInfo,
+    ip?: string,
+  ) {
     try {
       const { token } = refreshTokenDto;
 
-      // Buscar el refresh token en la base de datos
       const refreshTokenDoc = await this.refreshTokenModel.findOne({
         token,
         isActive: true,
@@ -622,15 +651,22 @@ td {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // Verificar si el token ha expirado
-      if (refreshTokenDoc.expiresAt < new Date()) {
-        // Desactivar el token expirado
+      const now = new Date();
+      if (refreshTokenDoc.expiresAt < now) {
         refreshTokenDoc.isActive = false;
         await refreshTokenDoc.save();
         throw new UnauthorizedException('Refresh token expired');
       }
 
-      // Buscar el usuario asociado
+      const lastUsed = refreshTokenDoc.lastUsedAt ?? refreshTokenDoc.createdAt;
+      const slidingDeadline = new Date(lastUsed.getTime());
+      slidingDeadline.setDate(slidingDeadline.getDate() + envs.refreshTokenSlidingDays);
+      if (slidingDeadline < now) {
+        refreshTokenDoc.isActive = false;
+        await refreshTokenDoc.save();
+        throw new UnauthorizedException('Session expired due to inactivity');
+      }
+
       const user = await this.userModel
         .findById(refreshTokenDoc.userId)
         .select(this.userAttributes)
@@ -641,20 +677,20 @@ td {
         throw new UnauthorizedException('User not found or inactive');
       }
 
-      // Verificar que la agencia esté activa
       const agencia = await this.agenciaModel.findById(user.agencia);
       if (!agencia || !agencia.isActive) {
         throw new ForbiddenException('Agency not active');
       }
 
-      // Desactivar el refresh token usado (rotación de tokens)
       refreshTokenDoc.isActive = false;
       await refreshTokenDoc.save();
 
-      // Generar nuevos tokens
-      const tokens = await this.generateTokenPair((user._id as Types.ObjectId).toString());
+      const tokens = await this.generateTokenPair(
+        (user._id as Types.ObjectId).toString(),
+        deviceInfo ?? refreshTokenDoc.deviceInfo,
+        ip ?? refreshTokenDoc.ip,
+      );
 
-      // Devolver usuario con nuevos tokens
       const { password, ...userWithoutPassword } = user.toJSON();
       return {
         ...userWithoutPassword,
@@ -743,13 +779,18 @@ td {
           { isActive: false }
         ]
       });
-      
+
       this.logger.log(`Cleaned up ${result.deletedCount} expired refresh tokens`);
       return { deletedCount: result.deletedCount };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async handleCleanupExpiredRefreshTokens() {
+    await this.cleanupExpiredRefreshTokens();
   }
 
   // #region Revocar todos los refresh tokens de un usuario
@@ -759,13 +800,59 @@ td {
         { userId: new Types.ObjectId(userId), isActive: true },
         { isActive: false }
       );
-      
+
       this.logger.log(`Revoked ${result.modifiedCount} refresh tokens for user ${userId}`);
       return { revokedCount: result.modifiedCount };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  // #region Logout y sesiones
+  async logout(refreshTokenDto: RefreshTokenDto) {
+    const { token } = refreshTokenDto;
+    const session = await this.refreshTokenModel.findOne({
+      token,
+      isActive: true,
+    });
+    if (session) {
+      session.isActive = false;
+      await session.save();
+    }
+    return { ok: true };
+  }
+
+  async getSessions(userId: string) {
+    const sessions = await this.refreshTokenModel
+      .find({ userId: new Types.ObjectId(userId), isActive: true })
+      .select('_id lastUsedAt deviceInfo ip createdAt')
+      .sort({ lastUsedAt: -1 })
+      .lean()
+      .exec();
+    return sessions.map((s) => ({
+      id: s._id,
+      lastUsedAt: s.lastUsedAt ?? s.createdAt,
+      deviceInfo: s.deviceInfo,
+      createdAt: s.createdAt,
+    }));
+  }
+
+  async revokeSessionById(userId: string, sessionId: string) {
+    if (!isValidObjectId(sessionId)) {
+      throw new BadRequestException('Invalid session id');
+    }
+    const session = await this.refreshTokenModel.findOne({
+      _id: sessionId,
+      userId: new Types.ObjectId(userId),
+      isActive: true,
+    });
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+    session.isActive = false;
+    await session.save();
+    return { ok: true };
   }
 
   // #region Administrativo

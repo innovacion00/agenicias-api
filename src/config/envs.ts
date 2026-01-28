@@ -8,6 +8,9 @@ interface EnvVars {
   MONGO_URL: string;
 
   JWT_SECRET: string;
+  JWT_ACCESS_EXPIRES_IN?: string;
+  REFRESH_TOKEN_SLIDING_DAYS?: number;
+  MAX_SESSIONS_PER_USER?: number;
 
   //? Cobre
   COBRE_API_URL: string;
@@ -81,6 +84,17 @@ const envSchema = joi
     MONGO_URL: joi.string().required(),
 
     JWT_SECRET: joi.string().required(),
+    JWT_ACCESS_EXPIRES_IN: joi.string().optional().default('60m'),
+    REFRESH_TOKEN_SLIDING_DAYS: joi
+      .alternatives()
+      .try(joi.number(), joi.string())
+      .optional()
+      .default(7),
+    MAX_SESSIONS_PER_USER: joi
+      .alternatives()
+      .try(joi.number(), joi.string())
+      .optional()
+      .default(10),
 
     //? Cobre
     COBRE_API_URL: joi.string().required(),
@@ -161,6 +175,9 @@ export const envs = {
   mongoUrl: envVars.MONGO_URL,
 
   jwtSecret: envVars.JWT_SECRET,
+  jwtAccessExpiresIn: envVars.JWT_ACCESS_EXPIRES_IN ?? '60m',
+  refreshTokenSlidingDays: Number(envVars.REFRESH_TOKEN_SLIDING_DAYS) || 7,
+  maxSessionsPerUser: Number(envVars.MAX_SESSIONS_PER_USER) || 10,
 
   //? Cobre
   cobreApiUrl: envVars.COBRE_API_URL,

@@ -87,7 +87,7 @@ export class CotizacionesController {
     const limitNum = limit ? parseInt(limit, 10) : 25;
 
     if (isSuperAdmin) {
-      return this.cotizacionesService.findAll(pageNum, limitNum);
+      return this.cotizacionesService.findAll(pageNum, limitNum);x
     }
 
     return this.cotizacionesService.findAllByAgencia(

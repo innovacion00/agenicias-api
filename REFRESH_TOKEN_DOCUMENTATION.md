@@ -2,24 +2,30 @@
 
 ## 📋 Resumen
 
-Se ha implementado un sistema completo de refresh tokens para la API de agencias que incluye:
+Sistema de refresh tokens para la API de agencias con:
 
-- **Access tokens** con expiración corta (15 minutos)
-- **Refresh tokens** con expiración larga (7 días)
+- **Access tokens** con expiración configurable (`JWT_ACCESS_EXPIRES_IN`, por defecto 60m)
+- **Refresh tokens** con **expiración deslizante** (`REFRESH_TOKEN_SLIDING_DAYS`, por defecto 7 días de inactividad)
+- **Múltiples sesiones simultáneas**: varios dispositivos/navegadores pueden estar logueados a la vez
 - Rotación automática de tokens por seguridad
-- Limpieza automática de tokens expirados
+- Limpieza automática de tokens expirados (cron diario a las 3:00 AM)
+- Endpoints de sesión: logout, listar sesiones, revocar una sesión o todas
 
 ## 🏗️ Arquitectura
 
 ### Entidades
-- `RefreshToken`: Almacena los refresh tokens en MongoDB
-- Campos: `userId`, `token`, `expiresAt`, `isActive`, `createdAt`, `updatedAt`
+- `RefreshToken`: Almacena sesiones/refresh tokens en MongoDB
+- Campos: `userId`, `token`, `expiresAt`, `lastUsedAt`, `isActive`, `deviceInfo` (opcional), `ip` (opcional), `createdAt`, `updatedAt`
+- `lastUsedAt` se usa para expiración deslizante; `deviceInfo` e `ip` para listar y revocar sesiones por dispositivo
 
 ### Servicios
-- `AuthService.generateTokenPair()`: Genera access + refresh token
-- `AuthService.refreshToken()`: Renueva tokens usando refresh token
-- `AuthService.cleanupExpiredRefreshTokens()`: Limpia tokens expirados
-- `AuthService.revokeUserRefreshTokens()`: Revoca todos los tokens de un usuario
+- `AuthService.generateTokenPair()`: Genera access + refresh token (no invalida otras sesiones)
+- `AuthService.refreshToken()`: Renueva tokens con validación de ventana deslizante y rotación
+- `AuthService.logout()`: Revoca la sesión asociada al refresh token enviado
+- `AuthService.getSessions()`: Lista sesiones activas del usuario (sin el token)
+- `AuthService.revokeSessionById()`: Revoca una sesión por ID
+- `AuthService.revokeUserRefreshTokens()`: Revoca todas las sesiones del usuario
+- `AuthService.cleanupExpiredRefreshTokens()`: Elimina tokens expirados o inactivos (invocado por cron diario)
 
 ## 🔗 Endpoints
 
@@ -44,9 +50,10 @@ POST /auth/sign-in
   "agencia": {...},
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6...",
-  "expiresIn": "15m"
+  "expiresIn": "60m"
 }
 ```
+El valor de `expiresIn` viene de la variable de entorno `JWT_ACCESS_EXPIRES_IN` (por defecto `60m`).
 
 ### 2. Validar OTP (Actualizado)
 ```http
@@ -81,9 +88,42 @@ POST /auth/refresh-token
   "agencia": {...},
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a1...",
-  "expiresIn": "15m"
+  "expiresIn": "60m"
 }
 ```
+
+### 4. Logout (Cerrar sesión actual)
+```http
+POST /auth/logout
+```
+**Body:**
+```json
+{
+  "token": "<refresh_token>"
+}
+```
+**Respuesta:** `{ "ok": true }`. La sesión asociada al refresh token se marca como inactiva.
+
+### 5. Revocar todas las sesiones
+```http
+POST /auth/revoke-all-sessions
+Authorization: Bearer <access_token>
+```
+**Respuesta:** `{ "revokedCount": N }`. Útil tras cambio de contraseña o “cerrar sesión en todos los dispositivos”.
+
+### 6. Listar sesiones activas
+```http
+GET /auth/sessions
+Authorization: Bearer <access_token>
+```
+**Respuesta:** Lista de sesiones con `id`, `lastUsedAt`, `deviceInfo`, `createdAt` (sin el token).
+
+### 7. Revocar una sesión por ID
+```http
+DELETE /auth/sessions/:sessionId
+Authorization: Bearer <access_token>
+```
+**Respuesta:** `{ "ok": true }`. Solo se revoca si la sesión pertenece al usuario autenticado.
 
 ## 🔄 **Flujo Completo del Sistema de Refresh Tokens**
 
@@ -141,15 +181,12 @@ POST /auth/refresh-token
 ### **🔍 Explicación Detallada del Flujo:**
 
 #### **FASE 1: Autenticación Inicial**
-1. **Usuario hace login** con email y password
+1. **Usuario hace login** con email y password (cada dispositivo/navegador crea una sesión nueva; las demás no se invalidan).
 2. **Sistema valida credenciales** y genera:
-   - **Access Token** (JWT válido por 15 minutos)
-   - **Refresh Token** (string único válido por 7 días)
+   - **Access Token** (JWT, expiración configurable por `JWT_ACCESS_EXPIRES_IN`)
+   - **Refresh Token** (string único con ventana deslizante de `REFRESH_TOKEN_SLIDING_DAYS` días)
 3. **Refresh Token se almacena** en la base de datos con:
-   - `userId`: ID del usuario
-   - `token`: string único de 128 caracteres
-   - `expiresAt`: fecha de expiración (7 días)
-   - `isActive`: true
+   - `userId`, `token`, `expiresAt`, `lastUsedAt`, `isActive`, opcionalmente `deviceInfo` e `ip`
 4. **Frontend recibe ambos tokens** y los almacena
 
 #### **FASE 2: Uso Normal de la API**
@@ -166,18 +203,16 @@ POST /auth/refresh-token
 
 #### **FASE 4: Proceso de Refresh**
 1. **Interceptor obtiene** el Refresh Token del localStorage
-2. **Hace petición POST** a `/agencias/v1/auth/refresh-token`
+2. **Hace petición POST** a `/auth/refresh-token`
 3. **Sistema valida** el Refresh Token:
-   - Verifica que exista en la base de datos
-   - Confirma que esté activo (`isActive: true`)
-   - Valida que no haya expirado
-   - Verifica que el usuario esté activo
-   - Confirma que la agencia esté activa
-4. **Si es válido**, genera nuevos tokens:
-   - **Nuevo Access Token** (15 minutos)
-   - **Nuevo Refresh Token** (7 días)
+   - Verifica que exista en la base de datos y esté activo
+   - Valida que no haya expirado (`expiresAt`)
+   - **Expiración deslizante**: si no se ha usado en los últimos `REFRESH_TOKEN_SLIDING_DAYS` días (`lastUsedAt`), la sesión se considera expirada por inactividad
+   - Verifica que el usuario y la agencia estén activos
+4. **Si es válido**, genera nuevos tokens (rotación):
+   - **Nuevo Access Token** y **Nuevo Refresh Token** con nueva ventana deslizante
 5. **Refresh Token anterior se desactiva** (`isActive: false`)
-6. **Nuevo Refresh Token se almacena** en la base de datos
+6. **Nuevo Refresh Token se almacena** como nueva sesión
 
 #### **FASE 5: Actualización y Reintento**
 1. **Frontend actualiza** ambos tokens en localStorage
@@ -185,18 +220,11 @@ POST /auth/refresh-token
 3. **Usuario continúa** usando la aplicación sin interrupciones
 4. **Proceso es transparente** para el usuario final
 
-### **⏰ Cronología de Expiración:**
+### **⏰ Cronología de Expiración**
 
-```
-Tiempo 0:00    → Login exitoso, tokens generados
-Tiempo 0:15    → Access Token expira (15 minutos)
-Tiempo 0:15    → Primera petición falla (401)
-Tiempo 0:15    → Refresh automático exitoso
-Tiempo 0:15    → Petición original se completa
-Tiempo 0:30    → Nuevo Access Token expira
-Tiempo 0:30    → Proceso se repite...
-Tiempo 7 días  → Refresh Token expira, usuario debe hacer login
-```
+- **Access Token:** Expira según `JWT_ACCESS_EXPIRES_IN` (ej. 60m). Al expirar, el cliente debe usar el refresh token.
+- **Refresh Token (expiración deslizante):** La sesión sigue válida mientras se use al menos una vez cada `REFRESH_TOKEN_SLIDING_DAYS` días (por defecto 7). Si el usuario no usa el refresh token durante ese período, la sesión expira por inactividad y debe hacer login de nuevo.
+- **Múltiples sesiones:** Cada login (o validate-otp) crea una sesión nueva sin cerrar las demás. Hay un límite opcional por usuario (`MAX_SESSIONS_PER_USER`, por defecto 10); si se supera, se desactiva la sesión más antigua por `lastUsedAt`.
 
 ### **🔄 Rotación de Tokens (Seguridad):**
 
@@ -217,16 +245,22 @@ Tiempo 7 días  → Refresh Token expira, usuario debe hacer login
 > - Mantener dependencias actualizadas
 > - Considerar el uso de httpOnly cookies en entornos de alta seguridad
 
-### **🛡️ Medidas de Seguridad Implementadas:**
+### **🛡️ Medidas de Seguridad Implementadas**
 
-1. **Rotación de Tokens**: Cada vez que se usa un refresh token, se genera uno nuevo y el anterior se desactiva
-2. **Expiración Corta de Access Tokens**: 15 minutos para minimizar exposición
-3. **Expiración de Refresh Tokens**: 7 días para balance entre seguridad y UX
-4. **Desactivación Automática**: Tokens expirados se marcan como inactivos
-5. **Validación de Usuario y Agencia**: Se verifica que ambos estén activos al refrescar
-6. **Rotación Automática**: Cada refresh invalida el token anterior
+1. **Rotación de Tokens**: Cada refresh genera tokens nuevos y desactiva el anterior
+2. **Expiración de Access Token**: Configurable (`JWT_ACCESS_EXPIRES_IN`) para minimizar exposición
+3. **Expiración deslizante de Refresh Token**: La sesión caduca si no se usa en `REFRESH_TOKEN_SLIDING_DAYS` días
+4. **Múltiples sesiones**: Cada dispositivo mantiene su propia sesión; el usuario puede listar y revocar sesiones concretas
+5. **Logout**: Endpoint para cerrar la sesión actual enviando el refresh token
+6. **Revocar todas las sesiones**: Útil tras cambio de contraseña
 7. **Validación en Base de Datos**: Refresh tokens se validan contra la BD
-8. **Limpieza Automática**: Tokens expirados se eliminan periódicamente
+8. **Limpieza automática**: Cron diario (3:00 AM) elimina tokens expirados o inactivos
+
+### **Variables de entorno**
+
+- `JWT_ACCESS_EXPIRES_IN`: Expiración del access token (ej. `15m`, `60m`). Por defecto `60m`.
+- `REFRESH_TOKEN_SLIDING_DAYS`: Días de inactividad antes de expirar la sesión. Por defecto `7`.
+- `MAX_SESSIONS_PER_USER`: Máximo de sesiones activas por usuario. Por defecto `10`.
 
 ## 💻 Uso en Frontend
 
