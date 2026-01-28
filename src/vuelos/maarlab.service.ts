@@ -464,6 +464,8 @@ export class MaarLabService {
    * @returns Respuesta con información del paquete actualizado
    */
   async addExtras(packageId: string, extrasData: any, info: string = 'all'): Promise<any> {
+    let url = '';
+    let requestBody: any = {};
     try {
       this.logger.log('Iniciando agregado de extras en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}, Info: ${info}`);
@@ -485,22 +487,34 @@ export class MaarLabService {
       // Eliminar barra final si existe
       baseUrl = baseUrl.replace(/\/$/, '');
       
-      // Construir la URL con el endpoint
-      const endpoint = `${baseUrl}/addExtras`;
+      // Construir la URL con el endpoint (con barra final según patrón de otros endpoints)
+      const endpoint = `${baseUrl}/addExtras/`;
 
-      // Construir query parameters
+      // Construir query parameters (solo info, packageId va en el body)
       const queryParams = new URLSearchParams();
-      queryParams.append('packageId', packageId);
       if (info) {
         queryParams.append('info', info);
       }
 
-      const url = `${endpoint}?${queryParams.toString()}`;
+      url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
 
       this.logger.debug(`URL de agregado de extras: ${url}`);
 
-      // Realizar la petición POST
-      const response: AxiosResponse = await axios.post(url, extrasData, {
+      // La API de MaarLab espera packageId y extras en el body
+      // Si extrasData ya es un objeto con "extras", lo usamos directamente
+      // Si es un array, lo envuelve en un objeto con la propiedad "extras"
+      const extrasArray = Array.isArray(extrasData) ? extrasData : (extrasData.extras || extrasData);
+      
+      requestBody = {
+        packageId: packageId,
+        extras: extrasArray
+      };
+
+      this.logger.log(`Request body completo: ${JSON.stringify(requestBody, null, 2)}`);
+      this.logger.log(`Package ID en body: ${packageId}`);
+
+      // Realizar la petición PUT (la API de MaarLab requiere PUT para addExtras)
+      const response: AxiosResponse = await axios.put(url, requestBody, {
         headers: {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
@@ -524,15 +538,34 @@ export class MaarLabService {
         }
         
         if (error.response?.status === 400) {
+          const errorDetails = error.response?.data 
+            ? JSON.stringify(error.response.data)
+            : 'Sin detalles adicionales';
+          this.logger.error(`Error 400 en addExtras - Response: ${errorDetails}`);
           throw new HttpException(
             error.response.data?.message || 'Parámetros de agregado de extras inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
+
+        if (error.response?.status === 422) {
+          const errorDetails = error.response?.data 
+            ? JSON.stringify(error.response.data)
+            : 'Sin detalles adicionales';
+          this.logger.error(`Error 422 en addExtras - URL: ${url}, PackageId: ${packageId}, Request Body: ${JSON.stringify(requestBody)}, Response: ${errorDetails}`);
+          throw new HttpException(
+            `Error de validación en MaarLab: ${errorDetails}`,
+            HttpStatus.UNPROCESSABLE_ENTITY,
+          );
+        }
         
         if (error.response?.status === 404) {
+          const errorDetails = error.response?.data 
+            ? JSON.stringify(error.response.data)
+            : 'Sin detalles adicionales';
+          this.logger.error(`Error 404 en addExtras - URL: ${url}, PackageId: ${packageId}, Response: ${errorDetails}`);
           throw new HttpException(
-            'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
+            `Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId. Detalles: ${errorDetails}`,
             HttpStatus.NOT_FOUND,
           );
         }

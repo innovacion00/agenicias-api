@@ -513,7 +513,7 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   async addExtrasMaarLab(
     @Body(new ValidationPipe({ transform: true })) addExtrasDto: AddExtrasDto,
-    @Query('packageId') packageId: string,
+    @Query('packageId') packageIdQuery?: string,
     @Query('info') info: string = 'all'
   ): Promise<any> {
     const logContext: LogContext = {
@@ -523,22 +523,25 @@ export class VuelosController {
       timestamp: new Date().toISOString()
     };
 
+    // Priorizar packageId del query parameter, si no está usar el del body
+    const packageId = (packageIdQuery?.trim() || addExtrasDto.packageId?.trim() || '');
+
     this.logger.log(`[CONTROLLER] Agregado de extras MaarLab solicitado`, {
       requestId: logContext.requestId,
       packageId,
       info
     });
 
-    if (!packageId || packageId.trim() === '') {
+    if (!packageId) {
       throw new HttpException(
-        'El parámetro packageId es requerido',
+        'El parámetro packageId es requerido (puede enviarse como query parameter o en el body)',
         HttpStatus.BAD_REQUEST,
       );
     }
 
     try {
       const result = await this.vuelosService.addExtrasMaarLab(
-        packageId.trim(),
+        packageId,
         addExtrasDto.extras,
         info
       );
