@@ -42,6 +42,32 @@ export class HttpCustomService {
 
   private logger = new Logger(HttpCustomService.name);
 
+  private isAlreadyCanceledResponse(error: any): boolean {
+    if (!axios.isAxiosError(error) || !error.response) {
+      return false;
+    }
+
+    const status = error.response.status;
+    const data = error.response.data || {};
+    const rawMessage = (
+      data?.message ||
+      data?.msg ||
+      data?.error ||
+      ''
+    )
+      .toString()
+      .toLowerCase();
+
+    const hasCancellationHint =
+      rawMessage.includes('already') ||
+      rawMessage.includes('cancelad') ||
+      rawMessage.includes('not found') ||
+      rawMessage.includes('no encontrada') ||
+      rawMessage.includes('no existe');
+
+    return (status === 404 || status === 409 || status === 400) && hasCancellationHint;
+  }
+
   // #region Controlador de errores
   private axiosError(error: any, apiName: string) {
     if (axios.isAxiosError(error)) {
@@ -459,8 +485,14 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
-      return data;
+      return { ...data, alreadyCanceled: false };
     } catch (error) {
+      if (this.isAlreadyCanceledResponse(error)) {
+        return {
+          msg: `Reserva ${chatbotId} ya estaba cancelada en Autocore`,
+          alreadyCanceled: true,
+        };
+      }
       this.axiosError(error, this.cancelarReservas.name);
     }
   }

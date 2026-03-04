@@ -42,6 +42,7 @@ import {
 import { Reserva } from './entities';
 import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
+import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 
 @Injectable()
 export class ReservasService {
@@ -62,6 +63,7 @@ export class ReservasService {
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
     private readonly emailService: SendEmailCustomService,
     private readonly httpCustomService: HttpCustomService,
+    private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     @InjectConnection()
     private readonly connection: Connection,
   ) {
@@ -635,12 +637,71 @@ export class ReservasService {
     }
   }
 
+  private enqueuePostCancellationTasks(reserva: Reserva, agenciaDoc: Agencia): void {
+    const reservaId = reserva._id.toString();
+
+    if (reserva.linksHistory) {
+      for (const linkInfo of reserva.linksHistory) {
+        if (
+          (linkInfo.state === ValidPaymentStatus.mitad ||
+            linkInfo.state === ValidPaymentStatus.total) &&
+          linkInfo.id
+        ) {
+          this.cancellationTasksQueueService.enqueueRefundJob(reservaId, {
+            idLink: linkInfo.id,
+            agenciaId: agenciaDoc.autocoreInfo.id,
+            chatbotId: reserva.reservaChatbotId,
+          });
+        }
+      }
+    }
+
+    const saldoFavor =
+      reserva.status !== ValidPaymentStatus.total ? reserva.totalMitad : reserva.total;
+
+    const mensajeReserva = notificacionCancelacionVoluntariaReservas(
+      reserva.reservaChatbotId,
+      agenciaDoc.fullName,
+      reserva.pagadoPrimeraMitad,
+      saldoFavor,
+    );
+
+    this.cancellationTasksQueueService.enqueueCancelEmailJob(reservaId, {
+      target: 'reservas@gehsuites.com',
+      subject: `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
+      html: mensajeReserva,
+    });
+
+    if (reserva.infoToures || reserva.infoTransporte) {
+      const mensajeCancelacion = notificacionCancelacionToures(
+        `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
+        reserva.reservation.checkin,
+        reserva.reservation.checkout,
+        reserva.infoToures?.firstContactNumber ||
+          reserva.infoTransporte?.firstContactNumber ||
+          '',
+      );
+
+      const contactInfo =
+        obtenerCiudadPorNombre(reserva.hotel) === 'Santa marta'
+          ? 'reservasgocolombia@gmail.com'
+          : 'operadortour2025@gmail.com';
+
+      this.cancellationTasksQueueService.enqueueCancelTourTransportEmailJob(
+        reservaId,
+        {
+          target: contactInfo,
+          subject: 'Booking connect - Notificacion de cancelacion de transporte o tour',
+          html: mensajeCancelacion,
+        },
+      );
+    }
+  }
+
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
-      const reserva = await this.reservasModel.findById(
-        cancelReservaDto.reservaId,
-      );
+      const reserva = await this.reservasModel.findById(cancelReservaDto.reservaId);
 
       const agenciaDoc = await this.agenciaModel.findById(user.agencia);
 
@@ -677,82 +738,75 @@ export class ReservasService {
         );
       }
 
-      if (reserva.linksHistory) {
-        for (const linkInfo of reserva.linksHistory) {
-          if (
-            linkInfo.state === ValidPaymentStatus.mitad ||
-            linkInfo.state === ValidPaymentStatus.total
-          ) {
-            await this.httpCustomService.reembolsoCartera(
-              linkInfo.id,
-              agenciaDoc.autocoreInfo.id,
-              reserva.reservaChatbotId,
-            );
-          }
+      const cancelOpId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const lockedReserva = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: cancelReservaDto.reservaId,
+          status: { $ne: ValidPaymentStatus.cancelado },
+          cancelInProgress: { $ne: true },
+        },
+        {
+          $set: {
+            cancelInProgress: true,
+            cancelRequestedAt: new Date(),
+            cancelOpId,
+          },
+        },
+        { new: true },
+      );
+
+      if (!lockedReserva) {
+        const latest = await this.reservasModel.findById(cancelReservaDto.reservaId);
+        if (latest?.status === ValidPaymentStatus.cancelado) {
+          return {
+            msg: `Reserva ${latest.reservaChatbotId} ya esta cancelada correctamente`,
+          };
         }
+
+        return {
+          msg: 'La cancelacion de la reserva ya esta en proceso, intenta recargar en unos segundos',
+        };
       }
-
-      const data = await this.httpCustomService.cancelarReservas(
-        reserva.reservaChatbotId,
-      );
-
-      const saldoFavor =
-        reserva.status !== 3 ? reserva.totalMitad : reserva.total;
-
-      const mensajeReserva = notificacionCancelacionVoluntariaReservas(
-        reserva.reservaChatbotId,
-        agenciaDoc.fullName,
-        reserva.pagadoPrimeraMitad,
-        saldoFavor,
-      );
-
-      if (reserva.infoToures || reserva.infoTransporte) {
-        const mensajeCancelacion = notificacionCancelacionToures(
-          `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
-          reserva.reservation.checkin,
-          reserva.reservation.checkout,
-          reserva.infoToures?.firstContactNumber ||
-            reserva.infoTransporte?.firstContactNumber ||
-            '',
-        );
-
-        const contactInfo =
-          obtenerCiudadPorNombre(reserva.hotel) === 'Santa marta'
-            ? 'reservasgocolombia@gmail.com'
-            : 'operadortour2025@gmail.com';
-
-        await this.emailService.sendEmail(
-          contactInfo,
-          `Booking connect - Notificacion de cancelacion de transporte o tour`,
-          mensajeCancelacion,
-        );
-      }
-
-      await this.emailService.sendEmail(
-        'reservas@gehsuites.com',
-        `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
-        mensajeReserva,
-      );
-
-      // Usar transacción para asegurar consistencia
-      const session = await this.connection.startSession();
-      session.startTransaction();
 
       try {
-        await reserva.updateOne(
-          { $set: { status: 4 } },
-          { session }
+        const autocoreResponse = await this.httpCustomService.cancelarReservas(
+          lockedReserva.reservaChatbotId,
         );
 
-        await session.commitTransaction();
-      } catch (error) {
-        await session.abortTransaction();
-        throw error;
-      } finally {
-        await session.endSession();
-      }
+        await this.reservasModel.updateOne(
+          { _id: lockedReserva._id },
+          {
+            $set: {
+              status: ValidPaymentStatus.cancelado,
+              cancelInProgress: false,
+              cancelProcessedAt: new Date(),
+            },
+            $unset: {
+              cancelOpId: '',
+            },
+          },
+        );
 
-      return data;
+        lockedReserva.status = ValidPaymentStatus.cancelado;
+        this.enqueuePostCancellationTasks(lockedReserva, agenciaDoc);
+
+        if (autocoreResponse?.alreadyCanceled) {
+          return {
+            msg: `Reserva ${lockedReserva.reservaChatbotId} ya estaba cancelada en Autocore y fue sincronizada localmente`,
+          };
+        }
+
+        return autocoreResponse;
+      } catch (error) {
+        await this.reservasModel.updateOne(
+          { _id: cancelReservaDto.reservaId },
+          {
+            $set: { cancelInProgress: false },
+            $unset: { cancelOpId: '' },
+          },
+        );
+        throw error;
+      }
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
