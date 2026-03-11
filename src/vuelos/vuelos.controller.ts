@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UseFilters,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { VuelosService } from './vuelos.service';
 import { ErrorHandlerService } from './services/error-handler.service';
 import { ErrorHandlerInterceptor } from './interceptors/error-handler.interceptor';
@@ -29,13 +30,15 @@ import {
   AddExtrasDto,
   BookPackageDto,
   SearchEngineCompleteProcessDto,
-  TravelAgencyCompleteProcessDto
+  TravelAgencyCompleteProcessDto,
+  TravelAgencyV1CompleteProcessDto,
 } from './dto';
 import {
   AmadeusLocationResponse,
   AmadeusFlightOrderResponse
 } from './interfaces';
 
+@ApiTags('vuelos')
 @Controller('vuelos')
 @UseInterceptors(ErrorHandlerInterceptor)
 @UseFilters(ErrorHandlerFilter)
@@ -55,6 +58,10 @@ export class VuelosController {
 
   @Get('test')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verificar módulo de vuelos',
+    description: 'Endpoint de salud del módulo de vuelos para validar que el servicio está activo.',
+  })
   async test(): Promise<{ message: string; status: string }> {
     this.logger.log('Endpoint de prueba llamado');
     return {
@@ -65,6 +72,10 @@ export class VuelosController {
 
   @Get('test-auth')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Probar autenticación con Amadeus',
+    description: 'Valida credenciales y conectividad de autenticación con Amadeus.',
+  })
   async testAuthentication(): Promise<{ message: string; status: string; tokenInfo?: any }> {
     this.logger.log('Probando autenticación con Amadeus...');
     
@@ -89,6 +100,10 @@ export class VuelosController {
 
   @Get('ubicaciones')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar ubicaciones',
+    description: 'Busca aeropuertos o ciudades por palabra clave usando Amadeus.',
+  })
   async searchLocations(
     @Query(new ValidationPipe({ transform: true })) searchDto: SearchLocationsDto,
   ): Promise<AmadeusLocationResponse> {
@@ -106,6 +121,10 @@ export class VuelosController {
 
   @Get('aeropuertos/iata/:iataCode')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar aeropuerto por IATA',
+    description: 'Consulta información de un aeropuerto específico por su código IATA.',
+  })
   async searchAirportByIata(@Param('iataCode') iataCode: string): Promise<AmadeusLocationResponse> {
     this.logger.log(`Búsqueda de aeropuerto por IATA: ${iataCode}`);
     
@@ -121,6 +140,10 @@ export class VuelosController {
 
   @Get('ciudades')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar ciudades por nombre',
+    description: 'Obtiene ciudades de Amadeus por nombre y opcionalmente por país.',
+  })
   async searchCitiesByName(
     @Query('nombre') cityName: string,
     @Query('countryCode') countryCode?: string,
@@ -139,6 +162,10 @@ export class VuelosController {
 
   @Get('ciudades/buscar')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar ciudades con filtros',
+    description: 'Búsqueda avanzada de ciudades con parámetros de paginación y filtros.',
+  })
   async searchCities(
     @Query(new ValidationPipe({ transform: true })) searchDto: SearchCitiesDto,
   ): Promise<any> {
@@ -160,6 +187,10 @@ export class VuelosController {
    */
   @Post('disponibilidad-test')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Probar disponibilidad de vuelos',
+    description: 'Endpoint de diagnóstico para depurar payloads de disponibilidad antes del flujo principal.',
+  })
   async searchFlightOffersTest(@Body() rawBody: any): Promise<any> {
     this.logger.log(' Endpoint de prueba llamado');
     this.logger.log(`Raw body: ${JSON.stringify(rawBody)}`);
@@ -206,6 +237,10 @@ export class VuelosController {
    */
   @Post('disponibilidad')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar ofertas de vuelos',
+    description: 'Consulta ofertas de vuelos disponibles y retorna datos enriquecidos para consumo del cliente.',
+  })
   async searchFlightOffers(
     @Body(new ValidationPipe({ transform: true })) searchDto: FlightSearchDto
   ): Promise<any> {
@@ -259,6 +294,10 @@ export class VuelosController {
    */
   @Post('reservar')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Crear reserva de vuelo',
+    description: 'Crea una orden de vuelo en Amadeus con ofertas y pasajeros seleccionados.',
+  })
   async createFlightOrder(
     @Body(new ValidationPipe({ transform: true })) orderDto: FlightOrderDto
   ): Promise<AmadeusFlightOrderResponse> {
@@ -312,6 +351,10 @@ export class VuelosController {
    */
   @Get('reservas/:flightOrderId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Consultar reserva de vuelo',
+    description: 'Obtiene el detalle de una reserva de vuelo por su identificador.',
+  })
   async getFlightOrder(
     @Param('flightOrderId') flightOrderId: string
   ): Promise<AmadeusFlightOrderResponse> {
@@ -335,6 +378,10 @@ export class VuelosController {
    */
   @Delete('reservas/:flightOrderId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Cancelar reserva de vuelo',
+    description: 'Cancela una orden de vuelo existente en Amadeus.',
+  })
   async cancelFlightOrder(
     @Param('flightOrderId') flightOrderId: string
   ): Promise<void> {
@@ -357,6 +404,10 @@ export class VuelosController {
    */
   @Post('maarlab/disponibilidad')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: buscar disponibilidad de vuelos',
+    description: 'Consulta vuelos disponibles en MaarLab Oceanflights según origen, destino, fecha y pasajeros.',
+  })
   async searchFlightsMaarLab(
     @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto
   ): Promise<any> {
@@ -411,6 +462,10 @@ export class VuelosController {
    */
   @Post('maarlab/paquete')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'MaarLab: crear paquete',
+    description: 'Crea un paquete de viaje en MaarLab a partir de un flightId.',
+  })
   async createPackageMaarLab(
     @Body(new ValidationPipe({ transform: true })) createPackageDto: CreatePackageDto,
     @Query('info') info: string = 'all'
@@ -460,6 +515,10 @@ export class VuelosController {
    */
   @Get('maarlab/equipaje')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: consultar equipaje',
+    description: 'Obtiene opciones de equipaje disponibles para un packageId.',
+  })
   async getLuggageMaarLab(
     @Query('packageId') packageId: string
   ): Promise<any> {
@@ -511,6 +570,10 @@ export class VuelosController {
    */
   @Post('maarlab/extras')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: agregar extras',
+    description: 'Agrega extras a un paquete existente y retorna el paquete actualizado.',
+  })
   async addExtrasMaarLab(
     @Body(new ValidationPipe({ transform: true })) addExtrasDto: AddExtrasDto,
     @Query('packageId') packageIdQuery?: string,
@@ -573,6 +636,10 @@ export class VuelosController {
    */
   @Delete('maarlab/extras')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: eliminar extra',
+    description: 'Elimina un extra específico de un paquete de MaarLab.',
+  })
   async deleteExtrasMaarLab(
     @Query('packageId') packageId: string,
     @Query('itemId') itemId: string,
@@ -669,6 +736,10 @@ export class VuelosController {
    */
   @Post('maarlab/reservar')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: reservar paquete',
+    description: 'Envía datos de pasajeros y pago para confirmar la reserva de un paquete.',
+  })
   async bookPackageMaarLab(
     @Body(new ValidationPipe({ transform: true })) bookPackageDto: BookPackageDto,
     @Query('info') info: string = 'all'
@@ -717,6 +788,10 @@ export class VuelosController {
    */
   @Get('maarlab/token-pago')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: obtener token de pago',
+    description: 'Genera u obtiene el token de pago para un packageId.',
+  })
   async getTokenPaymentMaarLab(
     @Query('packageId') packageId: string,
     @Query('paymentType') paymentType?: string,
@@ -805,6 +880,10 @@ export class VuelosController {
    */
   @Get('maarlab/paquete')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: obtener detalle de paquete',
+    description: 'Consulta detalle completo de un paquete creado en MaarLab.',
+  })
   async getPackageMaarLab(
     @Query('packageId') packageId: string,
     @Query('info') info: string = 'all'
@@ -856,6 +935,10 @@ export class VuelosController {
    */
   @Get('maarlab/contrato-atol')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: obtener contrato ATOL',
+    description: 'Recupera el contrato ATOL asociado a un packageId.',
+  })
   async getInvoiceATOLContractMaarLab(
     @Query('packageId') packageId: string
   ): Promise<any> {
@@ -905,6 +988,10 @@ export class VuelosController {
    */
   @Post('maarlab/search-engine/complete-process')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'MaarLab: crear/actualizar hotel',
+    description: 'Crea o actualiza un hotel (search engine) en MaarLab.',
+  })
   async searchEngineCompleteProcessMaarLab(
     @Body(new ValidationPipe({ transform: true })) completeProcessDto: SearchEngineCompleteProcessDto
   ): Promise<any> {
@@ -950,6 +1037,10 @@ export class VuelosController {
    */
   @Post('maarlab/travel-agency/complete-process')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'MaarLab: crear/actualizar agencia de viajes',
+    description: 'Crea o actualiza una agencia de viajes en MaarLab (ruta estándar).',
+  })
   async travelAgencyCompleteProcessMaarLab(
     @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyCompleteProcessDto
   ): Promise<any> {
@@ -989,12 +1080,64 @@ export class VuelosController {
   }
 
   /**
+   * Crear agencias de viajes usando el endpoint MaarLab V1
+   * Ruta externa: /v1/travel_agency/complete_process
+   */
+  @Post('maarlab/v1/travel-agency/complete-process')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'MaarLab V1: crear/actualizar agencia de viajes',
+    description: 'Crea o actualiza una agencia de viajes usando la ruta V1 de MaarLab.',
+  })
+  async travelAgencyCompleteProcessMaarLabV1(
+    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyV1CompleteProcessDto
+  ): Promise<any> {
+    const logContext: LogContext = {
+      requestId: this.generateRequestId(),
+      endpoint: 'travelAgencyCompleteProcessMaarLabV1',
+      method: 'POST',
+      timestamp: new Date().toISOString()
+    };
+
+    this.logger.log(`[CONTROLLER] Creación de agencia de viajes MaarLab V1 solicitada`, {
+      requestId: logContext.requestId,
+      agencyName: completeProcessDto.name,
+      externalId: completeProcessDto.external_id,
+      hasPrefixLocator: !!completeProcessDto.prefix_locator
+    });
+
+    try {
+      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLabV1(completeProcessDto);
+      
+      this.logger.log(`[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab V1`, {
+        requestId: logContext.requestId,
+        hasResult: !!result
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error(`[CONTROLLER_ERROR] Error en creación de agencia de viajes MaarLab V1`, {
+        requestId: logContext.requestId,
+        error: error.message,
+        agencyName: completeProcessDto.name,
+        externalId: completeProcessDto.external_id
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
    * Obtener el external ID de un hotel desde el ID interno de Oceanflight usando la API de MaarLab Oceanflights
    * @param idSearchEngine - ID interno del search engine (Oceanflight) (path param)
    * @returns External ID del hotel
    */
   @Get('maarlab/search-engine/mapping-external-id/:idSearchEngine')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'MaarLab: mapear external ID de search engine',
+    description: 'Obtiene el external ID asociado a un ID interno de search engine en MaarLab.',
+  })
   async mappingExternalIdSearchEngineMaarLab(
     @Param('idSearchEngine') idSearchEngine: string
   ): Promise<any> {

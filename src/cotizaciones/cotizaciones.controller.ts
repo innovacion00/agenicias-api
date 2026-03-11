@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CotizacionesService } from './cotizaciones.service';
 import {
   CreateCotizacionDto,
@@ -20,6 +21,7 @@ import { User } from '../auth/entities';
 import { ValidRoles } from '../auth/interfaces';
 import { Types } from 'mongoose';
 
+@ApiTags('cotizaciones')
 @Controller('cotizaciones')
 @Auth()
 export class CotizacionesController {
@@ -27,6 +29,10 @@ export class CotizacionesController {
 
   @Post()
   @Auth()
+  @ApiOperation({
+    summary: 'Crear cotización',
+    description: 'Registra una nueva cotización asociada al usuario y su agencia.',
+  })
   create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
     return this.cotizacionesService.create(
       createCotizacionDto,
@@ -37,6 +43,10 @@ export class CotizacionesController {
 
   @Get('debug-user')
   @Auth()
+  @ApiOperation({
+    summary: 'Depurar usuario autenticado',
+    description: 'Retorna datos del usuario autenticado para diagnóstico de permisos y contexto.',
+  })
   debugUser(@GetUser() user: User) {
     return {
       id: user._id,
@@ -49,6 +59,10 @@ export class CotizacionesController {
 
   @Post('test-validation')
   @Auth()
+  @ApiOperation({
+    summary: 'Probar validación de DTO de cotización',
+    description: 'Endpoint de soporte para validar estructura y transformación del DTO de cotizaciones.',
+  })
   testValidation(@Body() createCotizacionDto: CreateCotizacionDto) {
     return {
       message: 'DTO validado correctamente',
@@ -64,6 +78,10 @@ export class CotizacionesController {
 
   @Post('from-disponibilidad')
   @Auth()
+  @ApiOperation({
+    summary: 'Crear cotización desde disponibilidad',
+    description: 'Genera una cotización usando información proveniente del flujo de disponibilidad.',
+  })
   createFromDisponibilidad(
     @Body() createCotizacionDto: CreateCotizacionDto,
     @GetUser() user: User,
@@ -77,6 +95,10 @@ export class CotizacionesController {
 
   @Get()
   @Auth()
+  @ApiOperation({
+    summary: 'Listar cotizaciones',
+    description: 'Lista cotizaciones paginadas; super admin ve todas y demás usuarios ven las de su agencia.',
+  })
   findAll(
     @GetUser() user: User,
     @Query('page') page?: string,
@@ -99,6 +121,10 @@ export class CotizacionesController {
 
   @Get('estadisticas')
   @Auth()
+  @ApiOperation({
+    summary: 'Obtener estadísticas de cotizaciones',
+    description: 'Devuelve métricas agregadas de cotizaciones para la agencia del usuario.',
+  })
   getEstadisticas(@GetUser() user: User) {
     return this.cotizacionesService.getEstadisticas(
       user.agencia?.toString() || '',
@@ -107,6 +133,10 @@ export class CotizacionesController {
 
   @Get('test-disponibilidad-directa')
   @Auth()
+  @ApiOperation({
+    summary: 'Probar disponibilidad directa',
+    description: 'Endpoint de soporte para validar integración de disponibilidad usada por cotizaciones.',
+  })
   testDisponibilidad(@GetUser() user: User) {
     return this.cotizacionesService.testDisponibilidadDirecta(
       user.agencia?.toString() || '',
@@ -115,17 +145,29 @@ export class CotizacionesController {
 
   @Get(':id')
   @Auth()
+  @ApiOperation({
+    summary: 'Obtener cotización por ID',
+    description: 'Consulta una cotización específica por su identificador.',
+  })
   findOne(@Param('id') id: string) {
     return this.cotizacionesService.findOne(id);
   }
 
   @Get('token/:tokenAcceso')
+  @ApiOperation({
+    summary: 'Obtener cotización por token',
+    description: 'Consulta una cotización usando su token de acceso compartible.',
+  })
   findOneByToken(@Param('tokenAcceso') tokenAcceso: string) {
     return this.cotizacionesService.findByToken(tokenAcceso);
   }
 
   @Post('responder/:tokenAcceso')
   @Auth()
+  @ApiOperation({
+    summary: 'Responder cotización',
+    description: 'Permite registrar la respuesta comercial de una cotización usando su token.',
+  })
   responderCotizacion(
     @Param('tokenAcceso') tokenAcceso: string,
     @Body() responderCotizacionDto: ResponderCotizacionDto,
@@ -138,24 +180,40 @@ export class CotizacionesController {
 
   @Post('pdf')
   @Auth()
+  @ApiOperation({
+    summary: 'Generar PDF de cotización',
+    description: 'Genera y retorna el documento PDF de una cotización.',
+  })
   generatePdf(@Body() generatePdfDto: GeneratePdfDto) {
     return this.cotizacionesService.generatePdf(generatePdfDto.cotizacionId);
   }
 
   @Post('convertir-reserva/:id')
   @Auth()
+  @ApiOperation({
+    summary: 'Convertir cotización en reserva',
+    description: 'Transforma una cotización aprobada en una reserva dentro del sistema.',
+  })
   convertirAReserva(@Param('id') id: string) {
     return this.cotizacionesService.convertirAReserva(id);
   }
 
   @Patch(':id')
   @Auth()
+  @ApiOperation({
+    summary: 'Actualizar cotización',
+    description: 'Modifica una cotización existente por su identificador.',
+  })
   update(@Param('id') id: string, @Body() updateCotizacionDto: UpdateCotizacionDto) {
     return this.cotizacionesService.update(id, updateCotizacionDto);
   }
 
   @Delete(':id')
   @Auth()
+  @ApiOperation({
+    summary: 'Eliminar cotización',
+    description: 'Elimina una cotización por su identificador.',
+  })
   remove(@Param('id') id: string) {
     return this.cotizacionesService.remove(id);
   }

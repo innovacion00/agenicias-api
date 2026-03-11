@@ -1362,6 +1362,129 @@ export class MaarLabService {
   }
 
   /**
+   * Crea agencias de viajes usando la ruta explícita V1 en MaarLab
+   * Ruta externa: /v1/travel_agency/complete_process
+   * @param completeProcessDto - Datos de la agencia de viajes a crear
+   * @returns Respuesta con información de la agencia de viajes creada o actualizada
+   */
+  async travelAgencyCompleteProcessV1(completeProcessDto: any): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de agencia de viajes en MaarLab V1...');
+      this.logger.debug(
+        `Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`,
+      );
+
+      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
+        throw new HttpException(
+          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      let baseUrl = envs.maarlabBaseUrl.trim();
+      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      baseUrl = baseUrl.replace(/\/$/, '');
+
+      const endpoint = baseUrl.endsWith('/v1')
+        ? `${baseUrl}/travel_agency/complete_process`
+        : `${baseUrl}/v1/travel_agency/complete_process`;
+
+      this.logger.debug(`URL de creación de agencia de viajes V1: ${endpoint}`);
+
+      const requestBody = {
+        name: completeProcessDto.name,
+        external_id: completeProcessDto.external_id,
+        id_chain_search_engine: completeProcessDto.id_chain_search_engine,
+        direction: completeProcessDto.direction,
+        phone: completeProcessDto.phone,
+        email: completeProcessDto.email,
+        id_partner: completeProcessDto.id_partner,
+        clasification: completeProcessDto.clasification,
+        currency_code: completeProcessDto.currency_code,
+        post_code: completeProcessDto.post_code,
+        city: completeProcessDto.city,
+        country: completeProcessDto.country,
+        website: completeProcessDto.website,
+        hours_of_operation: completeProcessDto.hours_of_operation,
+        cif: completeProcessDto.cif,
+        registered_company_name: completeProcessDto.registered_company_name,
+        contact_center_type: completeProcessDto.contact_center_type,
+        account_manager_name: completeProcessDto.account_manager_name,
+        account_manager_email: completeProcessDto.account_manager_email,
+        ...(completeProcessDto.description && { description: completeProcessDto.description }),
+        ...(completeProcessDto.account_manager_phone && {
+          account_manager_phone: completeProcessDto.account_manager_phone,
+        }),
+        ...(completeProcessDto.prefix_locator && { prefix_locator: completeProcessDto.prefix_locator }),
+      };
+
+      const response: AxiosResponse = await axios.post(endpoint, requestBody, {
+        headers: {
+          Authorization: `Bearer ${envs.maarlabAuthToken}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      });
+
+      this.logger.log('Agencia de viajes creada/actualizada exitosamente en MaarLab V1');
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        'Error al crear/actualizar agencia de viajes en MaarLab V1:',
+        error.response?.data || error.message,
+      );
+
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 401) {
+          throw new HttpException(
+            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
+
+        if (error.response?.status === 400) {
+          throw new HttpException(
+            error.response.data?.message || 'Parámetros de creación de agencia de viajes inválidos',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        if (error.response?.status === 404) {
+          throw new HttpException(
+            'Endpoint no encontrado. Verifica MAARLAB_BASE_URL y la ruta /v1/travel_agency/complete_process.',
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        if (error.response?.status === 429) {
+          throw new HttpException(
+            'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
+
+        if (error.response?.status && error.response.status >= 500) {
+          throw new HttpException(
+            'Error interno del servidor de MaarLab. Intenta más tarde.',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+
+      throw new HttpException(
+        `Error al crear/actualizar agencia de viajes (V1): ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Obtiene el external ID de un hotel desde el ID interno de Oceanflight usando la API de MaarLab Oceanflights
    * @param idSearchEngine - ID interno del search engine (Oceanflight)
    * @returns Respuesta con el external ID del hotel

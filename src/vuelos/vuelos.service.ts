@@ -423,6 +423,27 @@ export class VuelosService {
   }
 
   /**
+   * Crea agencias de viajes usando el endpoint MaarLab V1
+   * Ruta externa: /v1/travel_agency/complete_process
+   * @param completeProcessDto - Datos de la agencia de viajes a crear
+   * @returns Información de la agencia de viajes creada o actualizada
+   */
+  async travelAgencyCompleteProcessMaarLabV1(completeProcessDto: any): Promise<any> {
+    try {
+      this.logger.log('Iniciando creación de agencia de viajes en MaarLab V1...');
+      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      
+      const result = await this.maarlabService.travelAgencyCompleteProcessV1(completeProcessDto);
+      
+      this.logger.log('Agencia de viajes creada/actualizada exitosamente en VuelosService (MaarLab V1)');
+      return result;
+    } catch (error) {
+      this.logger.error('Error en VuelosService.travelAgencyCompleteProcessMaarLabV1:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtiene el external ID de un hotel desde el ID interno de Oceanflight usando la API de MaarLab Oceanflights
    * @param idSearchEngine - ID interno del search engine (Oceanflight)
    * @returns External ID del hotel
