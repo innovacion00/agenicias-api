@@ -166,7 +166,7 @@ export class NotificacionesService {
       // Una sola query para todos los usuarios con populate
       const users = await this.userModel
         .find({ _id: { $in: userIds } })
-        .populate('agencia', 'fullName')
+        .populate('agencia', 'fullName emailContacto')
         .lean();
 
       // Crear mapa para acceso O(1) en lugar de queries N+1
@@ -175,7 +175,7 @@ export class NotificacionesService {
         usersMap.set(user._id.toString(), user);
       });
 
-      let notificaciones = [];
+      let notificaciones: Promise<any>[] = [];
 
       // Procesar reservas usando el mapa (sin queries adicionales)
       for (const reserva of reservasNotification) {
@@ -240,14 +240,42 @@ export class NotificacionesService {
             this.logger.warn('Subject no proporcionado para notificación');
             continue;
           }
+          const destinatarios = new Set<string>();
+          if (userDoc.email) {
+            destinatarios.add(userDoc.email.trim().toLowerCase());
+          }
+          if (
+            userDoc.agencia &&
+            typeof userDoc.agencia === 'object' &&
+            'emailContacto' in userDoc.agencia &&
+            userDoc.agencia.emailContacto
+          ) {
+            destinatarios.add(
+              String(userDoc.agencia.emailContacto).trim().toLowerCase(),
+            );
+          }
 
-          notificaciones.push(
-            this.emailService.sendEmail(
-              userDoc.email,
-              notiFields.subject,
-              notiFields.html,
-            ),
+          const recipients = Array.from(destinatarios);
+          if (!recipients.length) {
+            this.logger.warn(
+              `No hay destinatarios válidos para reserva ${reserva.reservaChatbotId}`,
+            );
+            continue;
+          }
+
+          this.logger.log(
+            `Enviando notificación de vencimiento reserva=${reserva.reservaChatbotId} tipo=${notiFields.tipoAviso} destinatarios=${recipients.join(',')}`,
           );
+
+          for (const recipient of recipients) {
+            notificaciones.push(
+              this.emailService.sendEmail(
+                recipient,
+                notiFields.subject,
+                notiFields.html,
+              ),
+            );
+          }
         }
       }
 
