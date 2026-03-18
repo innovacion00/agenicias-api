@@ -1766,6 +1766,56 @@ export class ReservasService {
     }
   }
 
+  async actualizarStatusReservaManual(
+    reservaId: Types.ObjectId,
+    status: ValidPaymentStatus,
+  ) {
+    try {
+      const reserva = await this.reservasModel.findById(reservaId);
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      const checkinRaw = reserva.reservation?.checkin;
+      if (!checkinRaw || typeof checkinRaw !== 'string') {
+        throw new BadRequestException(
+          'La reserva no tiene check-in válido para validar el cambio de estado',
+        );
+      }
+
+      const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) {
+        throw new BadRequestException(
+          `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
+        );
+      }
+
+      const checkinDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
+      if (Number.isNaN(checkinDate.getTime())) {
+        throw new BadRequestException(
+          `checkin inválido (no se pudo parsear): ${checkinRaw}`,
+        );
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (today >= checkinDate) {
+        throw new ForbiddenException(
+          'No se puede modificar el estado: la reserva ya llegó a la fecha de check-in',
+        );
+      }
+
+      reserva.status = status;
+      await reserva.save();
+
+      return reserva;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
   //? Pruebas
   // async prueba() {
   //   const reservas = await this.reservasModel.find({
