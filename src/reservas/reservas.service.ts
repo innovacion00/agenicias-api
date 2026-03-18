@@ -1806,6 +1806,10 @@ export class ReservasService {
         );
       }
 
+      if (status === ValidPaymentStatus.cancelado) {
+        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+      }
+
       reserva.status = status;
       await reserva.save();
 
