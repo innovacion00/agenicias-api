@@ -10,8 +10,8 @@ export const calcularFechaLimitePago = (
   // Solo aplicar nueva lógica para reservas con 60 días o más hasta el check-in
   if (diasRestantes >= 60) {
     // Calcular porcentajes según tipo de reserva
-    const porcentajePrimeraMitad = isReservaGrupo ? 0.10 : 0.20; // 10% para grupo (10+ habitaciones), 20% para individual
-    const porcentajeSegundaMitad = isReservaGrupo ? 0.30 : 0.40; // 30% para grupo (10+ habitaciones), 40% para individual
+    const porcentajePrimeraMitad = isReservaGrupo ? 0.10 : 0.50; // 10% para grupo, 50% para individual
+    const porcentajeSegundaMitad = isReservaGrupo ? 0.30 : 0.60; // 30% para grupo, 60% para individual
 
     // Calcular días para cada fecha límite
     const diasPrimeraMitad = Math.floor(diasRestantes * porcentajePrimeraMitad);
