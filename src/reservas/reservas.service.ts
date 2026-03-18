@@ -638,7 +638,7 @@ export class ReservasService {
   }
 
   private enqueuePostCancellationTasks(reserva: Reserva, agenciaDoc: Agencia): void {
-    const reservaId = reserva._id.toString();
+    const reservaId = String(reserva._id);
 
     if (reserva.linksHistory) {
       for (const linkInfo of reserva.linksHistory) {

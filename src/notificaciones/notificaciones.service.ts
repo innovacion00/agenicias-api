@@ -57,7 +57,9 @@ export class NotificacionesService {
         },
       );
       this.logger.warn(
-        `Reserva cancelada automaticamente. reservaId=${reserva._id.toString()} chatbotId=${reserva.reservaChatbotId} motivo=${motivo}`,
+        `Reserva cancelada automaticamente. reservaId=${String(
+          reserva._id,
+        )} chatbotId=${reserva.reservaChatbotId} motivo=${motivo}`,
       );
     }
   }

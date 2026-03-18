@@ -74,7 +74,9 @@ export class CancellationLockReconciliationService
       );
 
       this.logger.error(
-        `No se pudo reconciliar lock de cancelacion reservaId=${reserva._id.toString()} chatbotId=${reserva.reservaChatbotId}`,
+        `No se pudo reconciliar lock de cancelacion reservaId=${String(
+          reserva._id,
+        )} chatbotId=${reserva.reservaChatbotId}`,
         error instanceof Error ? error.stack : String(error),
       );
     }
