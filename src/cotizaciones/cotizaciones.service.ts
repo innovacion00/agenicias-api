@@ -643,10 +643,11 @@ export class CotizacionesService {
     // Determinar si es reserva de grupo
     const isReservaGrupo = cotizacion.cantidadHabitaciones >= 10;
 
-    // Calcular fechas límite
+    // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
     const fechasLimite = calcularFechaLimitePago(
       cotizacion.reservation.checkin,
       isReservaGrupo,
+      cotizacion.agenciaId,
     );
 
     // Log para debugging - Mostrar TODOS los datos

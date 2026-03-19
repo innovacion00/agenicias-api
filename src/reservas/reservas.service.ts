@@ -211,14 +211,6 @@ export class ReservasService {
 
       // Determinar si es reserva de grupo (10 o más habitaciones)
       const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length >= 10;
-      
-      // Calcular fechas límite usando la nueva lógica
-      const fechasLimite = calcularFechaLimitePago(
-        createReservaDto.reservaInfo.reservation.checkin,
-        isReservaGrupo,
-      );
-      
-      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
       const userInfo = await this.userModel
         .findById(userId)
@@ -231,6 +223,15 @@ export class ReservasService {
       if (!userInfo.agencia || typeof userInfo.agencia === 'string') {
         throw new BadRequestException('Información de agencia no disponible');
       }
+
+      // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
+      const fechasLimite = calcularFechaLimitePago(
+        createReservaDto.reservaInfo.reservation.checkin,
+        isReservaGrupo,
+        userInfo.agencia._id,
+      );
+
+      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';

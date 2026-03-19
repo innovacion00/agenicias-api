@@ -1,11 +1,31 @@
 import { addDay, format, diffDays } from '@formkit/tempo';
 
+/** Agencia con regla fija: primera fecha límite de pago = 3 días calendario antes del check-in. */
+export const AGENCIA_FECHA_LIMITE_3_DIAS_ANTES_CHECKIN =
+  '690b45554b740ff32651801d';
+
 export const calcularFechaLimitePago = (
   fechaCheckin: string,
   isReservaGrupo: boolean = false,
+  agenciaId?: string | { toString(): string },
 ) => {
   const fechaActual = new Date();
   const diasRestantes = diffDays(fechaCheckin, fechaActual);
+
+  const agenciaIdStr = agenciaId != null ? String(agenciaId) : '';
+  if (agenciaIdStr === AGENCIA_FECHA_LIMITE_3_DIAS_ANTES_CHECKIN) {
+    const fechaLimitePago = format(addDay(fechaCheckin, -3), 'YYYY-MM-DD');
+    const fechaLimitePago2 = format(addDay(fechaCheckin, -3), 'YYYY-MM-DD');
+    return {
+      fechaLimitePago,
+      fechaLimitePago2,
+      diasRestantes,
+      diasPrimeraMitad: 3,
+      diasSegundaMitad: 1,
+      porcentajePrimeraMitad: null,
+      porcentajeSegundaMitad: null,
+    };
+  }
 
   // Solo aplicar nueva lógica para reservas con 60 días o más hasta el check-in
   if (diasRestantes >= 60) {
