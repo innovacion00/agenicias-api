@@ -378,6 +378,25 @@ export class Reserva extends Document {
     default: [],
   })
   linksHistory: LinksHistory[];
+
+  // #region MaarLab flights (interno)
+  @Prop({
+    type: [
+      {
+        packageId: { type: String, default: '' },
+        // Guardamos toda la respuesta de MaarLab de bookPackage, excepto el objeto "hotel"
+        respuestaMaarLab: { type: Object, default: {} },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  })
+  vuelo: Array<{
+    packageId: string;
+    respuestaMaarLab: Record<string, any>;
+    createdAt: Date;
+  }>;
+  // #endregion MaarLab flights (interno)
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

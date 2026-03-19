@@ -135,6 +135,12 @@ export class BookPackageDto {
   @IsNotEmpty()
   packageId: string;
 
+  // Identificador interno de nuestra reserva (para persistir en Mongo).
+  // No se envía a MaarLab porque el requestBody se construye solo con los campos requeridos.
+  @IsString()
+  @IsNotEmpty()
+  reservaChatbotId: string;
+
   @IsString()
   @IsOptional()
   hotel_id?: string;

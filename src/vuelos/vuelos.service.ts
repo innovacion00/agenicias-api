@@ -1,4 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { AmadeusService } from './amadeus.service';
 import { MaarLabService } from './maarlab.service';
 import { FlightEnrichmentService } from './services/flight-enrichment.service';
@@ -14,6 +21,7 @@ import {
   AmadeusFlightOrderResponse
 } from './interfaces';
 import { EnrichedFlightOffersResponse } from './interfaces/enriched-flight-offers.interface';
+import { Reserva } from 'src/reservas/entities';
 
 @Injectable()
 export class VuelosService {
@@ -22,7 +30,8 @@ export class VuelosService {
   constructor(
     private readonly amadeusService: AmadeusService,
     private readonly maarlabService: MaarLabService,
-    private readonly flightEnrichmentService: FlightEnrichmentService
+    private readonly flightEnrichmentService: FlightEnrichmentService,
+    @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
   ) {}
 
   /**
@@ -306,6 +315,40 @@ export class VuelosService {
       const result = await this.maarlabService.bookPackage(bookPackageDto, info);
       
       this.logger.log('Paquete reservado exitosamente en VuelosService');
+
+      // Persistir info de la reserva de vuelo en Mongo (interno).
+      // Requisito: se envía `reservaChatbotId` para identificar en qué documento de `Reserva` guardar.
+      const reservaChatbotId = bookPackageDto?.reservaChatbotId;
+      if (reservaChatbotId) {
+        const reservaDoc = await this.reservasModel.findOne({
+          reservaChatbotId: String(reservaChatbotId),
+        });
+
+        if (!reservaDoc) {
+          throw new NotFoundException(
+            `Reserva no encontrada para reservaChatbotId=${reservaChatbotId}`,
+          );
+        }
+
+        // Guardamos toda la respuesta de MaarLab, excepto el objeto "hotel".
+        const vueloRespuesta =
+          result && typeof result === 'object' ? { ...result } : { value: result };
+        const { hotel, ...resto } = vueloRespuesta as Record<string, any>;
+
+        reservaDoc.vuelo = reservaDoc.vuelo ?? [];
+        reservaDoc.vuelo.push({
+          packageId: bookPackageDto?.packageId || '',
+          respuestaMaarLab: resto,
+          createdAt: new Date(),
+        });
+
+        await reservaDoc.save();
+      } else {
+        throw new BadRequestException(
+          'reservaChatbotId es requerido para persistir el vuelo en Mongo',
+        );
+      }
+
       return result;
     } catch (error) {
       this.logger.error('Error en VuelosService.bookPackageMaarLab:', error);
