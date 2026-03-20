@@ -1812,6 +1812,13 @@ export class ReservasService {
       }
 
       reserva.status = status;
+      // Alinear con el flujo de pagos (webhook): primera mitad abonada o pago total
+      if (
+        status === ValidPaymentStatus.mitad ||
+        status === ValidPaymentStatus.total
+      ) {
+        reserva.pagadoPrimeraMitad = true;
+      }
       await reserva.save();
 
       return reserva;
