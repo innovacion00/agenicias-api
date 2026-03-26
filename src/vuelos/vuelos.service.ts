@@ -15,6 +15,7 @@ import {
 } from './dto';
 import { MaarLabFlightSearchDto } from './dto/maarlab-flight-search.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
+import { BookPackageDto } from './dto/book-package.dto';
 import { 
   AmadeusLocationResponse,
   AmadeusFlightOrderRequest,
@@ -306,7 +307,10 @@ export class VuelosService {
    * @param info - Nivel de detalle de la respuesta
    * @returns Información de la reserva/prebooking
    */
-  async bookPackageMaarLab(bookPackageDto: any, info: string = 'all'): Promise<any> {
+  async bookPackageMaarLab(
+    bookPackageDto: BookPackageDto,
+    info: string = 'all',
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando reserva de paquete en MaarLab...');
       this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(bookPackageDto).substring(0, 200)}...`);

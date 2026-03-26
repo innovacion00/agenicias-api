@@ -1,24 +1,33 @@
-import { 
-  IsString, 
-  IsOptional, 
+import {
+  IsString,
+  IsOptional,
   IsArray,
   IsEmail,
   IsDateString,
   IsEnum,
   ValidateNested,
   IsNotEmpty,
-  Matches
+  Matches,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
+
+const trim = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
 
 /**
- * DTO para información de pago en bookPackage
+ * Tipos de documento según documentación Consolidator (PASSPORT | IDENTITY_CARD).
  */
+export enum MaarLabDocumentType {
+  PASSPORT = 'PASSPORT',
+  IDENTITY_CARD = 'IDENTITY_CARD',
+}
+
 class PaymentDto {
   @IsOptional()
   @IsString()
   @IsEnum(['FLIGHT_ONLY', 'ALL_NOW', 'FLIGHT_NOW_HOTEL_LATER'], {
-    message: 'payment_type debe ser uno de: FLIGHT_ONLY, ALL_NOW, FLIGHT_NOW_HOTEL_LATER'
+    message:
+      'payment_type debe ser uno de: FLIGHT_ONLY, ALL_NOW, FLIGHT_NOW_HOTEL_LATER',
   })
   payment_type?: string;
 
@@ -30,42 +39,54 @@ class PaymentDto {
   deferred_payment_date?: string;
 }
 
-/**
- * DTO para información de pasajero en bookPackage
- */
-class PassengerDto {
+export class PassengerDto {
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   passengerId: string;
 
   @IsString()
   @IsNotEmpty()
   @IsEnum(['adult', 'child', 'infant'], {
-    message: 'type_passenger debe ser uno de: adult, child, infant'
+    message: 'type_passenger debe ser uno de: adult, child, infant',
   })
   type_passenger: 'adult' | 'child' | 'infant';
 
   @IsString()
   @IsNotEmpty()
   @IsEnum(['Mr', 'Mrs', 'Miss', 'Ms'], {
-    message: 'title debe ser uno de: Mr, Mrs, Miss, Ms'
+    message: 'title debe ser uno de: Mr, Mrs, Miss, Ms',
   })
   title: 'Mr' | 'Mrs' | 'Miss' | 'Ms';
 
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   name: string;
 
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   surname: string;
 
   @IsEmail()
   @IsNotEmpty()
+  @Transform(trim)
   email: string;
 
+  /**
+   * Doc: +<código país> y número. Se eliminan espacios para alinear con OceanFlights.
+   */
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    return value.trim().replace(/\s+/g, '');
+  })
+  @Matches(/^\+\d{8,16}$/, {
+    message:
+      'contact_number debe ser +<código país> y dígitos sin espacios (ej: +346778456767)',
+  })
   contact_number: string;
 
   @IsDateString()
@@ -75,16 +96,23 @@ class PassengerDto {
   })
   date_of_birth: string;
 
-  @IsString()
-  @IsNotEmpty()
-  document_type: string;
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsEnum(MaarLabDocumentType, {
+    message: 'document_type debe ser PASSPORT o IDENTITY_CARD',
+  })
+  document_type: MaarLabDocumentType;
 
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   document_number: string;
 
+  /** País emisión documento (ej. ISO o código que exija MaarLab). */
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   document_issuance: string;
 
   @IsDateString()
@@ -94,59 +122,96 @@ class PassengerDto {
   })
   document_expiration: string;
 
+  /** Doc Consolidator: fecha emisión del documento (YYYY-MM-DD). */
+  @IsDateString()
+  @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'document_issuance_date debe venir en formato YYYY-MM-DD',
+  })
+  document_issuance_date: string;
+
+  /** Doc: residencia en documento / referencia requerida por el consolidador. */
   @IsString()
-  @IsOptional()
-  address?: string;
+  @IsNotEmpty()
+  @Transform(trim)
+  document_residence: string;
+
+  /** Doc: ISO 3166-1 alpha-2 (ej. CO, ES). */
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @Matches(/^[A-Z]{2}$/, {
+    message: 'country_id debe ser ISO 3166-1 alpha-2 (2 letras, ej. CO)',
+  })
+  country_id: string;
 
   @IsString()
-  @IsOptional()
-  province?: string;
+  @IsNotEmpty()
+  @Transform(trim)
+  address: string;
 
   @IsString()
-  @IsOptional()
-  city?: string;
+  @IsNotEmpty()
+  @Transform(trim)
+  province: string;
 
   @IsString()
-  @IsOptional()
-  postalcode?: string;
+  @IsNotEmpty()
+  @Transform(trim)
+  city: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Transform(trim)
+  postalcode: string;
+
+  /** Obligatorios si en la búsqueda se indicó tipo de residente. */
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   residence_type?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   residence?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   frequent_flyer_number?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   frequent_flyer_type?: string;
 }
 
 /**
- * DTO para reservar un paquete de vuelo en MaarLab Oceanflights
+ * DTO para reservar un paquete de vuelo en MaarLab Oceanflights (Consolidator).
  */
 export class BookPackageDto {
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   packageId: string;
 
-  // Identificador interno de nuestra reserva (para persistir en Mongo).
-  // No se envía a MaarLab porque el requestBody se construye solo con los campos requeridos.
+  /** Interno: no se reenvía a MaarLab. */
   @IsString()
   @IsNotEmpty()
+  @Transform(trim)
   reservaChatbotId: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   hotel_id?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  @Transform(trim)
   partner_id?: string;
 
   @IsArray()

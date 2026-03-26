@@ -2,6 +2,75 @@ import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { envs } from '../config';
 import { MaarLabFlightSearchDto } from './dto/maarlab-flight-search.dto';
+import { BookPackageDto, PassengerDto } from './dto/book-package.dto';
+
+/** Cuando MaarLab devuelve 400 pero sin texto útil (p. ej. {"errors":{"message":""}}). */
+const MAARLAB_BOOKPACKAGE_400_SIN_TEXTO =
+  'MaarLab rechazó bookPackage (HTTP 400) sin mensaje descriptivo en el cuerpo de error.';
+
+const BOOK_PACKAGE_SUGERENCIAS_DETALLE =
+  'Comprueba: packageId vigente (los paquetes caducan); mismos adultos/niños/edades que en la búsqueda; residence y residence_type si en search activaste residente; quitar frequent_flyer_* si no reservas con puntos; document_type y códigos según su API; partner_id del entorno correcto.';
+
+/** Resume el cuerpo de error de MaarLab (suele no usar solo `message`). */
+function describeMaarLabErrorBody(data: unknown): { summary: string; raw: string } {
+  if (data == null) {
+    return { summary: MAARLAB_BOOKPACKAGE_400_SIN_TEXTO, raw: '' };
+  }
+  if (typeof data === 'string') {
+    const t = data.trim();
+    return { summary: t || MAARLAB_BOOKPACKAGE_400_SIN_TEXTO, raw: t };
+  }
+  if (typeof data !== 'object') {
+    return { summary: String(data), raw: String(data) };
+  }
+
+  const d = data as Record<string, unknown>;
+  const parts: string[] = [];
+  const push = (v: unknown) => {
+    if (v == null) return;
+    if (typeof v === 'string' && v.trim()) parts.push(v.trim());
+    else if (typeof v === 'number' || typeof v === 'boolean') parts.push(String(v));
+  };
+
+  push(d.message);
+  push(d.detail);
+  if (typeof d.error === 'string') push(d.error);
+  else if (d.error && typeof d.error === 'object') {
+    const e = d.error as Record<string, unknown>;
+    push(e.message);
+    push(e.detail);
+  }
+  if (Array.isArray(d.non_field_errors)) {
+    (d.non_field_errors as unknown[]).forEach(push);
+  }
+  if (Array.isArray(d.errors)) {
+    (d.errors as unknown[]).forEach((item) => {
+      if (typeof item === 'string') push(item);
+      else if (item && typeof item === 'object') push(JSON.stringify(item));
+    });
+  }
+  if (d.errors && typeof d.errors === 'object' && !Array.isArray(d.errors)) {
+    for (const v of Object.values(d.errors as Record<string, unknown>)) {
+      if (Array.isArray(v)) {
+        v.forEach((x) =>
+          push(typeof x === 'string' ? x : JSON.stringify(x)),
+        );
+      } else {
+        push(typeof v === 'string' ? v : JSON.stringify(v));
+      }
+    }
+  }
+
+  let raw: string;
+  try {
+    raw = JSON.stringify(data);
+  } catch {
+    raw = String(data);
+  }
+  const summary =
+    parts.length > 0 ? parts.join('; ') : MAARLAB_BOOKPACKAGE_400_SIN_TEXTO;
+  return { summary, raw };
+}
 
 @Injectable()
 export class MaarLabService {
@@ -78,7 +147,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Búsqueda de vuelos completada exitosamente');
@@ -170,15 +239,26 @@ export class MaarLabService {
       this.logger.debug(`URL completa de creación de paquete: ${url}`);
       this.logger.debug(`URL esperada: https://test-api.oceanflights.io/api/v1/createPackage/?info=${info}`);
 
-      // Preparar el body
-      // MaarLab requiere hotel y services, siempre se envían vacíos
-      const requestBody: any = {
+      // Consolidator: hotel vacío salvo webhook (doc OceanFlights).
+      const hotelPayload: Record<string, unknown> = {};
+      const wh = createPackageDto.hotel?.webhook;
+      if (wh) {
+        const webhook: Record<string, string> = {};
+        if (wh.booking_url) webhook.booking_url = wh.booking_url;
+        if (wh.payment_url) webhook.payment_url = wh.payment_url;
+        if (wh.canceled_url) webhook.canceled_url = wh.canceled_url;
+        if (wh.contracting_url) webhook.contracting_url = wh.contracting_url;
+        if (Object.keys(webhook).length > 0) {
+          hotelPayload.webhook = webhook;
+        }
+      }
+
+      const requestBody: Record<string, unknown> = {
         flightId: createPackageDto.flightId,
-        hotel: {}, // Siempre vacío según requerimiento
-        services: {}, // Siempre vacío según requerimiento
+        hotel: hotelPayload,
+        services: {},
       };
 
-      // Agregar campos opcionales solo si están presentes
       if (createPackageDto.currency) {
         requestBody.currency = createPackageDto.currency;
       }
@@ -196,7 +276,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Paquete de vuelo creado exitosamente');
@@ -368,7 +448,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Consulta de equipaje completada exitosamente');
@@ -519,7 +599,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Extras agregados exitosamente');
@@ -648,7 +728,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Extra eliminado exitosamente');
@@ -703,12 +783,65 @@ export class MaarLabService {
   }
 
   /**
+   * Serializa pasajeros al contrato Consolidator (sin campos internos ni undefined).
+   */
+  private passengersForMaarLabBookPackage(
+    passengers: PassengerDto[],
+  ): Record<string, unknown>[] {
+    return passengers.map((p) => {
+      const row: Record<string, unknown> = {
+        passengerId: p.passengerId,
+        type_passenger: p.type_passenger,
+        title: p.title,
+        name: p.name,
+        surname: p.surname,
+        email: p.email,
+        contact_number: p.contact_number,
+        date_of_birth: p.date_of_birth,
+        document_type: p.document_type,
+        document_number: p.document_number,
+        document_issuance: p.document_issuance,
+        document_expiration: p.document_expiration,
+        document_issuance_date: p.document_issuance_date,
+        document_residence: p.document_residence,
+        country_id: p.country_id,
+        address: p.address,
+        province: p.province,
+        city: p.city,
+        postalcode: p.postalcode,
+      };
+      if (p.residence_type != null && String(p.residence_type).trim() !== '') {
+        row.residence_type = p.residence_type;
+      }
+      if (p.residence != null && String(p.residence).trim() !== '') {
+        row.residence = p.residence;
+      }
+      if (
+        p.frequent_flyer_number != null &&
+        String(p.frequent_flyer_number).trim() !== ''
+      ) {
+        row.frequent_flyer_number = p.frequent_flyer_number;
+      }
+      if (
+        p.frequent_flyer_type != null &&
+        String(p.frequent_flyer_type).trim() !== ''
+      ) {
+        row.frequent_flyer_type = p.frequent_flyer_type;
+      }
+      return row;
+    });
+  }
+
+  /**
    * Reserva un paquete de vuelo agregando información de pasajeros usando la API de MaarLab Oceanflights
    * @param bookPackageDto - Datos para reservar el paquete (pasajeros, pago, etc.)
    * @param info - Nivel de detalle de la respuesta ('all' para información completa)
    * @returns Respuesta con información de la reserva/prebooking
    */
-  async bookPackage(bookPackageDto: any, info: string = 'all'): Promise<any> {
+  async bookPackage(
+    bookPackageDto: BookPackageDto,
+    info: string = 'all',
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando reserva de paquete en MaarLab...');
       this.logger.debug(`Package ID: ${bookPackageDto.packageId}, Info: ${info}`);
@@ -743,13 +876,36 @@ export class MaarLabService {
 
       this.logger.debug(`URL de reserva de paquete: ${url}`);
 
-      // Preparar el body
+      // Pago: deferred_payment_date solo aplica con FLIGHT_NOW_HOTEL_LATER (doc MaarLab).
+      // Enviarla con FLIGHT_ONLY puede provocar 400 en su API.
+      const paymentSanitized = bookPackageDto.payment
+        ? {
+            ...(bookPackageDto.payment.payment_type && {
+              payment_type: bookPackageDto.payment.payment_type,
+            }),
+            ...(bookPackageDto.payment.payment_type === 'FLIGHT_NOW_HOTEL_LATER' &&
+            bookPackageDto.payment.deferred_payment_date
+              ? {
+                  deferred_payment_date:
+                    bookPackageDto.payment.deferred_payment_date,
+                }
+              : {}),
+          }
+        : undefined;
+      const paymentPayload =
+        paymentSanitized && Object.keys(paymentSanitized).length > 0
+          ? paymentSanitized
+          : undefined;
+
+      // Body hacia MaarLab: sin reservaChatbotId; pasajeros con contrato Consolidator.
       const requestBody = {
         packageId: bookPackageDto.packageId,
         ...(bookPackageDto.hotel_id && { hotel_id: bookPackageDto.hotel_id }),
         ...(bookPackageDto.partner_id && { partner_id: bookPackageDto.partner_id }),
-        passengers: bookPackageDto.passengers,
-        ...(bookPackageDto.payment && { payment: bookPackageDto.payment }),
+        passengers: this.passengersForMaarLabBookPackage(
+          bookPackageDto.passengers,
+        ),
+        ...(paymentPayload && { payment: paymentPayload }),
       };
 
       this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`);
@@ -760,7 +916,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Paquete reservado exitosamente');
@@ -779,8 +935,41 @@ export class MaarLabService {
         }
         
         if (error.response?.status === 400) {
+          const respData = error.response.data;
+          const { summary, raw } = describeMaarLabErrorBody(respData);
+          const bodyForClient =
+            raw ||
+            (typeof respData === 'string'
+              ? respData
+              : respData !== undefined && respData !== null
+                ? JSON.stringify(respData)
+                : '');
+          let details =
+            bodyForClient.length > 8000
+              ? `${bodyForClient.slice(0, 8000)}…`
+              : bodyForClient || 'MaarLab respondió 400 sin cuerpo de error.';
+          if (summary === MAARLAB_BOOKPACKAGE_400_SIN_TEXTO) {
+            details = `${details}\n\n${BOOK_PACKAGE_SUGERENCIAS_DETALLE}`;
+          }
+          const sent400 =
+            error.config?.data != null
+              ? typeof error.config.data === 'string'
+                ? error.config.data
+                : JSON.stringify(error.config.data)
+              : '';
+          if (sent400) {
+            this.logger.warn(
+              `MaarLab bookPackage body enviado (recorte): ${sent400.length > 4000 ? `${sent400.slice(0, 4000)}…` : sent400}`,
+            );
+          }
+          this.logger.error(
+            `MaarLab bookPackage HTTP 400 — resumen: ${summary} | body: ${bodyForClient || '(vacío)'}`,
+          );
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de reserva de paquete inválidos',
+            {
+              message: summary,
+              details,
+            },
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -871,7 +1060,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Token de pago obtenido exitosamente');
@@ -972,7 +1161,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Detalles de paquete obtenidos exitosamente');
@@ -1069,7 +1258,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Contrato ATOL obtenido exitosamente');
@@ -1188,7 +1377,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Hotel creado/actualizado exitosamente');
@@ -1307,7 +1496,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Agencia de viajes creada/actualizada exitosamente');
@@ -1425,7 +1614,7 @@ export class MaarLabService {
           Authorization: `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('Agencia de viajes creada/actualizada exitosamente en MaarLab V1');
@@ -1521,7 +1710,7 @@ export class MaarLabService {
           'Authorization': `Bearer ${envs.maarlabAuthToken}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+        timeout: 60000, // 60 segundos de timeout
       });
 
       this.logger.log('External ID obtenido exitosamente');
