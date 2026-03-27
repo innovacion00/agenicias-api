@@ -385,10 +385,15 @@ export class ReservasController {
     @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
     @Body(new ValidationPipe({ transform: true }))
     updateReservaStatusDto: UpdateReservaStatusDto,
+    /** Si true o 1, no bloquea por fecha de check-in (solo superAdmin). */
+    @Query('saltarValidacionCheckin') saltarValidacionCheckin?: string,
   ) {
+    const saltar =
+      saltarValidacionCheckin === 'true' || saltarValidacionCheckin === '1';
     return this.reservasService.actualizarStatusReservaManual(
       reservaId,
       updateReservaStatusDto.status,
+      saltar,
     );
   }
 

@@ -1768,42 +1768,52 @@ export class ReservasService {
   }
 
   async actualizarStatusReservaManual(
-    reservaId: Types.ObjectId,
+    reservaId: Types.ObjectId | string,
     status: ValidPaymentStatus,
+    saltarValidacionCheckin = false,
   ) {
     try {
-      const reserva = await this.reservasModel.findById(reservaId);
+      const _id =
+        reservaId instanceof Types.ObjectId
+          ? reservaId
+          : new Types.ObjectId(String(reservaId));
+
+      const reserva = await this.reservasModel.findById(_id).exec();
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
       }
 
-      const checkinRaw = reserva.reservation?.checkin;
-      if (!checkinRaw || typeof checkinRaw !== 'string') {
-        throw new BadRequestException(
-          'La reserva no tiene check-in válido para validar el cambio de estado',
-        );
-      }
+      if (!saltarValidacionCheckin) {
+        const checkinRaw = reserva.reservation?.checkin;
+        if (!checkinRaw || typeof checkinRaw !== 'string') {
+          throw new BadRequestException(
+            'La reserva no tiene check-in válido para validar el cambio de estado',
+          );
+        }
 
-      const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (!match) {
-        throw new BadRequestException(
-          `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
+        const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) {
+          throw new BadRequestException(
+            `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
+          );
+        }
+        const checkinDate = new Date(
+          `${match[1]}-${match[2]}-${match[3]}T00:00:00`,
         );
-      }
-      const checkinDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
-      if (Number.isNaN(checkinDate.getTime())) {
-        throw new BadRequestException(
-          `checkin inválido (no se pudo parsear): ${checkinRaw}`,
-        );
-      }
+        if (Number.isNaN(checkinDate.getTime())) {
+          throw new BadRequestException(
+            `checkin inválido (no se pudo parsear): ${checkinRaw}`,
+          );
+        }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      if (today >= checkinDate) {
-        throw new ForbiddenException(
-          'No se puede modificar el estado: la reserva ya llegó a la fecha de check-in',
-        );
+        if (today >= checkinDate) {
+          throw new ForbiddenException(
+            'No se puede modificar el estado: la reserva ya llegó a la fecha de check-in. Usa ?saltarValidacionCheckin=true si debes corregir datos como superAdmin.',
+          );
+        }
       }
 
       const statusNorm = Number(status);
@@ -1825,18 +1835,22 @@ export class ReservasService {
         statusNorm === ValidPaymentStatus.mitad ||
         statusNorm === ValidPaymentStatus.total;
 
-      // $set fuerza persistencia de false en Mongo (evita casos donde save() no marca el cambio).
-      const actualizada = await this.reservasModel.findByIdAndUpdate(
-        reservaId,
-        {
-          $set: {
-            status: statusNorm,
-            pagadoPrimeraMitad,
-          },
-        },
-        { new: true },
+      const updateResult = await this.reservasModel.updateOne(
+        { _id },
+        { $set: { status: statusNorm, pagadoPrimeraMitad } },
       );
 
+      if (updateResult.matchedCount === 0) {
+        throw new NotFoundException(
+          'Reserva no encontrada al aplicar el cambio de estado',
+        );
+      }
+
+      this.logger.log(
+        `actualizarStatusReservaManual _id=${String(_id)} status=${statusNorm} pagadoPrimeraMitad=${pagadoPrimeraMitad} matched=${updateResult.matchedCount} modified=${updateResult.modifiedCount}`,
+      );
+
+      const actualizada = await this.reservasModel.findById(_id).exec();
       if (!actualizada) {
         throw new NotFoundException('Reserva no encontrada tras actualizar');
       }
