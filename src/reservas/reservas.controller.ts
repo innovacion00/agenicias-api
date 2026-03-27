@@ -9,6 +9,7 @@ import {
   Query,
   Put,
   BadRequestException,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -382,7 +383,8 @@ export class ReservasController {
   @Auth(ValidRoles.superAdmin)
   actualizarStatusReservaManual(
     @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
-    @Body() updateReservaStatusDto: UpdateReservaStatusDto,
+    @Body(new ValidationPipe({ transform: true }))
+    updateReservaStatusDto: UpdateReservaStatusDto,
   ) {
     return this.reservasService.actualizarStatusReservaManual(
       reservaId,

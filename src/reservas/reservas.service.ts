@@ -1806,24 +1806,42 @@ export class ReservasService {
         );
       }
 
-      if (status === ValidPaymentStatus.cancelado) {
+      const statusNorm = Number(status);
+      if (
+        !Number.isInteger(statusNorm) ||
+        statusNorm < ValidPaymentStatus.espera ||
+        statusNorm > ValidPaymentStatus.mitad
+      ) {
+        throw new BadRequestException(
+          `status inválido: ${String(status)} (se esperaba entero 0–5)`,
+        );
+      }
+
+      if (statusNorm === ValidPaymentStatus.cancelado) {
         await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
       }
 
-      reserva.status = status;
-      // Solo mitad/total implican abono registrado; cualquier otro estado deja el flag en false
-      // (evita quedar en true al pasar de total a espera/proceso/rejected/cancelado).
-      if (
-        status === ValidPaymentStatus.mitad ||
-        status === ValidPaymentStatus.total
-      ) {
-        reserva.pagadoPrimeraMitad = true;
-      } else {
-        reserva.pagadoPrimeraMitad = false;
-      }
-      await reserva.save();
+      const pagadoPrimeraMitad =
+        statusNorm === ValidPaymentStatus.mitad ||
+        statusNorm === ValidPaymentStatus.total;
 
-      return reserva;
+      // $set fuerza persistencia de false en Mongo (evita casos donde save() no marca el cambio).
+      const actualizada = await this.reservasModel.findByIdAndUpdate(
+        reservaId,
+        {
+          $set: {
+            status: statusNorm,
+            pagadoPrimeraMitad,
+          },
+        },
+        { new: true },
+      );
+
+      if (!actualizada) {
+        throw new NotFoundException('Reserva no encontrada tras actualizar');
+      }
+
+      return actualizada;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
