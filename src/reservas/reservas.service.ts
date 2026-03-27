@@ -1790,7 +1790,6 @@ export class ReservasService {
           `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
         );
       }
-
       const checkinDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
       if (Number.isNaN(checkinDate.getTime())) {
         throw new BadRequestException(
@@ -1812,12 +1811,15 @@ export class ReservasService {
       }
 
       reserva.status = status;
-      // Alinear con el flujo de pagos (webhook): primera mitad abonada o pago total
+      // Solo mitad/total implican abono registrado; cualquier otro estado deja el flag en false
+      // (evita quedar en true al pasar de total a espera/proceso/rejected/cancelado).
       if (
         status === ValidPaymentStatus.mitad ||
         status === ValidPaymentStatus.total
       ) {
         reserva.pagadoPrimeraMitad = true;
+      } else {
+        reserva.pagadoPrimeraMitad = false;
       }
       await reserva.save();
 
