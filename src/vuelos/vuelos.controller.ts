@@ -14,7 +14,9 @@ import {
   UseInterceptors,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Types } from 'mongoose';
+import { Auth, GetUser } from 'src/auth/decorators';
 import { VuelosService } from './vuelos.service';
 import { ErrorHandlerService } from './services/error-handler.service';
 import { ErrorHandlerInterceptor } from './interceptors/error-handler.interceptor';
@@ -403,13 +405,16 @@ export class VuelosController {
    * @returns Lista de ofertas de vuelos disponibles
    */
   @Post('maarlab/disponibilidad')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: buscar disponibilidad de vuelos',
     description: 'Consulta vuelos disponibles en MaarLab Oceanflights según origen, destino, fecha y pasajeros.',
   })
   async searchFlightsMaarLab(
-    @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -430,7 +435,10 @@ export class VuelosController {
     });
 
     try {
-      const offers = await this.vuelosService.searchFlightsMaarLab(searchDto);
+      const offers = await this.vuelosService.searchFlightsMaarLab(
+        agenciaId,
+        searchDto,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos MaarLab completada`, {
         requestId: logContext.requestId,
@@ -461,14 +469,17 @@ export class VuelosController {
    * @returns Información del paquete creado
    */
   @Post('maarlab/paquete')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab: crear paquete',
     description: 'Crea un paquete de viaje en MaarLab a partir de un flightId.',
   })
   async createPackageMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Body(new ValidationPipe({ transform: true })) createPackageDto: CreatePackageDto,
-    @Query('info') info: string = 'all'
+    @Query('info') info: string = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -486,7 +497,11 @@ export class VuelosController {
     });
 
     try {
-      const packageResult = await this.vuelosService.createPackageMaarLab(createPackageDto, info);
+      const packageResult = await this.vuelosService.createPackageMaarLab(
+        agenciaId,
+        createPackageDto,
+        info,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Paquete MaarLab creado exitosamente`, {
         requestId: logContext.requestId,
@@ -514,13 +529,16 @@ export class VuelosController {
    * @returns Información de equipaje disponible
    */
   @Get('maarlab/equipaje')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: consultar equipaje',
     description: 'Obtiene opciones de equipaje disponibles para un packageId.',
   })
   async getLuggageMaarLab(
-    @Query('packageId') packageId: string
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Query('packageId') packageId: string,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -542,7 +560,10 @@ export class VuelosController {
     }
 
     try {
-      const luggageResult = await this.vuelosService.getLuggageMaarLab(packageId.trim());
+      const luggageResult = await this.vuelosService.getLuggageMaarLab(
+        agenciaId,
+        packageId.trim(),
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Consulta de equipaje MaarLab completada exitosamente`, {
         requestId: logContext.requestId,
@@ -569,15 +590,18 @@ export class VuelosController {
    * @returns Información del paquete actualizado
    */
   @Post('maarlab/extras')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: agregar extras',
     description: 'Agrega extras a un paquete existente y retorna el paquete actualizado.',
   })
   async addExtrasMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Body(new ValidationPipe({ transform: true })) addExtrasDto: AddExtrasDto,
     @Query('packageId') packageIdQuery?: string,
-    @Query('info') info: string = 'all'
+    @Query('info') info: string = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -604,9 +628,10 @@ export class VuelosController {
 
     try {
       const result = await this.vuelosService.addExtrasMaarLab(
+        agenciaId,
         packageId,
         addExtrasDto.extras,
-        info
+        info,
       );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Extras agregados exitosamente en MaarLab`, {
@@ -635,16 +660,19 @@ export class VuelosController {
    * @returns Información del paquete actualizado
    */
   @Delete('maarlab/extras')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: eliminar extra',
     description: 'Elimina un extra específico de un paquete de MaarLab.',
   })
   async deleteExtrasMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Query('packageId') packageId: string,
     @Query('itemId') itemId: string,
     @Query('typeExtraId') typeExtraId: string,
-    @Query('info') info: string = 'all'
+    @Query('info') info: string = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -703,10 +731,11 @@ export class VuelosController {
 
     try {
       const result = await this.vuelosService.deleteExtrasMaarLab(
+        agenciaId,
         packageId.trim(),
         itemIdNum,
         typeExtraIdNum,
-        info
+        info,
       );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Extra eliminado exitosamente en MaarLab`, {
@@ -735,14 +764,17 @@ export class VuelosController {
    * @returns Información de la reserva/prebooking
    */
   @Post('maarlab/reservar')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: reservar paquete',
     description: 'Envía datos de pasajeros y pago para confirmar la reserva de un paquete.',
   })
   async bookPackageMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Body(new ValidationPipe({ transform: true })) bookPackageDto: BookPackageDto,
-    @Query('info') info: string = 'all'
+    @Query('info') info: string = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -760,7 +792,11 @@ export class VuelosController {
     });
 
     try {
-      const result = await this.vuelosService.bookPackageMaarLab(bookPackageDto, info);
+      const result = await this.vuelosService.bookPackageMaarLab(
+        agenciaId,
+        bookPackageDto,
+        info,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Paquete reservado exitosamente en MaarLab`, {
         requestId: logContext.requestId,
@@ -787,15 +823,18 @@ export class VuelosController {
    * @returns Token de pago
    */
   @Get('maarlab/token-pago')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: obtener token de pago',
     description: 'Genera u obtiene el token de pago para un packageId.',
   })
   async getTokenPaymentMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Query('packageId') packageId: string,
     @Query('paymentType') paymentType?: string,
-    @Query('deferredPaymentDate') deferredPaymentDate?: string
+    @Query('deferredPaymentDate') deferredPaymentDate?: string,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -850,9 +889,10 @@ export class VuelosController {
 
     try {
       const result = await this.vuelosService.getTokenPaymentMaarLab(
+        agenciaId,
         packageId.trim(),
         paymentType,
-        deferredPaymentDate
+        deferredPaymentDate,
       );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Token de pago obtenido exitosamente en MaarLab`, {
@@ -879,14 +919,17 @@ export class VuelosController {
    * @returns Detalles completos del paquete
    */
   @Get('maarlab/paquete')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: obtener detalle de paquete',
     description: 'Consulta detalle completo de un paquete creado en MaarLab.',
   })
   async getPackageMaarLab(
+    @GetUser('agencia') agenciaId: Types.ObjectId,
     @Query('packageId') packageId: string,
-    @Query('info') info: string = 'all'
+    @Query('info') info: string = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -909,7 +952,11 @@ export class VuelosController {
     }
 
     try {
-      const result = await this.vuelosService.getPackageMaarLab(packageId.trim(), info);
+      const result = await this.vuelosService.getPackageMaarLab(
+        agenciaId,
+        packageId.trim(),
+        info,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Detalles de paquete obtenidos exitosamente en MaarLab`, {
         requestId: logContext.requestId,
@@ -934,13 +981,16 @@ export class VuelosController {
    * @returns Contrato de factura ATOL
    */
   @Get('maarlab/contrato-atol')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: obtener contrato ATOL',
     description: 'Recupera el contrato ATOL asociado a un packageId.',
   })
   async getInvoiceATOLContractMaarLab(
-    @Query('packageId') packageId: string
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Query('packageId') packageId: string,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -962,7 +1012,10 @@ export class VuelosController {
     }
 
     try {
-      const result = await this.vuelosService.getInvoiceATOLContractMaarLab(packageId.trim());
+      const result = await this.vuelosService.getInvoiceATOLContractMaarLab(
+        agenciaId,
+        packageId.trim(),
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Contrato ATOL obtenido exitosamente en MaarLab`, {
         requestId: logContext.requestId,
@@ -987,13 +1040,16 @@ export class VuelosController {
    * @returns Información del hotel creado o actualizado
    */
   @Post('maarlab/search-engine/complete-process')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab: crear/actualizar hotel',
     description: 'Crea o actualiza un hotel (search engine) en MaarLab.',
   })
   async searchEngineCompleteProcessMaarLab(
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: SearchEngineCompleteProcessDto
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true })) completeProcessDto: SearchEngineCompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -1010,7 +1066,10 @@ export class VuelosController {
     });
 
     try {
-      const result = await this.vuelosService.searchEngineCompleteProcessMaarLab(completeProcessDto);
+      const result = await this.vuelosService.searchEngineCompleteProcessMaarLab(
+        agenciaId,
+        completeProcessDto,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Hotel creado/actualizado exitosamente en MaarLab`, {
         requestId: logContext.requestId,
@@ -1036,13 +1095,16 @@ export class VuelosController {
    * @returns Información de la agencia de viajes creada o actualizada
    */
   @Post('maarlab/travel-agency/complete-process')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab: crear/actualizar agencia de viajes',
     description: 'Crea o actualiza una agencia de viajes en MaarLab (ruta estándar).',
   })
   async travelAgencyCompleteProcessMaarLab(
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyCompleteProcessDto
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyCompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -1059,7 +1121,10 @@ export class VuelosController {
     });
 
     try {
-      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLab(completeProcessDto);
+      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLab(
+        agenciaId,
+        completeProcessDto,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab`, {
         requestId: logContext.requestId,
@@ -1084,13 +1149,16 @@ export class VuelosController {
    * Ruta externa: /v1/travel_agency/complete_process
    */
   @Post('maarlab/v1/travel-agency/complete-process')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab V1: crear/actualizar agencia de viajes',
     description: 'Crea o actualiza una agencia de viajes usando la ruta V1 de MaarLab.',
   })
   async travelAgencyCompleteProcessMaarLabV1(
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyV1CompleteProcessDto
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyV1CompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -1107,7 +1175,10 @@ export class VuelosController {
     });
 
     try {
-      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLabV1(completeProcessDto);
+      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLabV1(
+        agenciaId,
+        completeProcessDto,
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab V1`, {
         requestId: logContext.requestId,
@@ -1133,13 +1204,16 @@ export class VuelosController {
    * @returns External ID del hotel
    */
   @Get('maarlab/search-engine/mapping-external-id/:idSearchEngine')
+  @Auth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: mapear external ID de search engine',
     description: 'Obtiene el external ID asociado a un ID interno de search engine en MaarLab.',
   })
   async mappingExternalIdSearchEngineMaarLab(
-    @Param('idSearchEngine') idSearchEngine: string
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @Param('idSearchEngine') idSearchEngine: string,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -1161,7 +1235,10 @@ export class VuelosController {
     }
 
     try {
-      const result = await this.vuelosService.mappingExternalIdSearchEngineMaarLab(idSearchEngine.trim());
+      const result = await this.vuelosService.mappingExternalIdSearchEngineMaarLab(
+        agenciaId,
+        idSearchEngine.trim(),
+      );
       
       this.logger.log(`[CONTROLLER_SUCCESS] External ID obtenido exitosamente en MaarLab`, {
         requestId: logContext.requestId,

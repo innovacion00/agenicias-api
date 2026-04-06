@@ -8,6 +8,7 @@ import {
   ValidateNested,
   IsNotEmpty,
   Matches,
+  ValidateBy,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -75,18 +76,25 @@ export class PassengerDto {
   email: string;
 
   /**
-   * Doc: +<código país> y número. Se eliminan espacios para alinear con OceanFlights.
+   * Doc MaarLab: "+34 6778456767". Solo trim; se conservan espacios para el payload a OceanFlights.
    */
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    return value.trim().replace(/\s+/g, '');
-  })
-  @Matches(/^\+\d{8,16}$/, {
-    message:
-      'contact_number debe ser +<código país> y dígitos sin espacios (ej: +346778456767)',
-  })
+  @Transform(trim)
+  @ValidateBy(
+    {
+      name: 'contactNumberMaarLab',
+      validator: {
+        validate(value: unknown): boolean {
+          if (typeof value !== 'string') return false;
+          const compact = value.replace(/\s+/g, '');
+          return /^\+\d{8,16}$/.test(compact);
+        },
+        defaultMessage: () =>
+          'contact_number debe ser +<código país> y dígitos; se permiten espacios (ej: +34 6778456767)',
+      },
+    },
+  )
   contact_number: string;
 
   @IsDateString()

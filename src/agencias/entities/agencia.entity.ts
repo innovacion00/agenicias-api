@@ -137,6 +137,13 @@ export class Agencia extends Document {
     default: '',
   })
   politicasAgencia: string;
+
+  /** Bearer token Consolidator MaarLab / OceanFlights por agencia (vacío = no registrada). */
+  @Prop({
+    type: String,
+    default: '',
+  })
+  maarlabApiKey: string;
 }
 
 export const AgenciaSchema = SchemaFactory.createForClass(Agencia);

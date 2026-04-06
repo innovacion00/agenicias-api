@@ -70,7 +70,8 @@ interface EnvVars {
 
   //? MaarLab
   MAARLAB_BASE_URL: string;
-  MAARLAB_AUTH_TOKEN: string;
+  /** @deprecated El Bearer por solicitud sale de Agencia.maarlabApiKey */
+  MAARLAB_AUTH_TOKEN?: string;
 }
 
 // API_1525: joi.string().required(),
@@ -142,7 +143,7 @@ const envSchema = joi
 
     //? MaarLab
     MAARLAB_BASE_URL: joi.string().required(),
-    MAARLAB_AUTH_TOKEN: joi.string().required(),
+    MAARLAB_AUTH_TOKEN: joi.string().allow('').optional().default(''),
   })
   .unknown(true);
 
@@ -222,5 +223,6 @@ export const envs = {
 
   //? MaarLab
   maarlabBaseUrl: envVars.MAARLAB_BASE_URL,
-  maarlabAuthToken: envVars.MAARLAB_AUTH_TOKEN,
+  /** Legado; no usar para Authorization hacia OceanFlights. */
+  maarlabAuthToken: envVars.MAARLAB_AUTH_TOKEN ?? '',
 };

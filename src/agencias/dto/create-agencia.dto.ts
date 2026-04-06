@@ -108,4 +108,13 @@ export class CreateAgenciaDto {
     tipo: 'CC' | 'NIT' | 'CE' | 'PA';
     document: string;
   };
+
+  @ApiProperty({
+    description:
+      'API key / Bearer token MaarLab (Consolidator). Opcional al crear; se puede actualizar después.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  maarlabApiKey?: string;
 }

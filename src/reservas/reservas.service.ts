@@ -450,7 +450,10 @@ export class ReservasService {
           });
       }
 
-      return createReservaDto;
+      return {
+        ...createReservaDto,
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);

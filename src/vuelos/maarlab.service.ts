@@ -12,16 +12,21 @@ const BOOK_PACKAGE_SUGERENCIAS_DETALLE =
   'Comprueba: packageId vigente (los paquetes caducan); mismos adultos/niños/edades que en la búsqueda; residence y residence_type si en search activaste residente; quitar frequent_flyer_* si no reservas con puntos; document_type y códigos según su API; partner_id del entorno correcto.';
 
 /** Resume el cuerpo de error de MaarLab (suele no usar solo `message`). */
-function describeMaarLabErrorBody(data: unknown): { summary: string; raw: string } {
+function describeMaarLabErrorBody(
+  data: unknown,
+  emptyFallback: string = MAARLAB_BOOKPACKAGE_400_SIN_TEXTO,
+): { summary: string; raw: string; hadParts: boolean } {
   if (data == null) {
-    return { summary: MAARLAB_BOOKPACKAGE_400_SIN_TEXTO, raw: '' };
+    return { summary: emptyFallback, raw: '', hadParts: false };
   }
   if (typeof data === 'string') {
     const t = data.trim();
-    return { summary: t || MAARLAB_BOOKPACKAGE_400_SIN_TEXTO, raw: t };
+    const hadParts = t.length > 0;
+    return { summary: hadParts ? t : emptyFallback, raw: t, hadParts };
   }
   if (typeof data !== 'object') {
-    return { summary: String(data), raw: String(data) };
+    const s = String(data);
+    return { summary: s, raw: s, hadParts: true };
   }
 
   const d = data as Record<string, unknown>;
@@ -67,33 +72,53 @@ function describeMaarLabErrorBody(data: unknown): { summary: string; raw: string
   } catch {
     raw = String(data);
   }
-  const summary =
-    parts.length > 0 ? parts.join('; ') : MAARLAB_BOOKPACKAGE_400_SIN_TEXTO;
-  return { summary, raw };
+  const hadParts = parts.length > 0;
+  const summary = hadParts ? parts.join('; ') : emptyFallback;
+  return { summary, raw, hadParts };
 }
 
 @Injectable()
 export class MaarLabService {
   private readonly logger = new Logger(MaarLabService.name);
 
+  private normalizeMaarLabBaseUrl(): string {
+    const raw = envs.maarlabBaseUrl?.trim();
+    if (!raw) {
+      throw new HttpException(
+        'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    let baseUrl = raw;
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+    return baseUrl.replace(/\/$/, '');
+  }
+
+  private maarlabHeaders(bearerToken: string): Record<string, string> {
+    return {
+      Authorization: `Bearer ${bearerToken.trim()}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
   /**
    * Busca vuelos disponibles usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia (OceanFlights)
    * @param searchDto - Parámetros de búsqueda de vuelos
    * @returns Respuesta con ofertas de vuelos disponibles
    */
-  async searchFlights(searchDto: MaarLabFlightSearchDto): Promise<any> {
+  async searchFlights(
+    bearerToken: string,
+    searchDto: MaarLabFlightSearchDto,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando búsqueda de vuelos en MaarLab...');
       this.logger.debug(`Parámetros de búsqueda: ${JSON.stringify(searchDto)}`);
 
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
-      
+      const baseUrl = this.normalizeMaarLabBaseUrl();
+
       // Construir la URL con el endpoint y parámetros
       // Formato: https://test-api.maarlab.online/api/v1/searchForFlightsToDestination/?origin=MAD&departureDate=...
       const endpoint = `${baseUrl}/searchForFlightsToDestination/`;
@@ -143,10 +168,7 @@ export class MaarLabService {
 
       // Realizar la petición
       const response: AxiosResponse = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -160,7 +182,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -203,26 +225,22 @@ export class MaarLabService {
 
   /**
    * Crea un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param createPackageDto - Datos para crear el paquete
    * @param info - Nivel de detalle de la respuesta ('all' para información completa)
    * @returns Respuesta con información del paquete creado
    */
-  async createPackage(createPackageDto: any, info: string = 'all'): Promise<any> {
+  async createPackage(
+    bearerToken: string,
+    createPackageDto: any,
+    info: string = 'all',
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de paquete de vuelo en MaarLab...');
       this.logger.debug(`Parámetros de creación: ${JSON.stringify(createPackageDto)}`);
 
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      this.logger.debug(`MAARLAB_BASE_URL original: ${baseUrl}`);
-      
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
-      this.logger.debug(`Base URL después de limpiar: ${baseUrl}`);
+      const baseUrl = this.normalizeMaarLabBaseUrl();
+      this.logger.debug(`Base URL: ${baseUrl}`);
       
       // Construir la URL con el endpoint (con barra final según documentación MaarLab)
       const endpoint = `${baseUrl}/createPackage/`;
@@ -268,14 +286,11 @@ export class MaarLabService {
 
       this.logger.debug(`URL completa: ${url}`);
       this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody, null, 2)}`);
-      this.logger.debug(`Headers: Authorization: Bearer ${envs.maarlabAuthToken ? '***' : 'NO CONFIGURADO'}`);
+      this.logger.debug(`Headers: Authorization: Bearer ***`);
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(url, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -301,7 +316,8 @@ export class MaarLabService {
         if (error.response?.status === 401) {
           throw new HttpException(
             {
-              message: 'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+              message:
+                'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
               maarLabError: error.response.data,
             },
             HttpStatus.UNAUTHORIZED,
@@ -403,32 +419,17 @@ export class MaarLabService {
 
   /**
    * Obtiene información de equipaje disponible para un paquete usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete obtenido después de su creación
    * @returns Respuesta con información de equipaje disponible
    */
-  async getLuggage(packageId: string): Promise<any> {
+  async getLuggage(bearerToken: string, packageId: string): Promise<any> {
     try {
       this.logger.log('Iniciando consulta de equipaje en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      this.logger.debug(`MAARLAB_BASE_URL original: ${baseUrl}`);
-      
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
-      this.logger.debug(`Base URL después de limpiar: ${baseUrl}`);
+      const baseUrl = this.normalizeMaarLabBaseUrl();
+      this.logger.debug(`Base URL: ${baseUrl}`);
       
       // Construir la URL con el endpoint (getLuggages con 's' según documentación MaarLab)
       const endpoint = `${baseUrl}/getLuggages/`;
@@ -444,10 +445,7 @@ export class MaarLabService {
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -470,7 +468,8 @@ export class MaarLabService {
         if (error.response?.status === 401) {
           throw new HttpException(
             {
-              message: 'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+              message:
+                'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
               maarLabError: error.response.data,
             },
             HttpStatus.UNAUTHORIZED,
@@ -538,12 +537,18 @@ export class MaarLabService {
 
   /**
    * Agrega extras seleccionados a un paquete de vuelo usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete obtenido después de su creación
    * @param extrasData - Datos de los extras a agregar
    * @param info - Nivel de detalle de la respuesta ('all' para información completa)
    * @returns Respuesta con información del paquete actualizado
    */
-  async addExtras(packageId: string, extrasData: any, info: string = 'all'): Promise<any> {
+  async addExtras(
+    bearerToken: string,
+    packageId: string,
+    extrasData: any,
+    info: string = 'all',
+  ): Promise<any> {
     let url = '';
     let requestBody: any = {};
     try {
@@ -551,21 +556,7 @@ export class MaarLabService {
       this.logger.debug(`Package ID: ${packageId}, Info: ${info}`);
       this.logger.debug(`Extras data: ${JSON.stringify(extrasData)}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint (con barra final según patrón de otros endpoints)
       const endpoint = `${baseUrl}/addExtras/`;
@@ -595,10 +586,7 @@ export class MaarLabService {
 
       // Realizar la petición PUT (la API de MaarLab requiere PUT para addExtras)
       const response: AxiosResponse = await axios.put(url, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -612,7 +600,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -674,6 +662,7 @@ export class MaarLabService {
 
   /**
    * Elimina un extra específico de un paquete usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete del cual se elimina el extra
    * @param itemId - ID del item a eliminar
    * @param typeExtraId - ID del tipo de extra a eliminar
@@ -681,30 +670,17 @@ export class MaarLabService {
    * @returns Respuesta con información del paquete actualizado
    */
   async deleteExtras(
+    bearerToken: string,
     packageId: string,
     itemId: number,
     typeExtraId: number,
-    info: string = 'all'
+    info: string = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando eliminación de extra en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/deleteExtras/`;
@@ -724,10 +700,7 @@ export class MaarLabService {
 
       // Realizar la petición DELETE
       const response: AxiosResponse = await axios.delete(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -741,7 +714,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -834,11 +807,13 @@ export class MaarLabService {
 
   /**
    * Reserva un paquete de vuelo agregando información de pasajeros usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param bookPackageDto - Datos para reservar el paquete (pasajeros, pago, etc.)
    * @param info - Nivel de detalle de la respuesta ('all' para información completa)
    * @returns Respuesta con información de la reserva/prebooking
    */
   async bookPackage(
+    bearerToken: string,
     bookPackageDto: BookPackageDto,
     info: string = 'all',
   ): Promise<any> {
@@ -847,21 +822,7 @@ export class MaarLabService {
       this.logger.debug(`Package ID: ${bookPackageDto.packageId}, Info: ${info}`);
       this.logger.debug(`Passengers: ${bookPackageDto.passengers?.length || 0}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/bookPackage/`;
@@ -912,10 +873,7 @@ export class MaarLabService {
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(url, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -929,7 +887,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -1005,35 +963,23 @@ export class MaarLabService {
 
   /**
    * Obtiene el token de pago para un paquete específico usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete para obtener el token de pago
    * @param paymentType - Tipo de pago (opcional)
    * @param deferredPaymentDate - Fecha de pago diferido (opcional, formato YYYY-MM-DD)
    * @returns Respuesta con el token de pago
    */
   async getTokenPayment(
+    bearerToken: string,
     packageId: string,
     paymentType?: string,
-    deferredPaymentDate?: string
+    deferredPaymentDate?: string,
   ): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de token de pago en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getTokenPayment/`;
@@ -1056,10 +1002,7 @@ export class MaarLabService {
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1073,7 +1016,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -1116,30 +1059,21 @@ export class MaarLabService {
 
   /**
    * Obtiene los detalles completos de un paquete específico usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete a obtener
    * @param info - Nivel de detalle de la respuesta ('all' para información completa)
    * @returns Respuesta con los detalles completos del paquete
    */
-  async getPackage(packageId: string, info: string = 'all'): Promise<any> {
+  async getPackage(
+    bearerToken: string,
+    packageId: string,
+    info: string = 'all',
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de detalles de paquete en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}, Info: ${info}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getPackage`;
@@ -1157,10 +1091,7 @@ export class MaarLabService {
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1174,7 +1105,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -1217,29 +1148,16 @@ export class MaarLabService {
 
   /**
    * Obtiene el contrato de factura ATOL para un paquete específico usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param packageId - ID del paquete para obtener el contrato ATOL
    * @returns Respuesta con el contrato de factura ATOL
    */
-  async getInvoiceATOLContract(packageId: string): Promise<any> {
+  async getInvoiceATOLContract(bearerToken: string, packageId: string): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de contrato ATOL en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getInvoiceATOLContract`;
@@ -1254,10 +1172,7 @@ export class MaarLabService {
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1271,7 +1186,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -1314,29 +1229,19 @@ export class MaarLabService {
 
   /**
    * Crea hoteles con configuración por defecto usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param completeProcessDto - Datos del hotel a crear
    * @returns Respuesta con información del hotel creado o actualizado
    */
-  async searchEngineCompleteProcess(completeProcessDto: any): Promise<any> {
+  async searchEngineCompleteProcess(
+    bearerToken: string,
+    completeProcessDto: any,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de hotel en MaarLab...');
       this.logger.debug(`Hotel name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/search_engine/complete_process`;
@@ -1373,10 +1278,7 @@ export class MaarLabService {
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1390,7 +1292,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
@@ -1433,29 +1335,19 @@ export class MaarLabService {
 
   /**
    * Crea agencias de viajes con configuración por defecto usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param completeProcessDto - Datos de la agencia de viajes a crear
    * @returns Respuesta con información de la agencia de viajes creada o actualizada
    */
-  async travelAgencyCompleteProcess(completeProcessDto: any): Promise<any> {
+  async travelAgencyCompleteProcess(
+    bearerToken: string,
+    completeProcessDto: any,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de agencia de viajes en MaarLab...');
       this.logger.debug(`Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/travel_agency/complete_process`;
@@ -1492,10 +1384,7 @@ export class MaarLabService {
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1509,14 +1398,33 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
         
         if (error.response?.status === 400) {
+          const respData = error.response.data;
+          const { summary, raw, hadParts } = describeMaarLabErrorBody(
+            respData,
+            'Parámetros de creación de agencia de viajes inválidos',
+          );
+          const bodyForClient =
+            raw ||
+            (typeof respData === 'string'
+              ? respData
+              : respData !== undefined && respData !== null
+                ? JSON.stringify(respData)
+                : '');
+          const details =
+            bodyForClient.length > 8000
+              ? `${bodyForClient.slice(0, 8000)}…`
+              : bodyForClient || summary;
+          this.logger.error(
+            `MaarLab travel_agency/complete_process HTTP 400 — resumen: ${summary} | body: ${bodyForClient || '(vacío)'} | hadParts=${hadParts}`,
+          );
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de creación de agencia de viajes inválidos',
+            { message: summary, details },
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -1553,28 +1461,21 @@ export class MaarLabService {
   /**
    * Crea agencias de viajes usando la ruta explícita V1 en MaarLab
    * Ruta externa: /v1/travel_agency/complete_process
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param completeProcessDto - Datos de la agencia de viajes a crear
    * @returns Respuesta con información de la agencia de viajes creada o actualizada
    */
-  async travelAgencyCompleteProcessV1(completeProcessDto: any): Promise<any> {
+  async travelAgencyCompleteProcessV1(
+    bearerToken: string,
+    completeProcessDto: any,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de agencia de viajes en MaarLab V1...');
       this.logger.debug(
         `Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`,
       );
 
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      baseUrl = baseUrl.replace(/\/$/, '');
+      let baseUrl = this.normalizeMaarLabBaseUrl();
 
       const endpoint = baseUrl.endsWith('/v1')
         ? `${baseUrl}/travel_agency/complete_process`
@@ -1610,10 +1511,7 @@ export class MaarLabService {
       };
 
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
-        headers: {
-          Authorization: `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1632,14 +1530,33 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }
 
         if (error.response?.status === 400) {
+          const respData = error.response.data;
+          const { summary, raw, hadParts } = describeMaarLabErrorBody(
+            respData,
+            'Parámetros de creación de agencia de viajes inválidos',
+          );
+          const bodyForClient =
+            raw ||
+            (typeof respData === 'string'
+              ? respData
+              : respData !== undefined && respData !== null
+                ? JSON.stringify(respData)
+                : '');
+          const details =
+            bodyForClient.length > 8000
+              ? `${bodyForClient.slice(0, 8000)}…`
+              : bodyForClient || summary;
+          this.logger.error(
+            `MaarLab v1/travel_agency/complete_process HTTP 400 — resumen: ${summary} | body: ${bodyForClient || '(vacío)'} | hadParts=${hadParts}`,
+          );
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de creación de agencia de viajes inválidos',
+            { message: summary, details },
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -1675,29 +1592,19 @@ export class MaarLabService {
 
   /**
    * Obtiene el external ID de un hotel desde el ID interno de Oceanflight usando la API de MaarLab Oceanflights
+   * @param bearerToken - Bearer Consolidator de la agencia
    * @param idSearchEngine - ID interno del search engine (Oceanflight)
    * @returns Respuesta con el external ID del hotel
    */
-  async mappingExternalIdSearchEngine(idSearchEngine: string): Promise<any> {
+  async mappingExternalIdSearchEngine(
+    bearerToken: string,
+    idSearchEngine: string,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de external ID en MaarLab...');
       this.logger.debug(`ID Search Engine: ${idSearchEngine}`);
 
-      // Validar que las variables de entorno estén configuradas
-      if (!envs.maarlabBaseUrl || !envs.maarlabAuthToken) {
-        throw new HttpException(
-          'Configuración de MaarLab incompleta. Verifica MAARLAB_BASE_URL y MAARLAB_AUTH_TOKEN.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Construir la URL base
-      let baseUrl = envs.maarlabBaseUrl.trim();
-      if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-        baseUrl = `https://${baseUrl}`;
-      }
-      // Eliminar barra final si existe
-      baseUrl = baseUrl.replace(/\/$/, '');
+      const baseUrl = this.normalizeMaarLabBaseUrl();
       
       // Construir la URL con el endpoint (path parameter)
       const endpoint = `${baseUrl}/search_engine/mapping-external-id/${idSearchEngine}/`;
@@ -1706,10 +1613,7 @@ export class MaarLabService {
 
       // Realizar la petición GET
       const response: AxiosResponse = await axios.get(endpoint, {
-        headers: {
-          'Authorization': `Bearer ${envs.maarlabAuthToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maarlabHeaders(bearerToken),
         timeout: 60000, // 60 segundos de timeout
       });
 
@@ -1723,7 +1627,7 @@ export class MaarLabService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
-            'Token de autenticación de MaarLab inválido. Verifica MAARLAB_AUTH_TOKEN.',
+            'Token de autenticación de MaarLab inválido o expirado para esta agencia.',
             HttpStatus.UNAUTHORIZED,
           );
         }

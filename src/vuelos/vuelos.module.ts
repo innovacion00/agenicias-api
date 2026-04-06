@@ -11,12 +11,16 @@ import { ErrorHandlerInterceptor } from './interceptors/error-handler.intercepto
 import { ErrorHandlerFilter } from './filters/error-handler.filter';
 import { CommonModule } from '../common/common.module';
 import { Reserva, ReservaSchema } from 'src/reservas/entities';
+import { AgenciasModule } from 'src/agencias/agencias.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule,
     CommonModule, // Para acceder a HttpCustomService
     MongooseModule.forFeature([{ name: Reserva.name, schema: ReservaSchema }]),
+    AuthModule,
+    AgenciasModule,
   ],
   controllers: [VuelosController],
   providers: [
