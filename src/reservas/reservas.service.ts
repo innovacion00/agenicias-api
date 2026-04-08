@@ -37,6 +37,7 @@ import {
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
   PagoReservaBilleteraDto,
+  UpdateFechasPagoDto,
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
@@ -1823,10 +1824,10 @@ export class ReservasService {
       if (
         !Number.isInteger(statusNorm) ||
         statusNorm < ValidPaymentStatus.espera ||
-        statusNorm > ValidPaymentStatus.mitad
+        statusNorm > ValidPaymentStatus.reservaAbonada
       ) {
         throw new BadRequestException(
-          `status inválido: ${String(status)} (se esperaba entero 0–5)`,
+          `status inválido: ${String(status)} (se esperaba entero 0–6)`,
         );
       }
 
@@ -1836,6 +1837,7 @@ export class ReservasService {
 
       const pagadoPrimeraMitad =
         statusNorm === ValidPaymentStatus.mitad ||
+        statusNorm === ValidPaymentStatus.reservaAbonada ||
         statusNorm === ValidPaymentStatus.total;
 
       const updateResult = await this.reservasModel.updateOne(
@@ -1863,6 +1865,95 @@ export class ReservasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  async actualizarFechasPagoReserva(
+    reservaId: Types.ObjectId,
+    updateFechasPagoDto: UpdateFechasPagoDto,
+    user: User,
+  ) {
+    try {
+      const reserva = await this.reservasModel.findById(reservaId).exec();
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+      if (reserva.status === ValidPaymentStatus.cancelado) {
+        throw new BadRequestException(
+          'No se pueden actualizar fechas de pago en una reserva cancelada',
+        );
+      }
+
+      const isSuperAdmin = user.role.includes('super-admin');
+      if (
+        !isSuperAdmin &&
+        reserva.agenciaId.toString() !== user.agencia.toString()
+      ) {
+        throw new ForbiddenException(
+          'No cuentas con permisos para modificar las fechas de pago de esta reserva',
+        );
+      }
+
+      const checkinRaw = reserva.reservation?.checkin;
+      if (!checkinRaw || typeof checkinRaw !== 'string') {
+        throw new BadRequestException(
+          'La reserva no tiene check-in válido para validar las fechas de pago',
+        );
+      }
+
+      const checkinDate = this.parseYyyyMmDdOrThrow(checkinRaw, 'checkin');
+      const fechaLimitePago = this.parseYyyyMmDdOrThrow(
+        updateFechasPagoDto.fechaLimitePago,
+        'fechaLimitePago',
+      );
+      const fechaLimitePago2 = this.parseYyyyMmDdOrThrow(
+        updateFechasPagoDto.fechaLimitePago2,
+        'fechaLimitePago2',
+      );
+
+      if (fechaLimitePago > checkinDate) {
+        throw new BadRequestException(
+          'fechaLimitePago no puede ser mayor a la fecha de check-in de la reserva',
+        );
+      }
+      if (fechaLimitePago2 > checkinDate) {
+        throw new BadRequestException(
+          'fechaLimitePago2 no puede ser mayor a la fecha de check-in de la reserva',
+        );
+      }
+
+      reserva.fechaLimitePago = updateFechasPagoDto.fechaLimitePago.trim();
+      reserva.fechaLimitePago2 = updateFechasPagoDto.fechaLimitePago2.trim();
+      await reserva.save();
+
+      return {
+        reservaId: reserva._id,
+        reservaChatbotId: reserva.reservaChatbotId,
+        fechaLimitePago: reserva.fechaLimitePago,
+        fechaLimitePago2: reserva.fechaLimitePago2,
+        checkin: reserva.reservation.checkin,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  private parseYyyyMmDdOrThrow(value: string, fieldName: string): Date {
+    const raw = value.trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      throw new BadRequestException(
+        `${fieldName} inválido (se esperaba YYYY-MM-DD): ${value}`,
+      );
+    }
+
+    const parsed = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(
+        `${fieldName} inválido (no se pudo parsear): ${value}`,
+      );
+    }
+    return parsed;
   }
 
   //? Pruebas
