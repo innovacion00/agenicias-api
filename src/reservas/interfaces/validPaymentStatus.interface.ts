@@ -5,4 +5,5 @@ export enum ValidPaymentStatus {
   total = 3,
   cancelado = 4,
   mitad = 5,
+  reservaAbonada = 6,
 }

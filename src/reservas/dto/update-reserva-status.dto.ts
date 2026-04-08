@@ -6,7 +6,7 @@ export class UpdateReservaStatusDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @Max(5)
+  @Max(6)
   status: number;
 }
 

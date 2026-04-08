@@ -27,6 +27,7 @@ import {
   UpdateReservaDto,
   PagoReservaBilleteraDto,
   UpdateReservaStatusDto,
+  UpdateFechasPagoDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -325,9 +326,9 @@ export class ReservasController {
       throw new BadRequestException('El parámetro status es requerido');
     }
     const statusNumber = parseInt(status, 10);
-    if (isNaN(statusNumber) || statusNumber < 0 || statusNumber > 5) {
+    if (isNaN(statusNumber) || statusNumber < 0 || statusNumber > 6) {
       throw new BadRequestException(
-        'El status debe ser un número entre 0 y 5 (0: espera, 1: proceso, 2: rejected, 3: total, 4: cancelado, 5: mitad)',
+        'El status debe ser un número entre 0 y 6 (0: espera, 1: proceso, 2: rejected, 3: total, 4: cancelado, 5: mitad, 6: reserva abonada)',
       );
     }
     const getAll = all === 'true' || all === '1';
@@ -394,6 +395,21 @@ export class ReservasController {
       reservaId,
       updateReservaStatusDto.status,
       saltar,
+    );
+  }
+
+  @Put('fechas-pago/:reservaId')
+  @Auth(ValidRoles.admin, ValidRoles.superAdmin)
+  actualizarFechasPagoReserva(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true }))
+    updateFechasPagoDto: UpdateFechasPagoDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.actualizarFechasPagoReserva(
+      reservaId,
+      updateFechasPagoDto,
+      user,
     );
   }
 

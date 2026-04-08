@@ -72,7 +72,8 @@ export class BookingPersona extends Document {
   ? 2 Pago Rechazado
   ? 3 Pago Aprobado
   ? 4 Cancelado
-  ? 5 Pago abonado
+  ? 5 Pago mitad
+  ? 6 Reserva abonada
   */
   @Prop({
     type: Number,
