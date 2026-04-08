@@ -170,8 +170,9 @@ export const notificacionEmail7Dias = (
         </ul>
         <p>se encuentra a <strong>1 semana</strong> de alcanzar la fecha límite de pago para su primer abono.</p>
         <p>Por favor, proceda a realizar el primer pago cuanto antes para asegurar su reserva. Puede gestionar su reserva directamente haciendo clic en el siguiente enlace:</p>
-        <a href="https://agencia.gehsuites.com/misreservas" class="button">Gestionar mi Reserva</a>
-        <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+        <a href="https://agencia.gehsuites.com/gestionar/${reserva}" class="button">Gestionar mi Reserva</a>
+        <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+        <p>Por favor no responder este correo.</p>
         <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
       </div>
       <div class="email-footer">
@@ -261,8 +262,9 @@ export const notificacionEmail7Dias = (
         </ul>
         <p>se encuentra a <strong>1 semana</strong> de alcanzar la fecha límite de pago final.</p>
         <p>Por favor, proceda a realizar el ultimo pago cuanto antes para concretar su reserva. Puede gestionar su reserva directamente haciendo clic en el siguiente enlace:</p>
-        <a href="https://agencia.gehsuites.com/misreservas" class="button">Gestionar mi Reserva</a>
-        <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+        <a href="https://agencia.gehsuites.com/gestionar/${reserva}" class="button">Gestionar mi Reserva</a>
+        <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+        <p>Por favor no responder este correo.</p>
         <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
       </div>
       <div class="email-footer">
@@ -362,8 +364,9 @@ export const notificacionEmailMenos3Dias = (
       </ul>
       <p>se encuentra a <strong>${dias} ${dias > 1 ? 'dias' : 'dia'}</strong> de alcanzar la fecha límite de pago para su primer abono.</p>
       <p>Por favor, proceda a realizar el pago cuanto antes para asegurar su reserva. Puede gestionar su reserva directamente haciendo clic en el siguiente enlace:</p>
-      <a href="https://agencia.gehsuites.com/misreservas" class="button">Gestionar mi Reserva</a>
-      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+      <a href="https://agencia.gehsuites.com/gestionar/${reserva}" class="button">Gestionar mi Reserva</a>
+      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+      <p>Por favor no responder este correo.</p>
       <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
     </div>
     <div class="email-footer">
@@ -453,8 +456,10 @@ export const notificacionEmailMenos3Dias = (
       </ul>
       <p>se encuentra a <strong>${dias} ${dias > 1 ? 'dias' : 'dia'}</strong> de alcanzar la fecha límite de pago final.</p>
       <p>Por favor, proceda a realizar el pago cuanto antes para concretar su reserva. Puede gestionar su reserva directamente haciendo clic en el siguiente enlace:</p>
-      <a href="https://agencia.gehsuites.com/misreservas" class="button">Gestionar mi Reserva</a>
-      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+      <a href="https://agencia.gehsuites.com/gestionar/${reserva}" class="button">Gestionar mi Reserva</a>
+      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+      <p>Por favor no responder este correo.</p>
+
       <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
     </div>
     <div class="email-footer">
@@ -551,8 +556,9 @@ export const notificacionEmailUltimoDia = (
       </ul>
       <p>se encuentra en <strong>la fecha límite de pago</strong>.</p>
       <p>Por favor, proceda a realizar el pago cuanto antes para asegurar su reserva de lo contrario esta sera <strong>CANCELADA</strong>. Puede gestionar su reserva directamente haciendo clic en el siguiente enlace:</p>
-      <a href="https://agencia.gehsuites.com/misreservas" class="button">Gestionar mi Reserva</a>
-      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+      <a href="https://agencia.gehsuites.com/gestionar/${reserva}" class="button">Gestionar mi Reserva</a>
+      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+      <p>Por favor no responder este correo.</p>
       <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
     </div>
     <div class="email-footer">
@@ -647,7 +653,8 @@ export const notificacionEmailCancelacionReserva = (
         <li><strong>Check-out:</strong> ${checkout}</li>
       </ul>
       <p>se encuentra <strong>CANCELADA</strong> por falta de pago a tiempo oportuno.</p>
-      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de soporte.</p>
+      <p>Si tiene alguna duda o necesita asistencia, no dude en ponerse en contacto con nuestro equipo de reservas reservas@gehsuites.com.</p>
+      <p>Por favor no responder este correo.</p>
       <p>Saludos cordiales,<br>El equipo de Geh Suites</p>
     </div>
     <div class="email-footer">

@@ -7,10 +7,16 @@ import { ReservasService } from './reservas.service';
 import { Reserva, ReservaSchema } from './entities/reserva.entity';
 import { CommonModule } from 'src/common/common.module';
 import { AgenciasModule } from 'src/agencias/agencias.module';
+import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
+import { CancellationLockReconciliationService } from './cancellation-lock-reconciliation.service';
 
 @Module({
   controllers: [ReservasController],
-  providers: [ReservasService],
+  providers: [
+    ReservasService,
+    CancellationTasksQueueService,
+    CancellationLockReconciliationService,
+  ],
   imports: [
     forwardRef(() => AgenciasModule),
     AuthModule,

@@ -346,4 +346,29 @@ export class AgenciasService {
       this.errorManager.handle(error);
     }
   }
+
+  /**
+   * Bearer MaarLab / OceanFlights (Consolidator) configurado para la agencia.
+   */
+  async getMaarLabApiKeyOrThrow(agenciaId: Types.ObjectId): Promise<string> {
+    const agencia = await this.agenciaModel
+      .findById(agenciaId)
+      .select('maarlabApiKey')
+      .lean()
+      .exec();
+
+    if (!agencia) {
+      throw new NotFoundException('Agencia no encontrada');
+    }
+
+    const key =
+      typeof agencia.maarlabApiKey === 'string' ? agencia.maarlabApiKey.trim() : '';
+    if (!key) {
+      throw new BadRequestException(
+        'Esta agencia no está registrada en el sistema de MaarLab',
+      );
+    }
+
+    return key;
+  }
 }

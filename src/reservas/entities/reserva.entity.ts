@@ -208,6 +208,32 @@ export class Reserva extends Document {
   status: ValidPaymentStatus;
 
   @Prop({
+    type: Boolean,
+    default: false,
+    index: true,
+  })
+  cancelInProgress: boolean;
+
+  @Prop({
+    type: Date,
+    default: null,
+    index: true,
+  })
+  cancelRequestedAt?: Date;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  cancelProcessedAt?: Date;
+
+  @Prop({
+    type: String,
+    default: '',
+  })
+  cancelOpId?: string;
+
+  @Prop({
     type: [
       {
         fullName: { type: String, required: true },
@@ -352,6 +378,25 @@ export class Reserva extends Document {
     default: [],
   })
   linksHistory: LinksHistory[];
+
+  // #region MaarLab flights (interno)
+  @Prop({
+    type: [
+      {
+        packageId: { type: String, default: '' },
+        // Guardamos toda la respuesta de MaarLab de bookPackage, excepto el objeto "hotel"
+        respuestaMaarLab: { type: Object, default: {} },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  })
+  vuelo: Array<{
+    packageId: string;
+    respuestaMaarLab: Record<string, any>;
+    createdAt: Date;
+  }>;
+  // #endregion MaarLab flights (interno)
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);
@@ -362,5 +407,6 @@ ReservaSchema.index({ agenciaId: 1, status: 1, createdAt: -1 });
 ReservaSchema.index({ reservaChatbotId: 1 }, { unique: true });
 ReservaSchema.index({ fechaLimitePago: 1, status: 1 }); // Para queries de pagos pendientes
 ReservaSchema.index({ status: 1, createdAt: -1 }); // Para listados por estado
+ReservaSchema.index({ cancelInProgress: 1, cancelRequestedAt: 1 }); // Para reconciliar locks colgados
 // Índice adicional para optimizar paginación con sort por createdAt
 ReservaSchema.index({ createdAt: -1 }); // Para queries de paginación sin filtros adicionales

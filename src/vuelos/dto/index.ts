@@ -9,3 +9,4 @@ export * from './add-extras.dto';
 export * from './book-package.dto';
 export * from './search-engine-complete-process.dto';
 export * from './travel-agency-complete-process.dto';
+export * from './travel-agency-v1-complete-process.dto';

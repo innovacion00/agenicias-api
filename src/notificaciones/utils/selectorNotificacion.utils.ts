@@ -21,6 +21,7 @@ export const selectorNotificacion = (
 
   if (diasRestantes === 7) {
     return {
+      tipoAviso: '7_dias',
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,
       html: notificacionEmail7Dias(
@@ -34,6 +35,7 @@ export const selectorNotificacion = (
 
   if (diasRestantes >= 1 && diasRestantes <= 3) {
     return {
+      tipoAviso: '3_a_1_dias',
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,
       html: notificacionEmailMenos3Dias(
@@ -48,6 +50,7 @@ export const selectorNotificacion = (
 
   if (diasRestantes === 0 && horasRestantes < 0) {
     return {
+      tipoAviso: 'ultimo_dia',
       vencida: false,
       subject: `Booking Connect - Notificacion para pago de reserva ${reserva}`,
       html: notificacionEmailUltimoDia(reserva, formatCheckin, formatCheckout),
@@ -56,6 +59,7 @@ export const selectorNotificacion = (
 
   if (diasRestantes < 0) {
     return {
+      tipoAviso: 'vencida',
       vencida: true,
       subject: `Booking Connect - Notificacion vencimiento de reserva ${reserva}`,
       html: notificacionEmailCancelacionReserva(
@@ -67,6 +71,7 @@ export const selectorNotificacion = (
   }
 
   return {
+    tipoAviso: 'no_valida',
     noValid: true,
   };
 };

@@ -9,6 +9,7 @@ import {
   Query,
   Put,
   BadRequestException,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,6 +26,7 @@ import {
   CancelReservaDto,
   UpdateReservaDto,
   PagoReservaBilleteraDto,
+  UpdateReservaStatusDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -375,6 +377,24 @@ export class ReservasController {
     @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
   ) {
     return this.reservasService.cancelarReservaAdmin(reservaId);
+  }
+
+  @Put('status/:reservaId')
+  @Auth(ValidRoles.superAdmin)
+  actualizarStatusReservaManual(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true }))
+    updateReservaStatusDto: UpdateReservaStatusDto,
+    /** Si true o 1, no bloquea por fecha de check-in (solo superAdmin). */
+    @Query('saltarValidacionCheckin') saltarValidacionCheckin?: string,
+  ) {
+    const saltar =
+      saltarValidacionCheckin === 'true' || saltarValidacionCheckin === '1';
+    return this.reservasService.actualizarStatusReservaManual(
+      reservaId,
+      updateReservaStatusDto.status,
+      saltar,
+    );
   }
 
   // @Post('prueba')

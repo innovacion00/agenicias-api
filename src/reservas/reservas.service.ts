@@ -42,6 +42,7 @@ import {
 import { Reserva } from './entities';
 import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
+import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 
 @Injectable()
 export class ReservasService {
@@ -62,6 +63,7 @@ export class ReservasService {
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
     private readonly emailService: SendEmailCustomService,
     private readonly httpCustomService: HttpCustomService,
+    private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     @InjectConnection()
     private readonly connection: Connection,
   ) {
@@ -209,14 +211,6 @@ export class ReservasService {
 
       // Determinar si es reserva de grupo (10 o más habitaciones)
       const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length >= 10;
-      
-      // Calcular fechas límite usando la nueva lógica
-      const fechasLimite = calcularFechaLimitePago(
-        createReservaDto.reservaInfo.reservation.checkin,
-        isReservaGrupo,
-      );
-      
-      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
       const userInfo = await this.userModel
         .findById(userId)
@@ -229,6 +223,15 @@ export class ReservasService {
       if (!userInfo.agencia || typeof userInfo.agencia === 'string') {
         throw new BadRequestException('Información de agencia no disponible');
       }
+
+      // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
+      const fechasLimite = calcularFechaLimitePago(
+        createReservaDto.reservaInfo.reservation.checkin,
+        isReservaGrupo,
+        userInfo.agencia._id,
+      );
+
+      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
@@ -447,7 +450,10 @@ export class ReservasService {
           });
       }
 
-      return createReservaDto;
+      return {
+        ...createReservaDto,
+        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+      };
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -635,12 +641,71 @@ export class ReservasService {
     }
   }
 
+  private enqueuePostCancellationTasks(reserva: Reserva, agenciaDoc: Agencia): void {
+    const reservaId = String(reserva._id);
+
+    if (reserva.linksHistory) {
+      for (const linkInfo of reserva.linksHistory) {
+        if (
+          (linkInfo.state === ValidPaymentStatus.mitad ||
+            linkInfo.state === ValidPaymentStatus.total) &&
+          linkInfo.id
+        ) {
+          this.cancellationTasksQueueService.enqueueRefundJob(reservaId, {
+            idLink: linkInfo.id,
+            agenciaId: agenciaDoc.autocoreInfo.id,
+            chatbotId: reserva.reservaChatbotId,
+          });
+        }
+      }
+    }
+
+    const saldoFavor =
+      reserva.status !== ValidPaymentStatus.total ? reserva.totalMitad : reserva.total;
+
+    const mensajeReserva = notificacionCancelacionVoluntariaReservas(
+      reserva.reservaChatbotId,
+      agenciaDoc.fullName,
+      reserva.pagadoPrimeraMitad,
+      saldoFavor,
+    );
+
+    this.cancellationTasksQueueService.enqueueCancelEmailJob(reservaId, {
+      target: 'reservas@gehsuites.com',
+      subject: `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
+      html: mensajeReserva,
+    });
+
+    if (reserva.infoToures || reserva.infoTransporte) {
+      const mensajeCancelacion = notificacionCancelacionToures(
+        `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
+        reserva.reservation.checkin,
+        reserva.reservation.checkout,
+        reserva.infoToures?.firstContactNumber ||
+          reserva.infoTransporte?.firstContactNumber ||
+          '',
+      );
+
+      const contactInfo =
+        obtenerCiudadPorNombre(reserva.hotel) === 'Santa marta'
+          ? 'reservasgocolombia@gmail.com'
+          : 'operadortour2025@gmail.com';
+
+      this.cancellationTasksQueueService.enqueueCancelTourTransportEmailJob(
+        reservaId,
+        {
+          target: contactInfo,
+          subject: 'Booking connect - Notificacion de cancelacion de transporte o tour',
+          html: mensajeCancelacion,
+        },
+      );
+    }
+  }
+
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
-      const reserva = await this.reservasModel.findById(
-        cancelReservaDto.reservaId,
-      );
+      const reserva = await this.reservasModel.findById(cancelReservaDto.reservaId);
 
       const agenciaDoc = await this.agenciaModel.findById(user.agencia);
 
@@ -677,82 +742,75 @@ export class ReservasService {
         );
       }
 
-      if (reserva.linksHistory) {
-        for (const linkInfo of reserva.linksHistory) {
-          if (
-            linkInfo.state === ValidPaymentStatus.mitad ||
-            linkInfo.state === ValidPaymentStatus.total
-          ) {
-            await this.httpCustomService.reembolsoCartera(
-              linkInfo.id,
-              agenciaDoc.autocoreInfo.id,
-              reserva.reservaChatbotId,
-            );
-          }
+      const cancelOpId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const lockedReserva = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: cancelReservaDto.reservaId,
+          status: { $ne: ValidPaymentStatus.cancelado },
+          cancelInProgress: { $ne: true },
+        },
+        {
+          $set: {
+            cancelInProgress: true,
+            cancelRequestedAt: new Date(),
+            cancelOpId,
+          },
+        },
+        { new: true },
+      );
+
+      if (!lockedReserva) {
+        const latest = await this.reservasModel.findById(cancelReservaDto.reservaId);
+        if (latest?.status === ValidPaymentStatus.cancelado) {
+          return {
+            msg: `Reserva ${latest.reservaChatbotId} ya esta cancelada correctamente`,
+          };
         }
+
+        return {
+          msg: 'La cancelacion de la reserva ya esta en proceso, intenta recargar en unos segundos',
+        };
       }
-
-      const data = await this.httpCustomService.cancelarReservas(
-        reserva.reservaChatbotId,
-      );
-
-      const saldoFavor =
-        reserva.status !== 3 ? reserva.totalMitad : reserva.total;
-
-      const mensajeReserva = notificacionCancelacionVoluntariaReservas(
-        reserva.reservaChatbotId,
-        agenciaDoc.fullName,
-        reserva.pagadoPrimeraMitad,
-        saldoFavor,
-      );
-
-      if (reserva.infoToures || reserva.infoTransporte) {
-        const mensajeCancelacion = notificacionCancelacionToures(
-          `${reserva.titularInfo.firstName} ${reserva.titularInfo.lastName}`,
-          reserva.reservation.checkin,
-          reserva.reservation.checkout,
-          reserva.infoToures?.firstContactNumber ||
-            reserva.infoTransporte?.firstContactNumber ||
-            '',
-        );
-
-        const contactInfo =
-          obtenerCiudadPorNombre(reserva.hotel) === 'Santa marta'
-            ? 'reservasgocolombia@gmail.com'
-            : 'operadortour2025@gmail.com';
-
-        await this.emailService.sendEmail(
-          contactInfo,
-          `Booking connect - Notificacion de cancelacion de transporte o tour`,
-          mensajeCancelacion,
-        );
-      }
-
-      await this.emailService.sendEmail(
-        'reservas@gehsuites.com',
-        `Booking connect - Notificacion de cancelacion de reserva por parte de agencia ${agenciaDoc.fullName}`,
-        mensajeReserva,
-      );
-
-      // Usar transacción para asegurar consistencia
-      const session = await this.connection.startSession();
-      session.startTransaction();
 
       try {
-        await reserva.updateOne(
-          { $set: { status: 4 } },
-          { session }
+        const autocoreResponse = await this.httpCustomService.cancelarReservas(
+          lockedReserva.reservaChatbotId,
         );
 
-        await session.commitTransaction();
-      } catch (error) {
-        await session.abortTransaction();
-        throw error;
-      } finally {
-        await session.endSession();
-      }
+        await this.reservasModel.updateOne(
+          { _id: lockedReserva._id },
+          {
+            $set: {
+              status: ValidPaymentStatus.cancelado,
+              cancelInProgress: false,
+              cancelProcessedAt: new Date(),
+            },
+            $unset: {
+              cancelOpId: '',
+            },
+          },
+        );
 
-      return data;
+        lockedReserva.status = ValidPaymentStatus.cancelado;
+        this.enqueuePostCancellationTasks(lockedReserva, agenciaDoc);
+
+        if (autocoreResponse?.alreadyCanceled) {
+          return {
+            msg: `Reserva ${lockedReserva.reservaChatbotId} ya estaba cancelada en Autocore y fue sincronizada localmente`,
+          };
+        }
+
+        return autocoreResponse;
+      } catch (error) {
+        await this.reservasModel.updateOne(
+          { _id: cancelReservaDto.reservaId },
+          {
+            $set: { cancelInProgress: false },
+            $unset: { cancelOpId: '' },
+          },
+        );
+        throw error;
+      }
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
@@ -1706,6 +1764,101 @@ export class ReservasService {
       reserva.status = 4;
       await reserva.save();
       return reserva;
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async actualizarStatusReservaManual(
+    reservaId: Types.ObjectId | string,
+    status: ValidPaymentStatus,
+    saltarValidacionCheckin = false,
+  ) {
+    try {
+      const _id =
+        reservaId instanceof Types.ObjectId
+          ? reservaId
+          : new Types.ObjectId(String(reservaId));
+
+      const reserva = await this.reservasModel.findById(_id).exec();
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (!saltarValidacionCheckin) {
+        const checkinRaw = reserva.reservation?.checkin;
+        if (!checkinRaw || typeof checkinRaw !== 'string') {
+          throw new BadRequestException(
+            'La reserva no tiene check-in válido para validar el cambio de estado',
+          );
+        }
+
+        const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) {
+          throw new BadRequestException(
+            `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
+          );
+        }
+        const checkinDate = new Date(
+          `${match[1]}-${match[2]}-${match[3]}T00:00:00`,
+        );
+        if (Number.isNaN(checkinDate.getTime())) {
+          throw new BadRequestException(
+            `checkin inválido (no se pudo parsear): ${checkinRaw}`,
+          );
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (today >= checkinDate) {
+          throw new ForbiddenException(
+            'No se puede modificar el estado: la reserva ya llegó a la fecha de check-in. Usa ?saltarValidacionCheckin=true si debes corregir datos como superAdmin.',
+          );
+        }
+      }
+
+      const statusNorm = Number(status);
+      if (
+        !Number.isInteger(statusNorm) ||
+        statusNorm < ValidPaymentStatus.espera ||
+        statusNorm > ValidPaymentStatus.mitad
+      ) {
+        throw new BadRequestException(
+          `status inválido: ${String(status)} (se esperaba entero 0–5)`,
+        );
+      }
+
+      if (statusNorm === ValidPaymentStatus.cancelado) {
+        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+      }
+
+      const pagadoPrimeraMitad =
+        statusNorm === ValidPaymentStatus.mitad ||
+        statusNorm === ValidPaymentStatus.total;
+
+      const updateResult = await this.reservasModel.updateOne(
+        { _id },
+        { $set: { status: statusNorm, pagadoPrimeraMitad } },
+      );
+
+      if (updateResult.matchedCount === 0) {
+        throw new NotFoundException(
+          'Reserva no encontrada al aplicar el cambio de estado',
+        );
+      }
+
+      this.logger.log(
+        `actualizarStatusReservaManual _id=${String(_id)} status=${statusNorm} pagadoPrimeraMitad=${pagadoPrimeraMitad} matched=${updateResult.matchedCount} modified=${updateResult.modifiedCount}`,
+      );
+
+      const actualizada = await this.reservasModel.findById(_id).exec();
+      if (!actualizada) {
+        throw new NotFoundException('Reserva no encontrada tras actualizar');
+      }
+
+      return actualizada;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
