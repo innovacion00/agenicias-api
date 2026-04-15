@@ -44,6 +44,9 @@ import { Reserva } from './entities';
 import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
+import { MyToolBookingService } from './services/my-tool-booking.service';
+import { CreateReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
 
 @Injectable()
 export class ReservasService {
@@ -65,6 +68,7 @@ export class ReservasService {
     private readonly emailService: SendEmailCustomService,
     private readonly httpCustomService: HttpCustomService,
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
+    private readonly myToolBookingService: MyToolBookingService,
     @InjectConnection()
     private readonly connection: Connection,
   ) {
@@ -1956,23 +1960,542 @@ export class ReservasService {
     return parsed;
   }
 
-  //? Pruebas
-  // async prueba() {
-  //   const reservas = await this.reservasModel.find({
-  //     linksHistory: { $exists: true, $not: { $size: 0 } },
-  //   });
+  // #region MyTool Booking
 
-  //   for (const reserva of reservas) {
-  //     const updatedLinks = reserva.linksHistory.map((link) => {
-  //       const { status, ...rest } = link; // por si es Mongoose Document
-  //       return rest;
-  //     });
+  async getMyToolMappings(hotelSlug: string) {
+    try {
+      return await this.myToolBookingService.getMappings(hotelSlug);
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
 
-  //     await this.reservasModel.updateOne(
-  //       { _id: reserva._id },
-  //       { $set: { linksHistory: updatedLinks } },
-  //     );
-  //   }
-  //   return reservas.length;
-  // }
+  async createReservaMyTool(
+    dto: CreateReservaMyToolDto,
+    hotelSlug: string,
+    checkin: string,
+    nights: number,
+    userId: string,
+  ) {
+    try {
+      const hotelConfig = hotelMyToolConfig[hotelSlug];
+      if (!hotelConfig) {
+        throw new BadRequestException(`Hotel '${hotelSlug}' no configurado`);
+      }
+
+      const userInfo = await this.userModel
+        .findById(userId)
+        .populate('agencia', 'fullName');
+
+      if (!userInfo) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (!userInfo.agencia || typeof userInfo.agencia === 'string') {
+        throw new BadRequestException('Información de agencia no disponible');
+      }
+
+      const isReservaGrupo = dto.rooms.length >= 10;
+      const fechasLimite = calcularFechaLimitePago(
+        checkin,
+        isReservaGrupo,
+        userInfo.agencia._id,
+      );
+      const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
+
+      const checkout = this.calculateCheckoutDate(checkin, nights);
+
+      let reservaChatbotId: string;
+      let reservaProvider: 'mytool' | 'autocore' = 'mytool';
+      let usedFallback = false;
+
+      // Intentar crear via MyTool
+      try {
+        const mappings = await this.myToolBookingService.getMappings(hotelSlug);
+        const usuario = userInfo.fullName || userInfo.email;
+
+        const myToolResult = await this.myToolBookingService.createBooking(
+          hotelSlug,
+          checkin,
+          nights,
+          dto.rooms,
+          { titular: dto.titular, telefono: dto.telefono, email: dto.email },
+          dto.total,
+          mappings,
+          usuario,
+        );
+
+        reservaChatbotId = myToolResult.localizador || `MT-${Date.now()}`;
+        this.logger.log(
+          `Reserva creada via MyTool: ${reservaChatbotId} para hotel ${hotelSlug}`,
+        );
+      } catch (myToolError) {
+        if (!hotelConfig.autocoreId) {
+          this.logger.error(
+            `MyTool falló para ${hotelSlug} y este hotel no tiene fallback a Autocore: ${myToolError.message}`,
+          );
+          throw new InternalServerErrorException(
+            `No se pudo crear la reserva en MyTool para ${hotelConfig.name}. Este hotel no tiene sistema alternativo de reservas.`,
+          );
+        }
+
+        const myToolDetail = myToolError?.response?.data
+          ? JSON.stringify(myToolError.response.data)
+          : myToolError.message;
+        this.logger.warn(
+          `MyTool falló para ${hotelSlug} (status ${myToolError?.response?.status || 'N/A'}), intentando fallback a Autocore. Detalle: ${myToolDetail}`,
+        );
+
+        // Fallback a Autocore
+        try {
+          const totalAdults = dto.rooms.reduce(
+            (sum, r) => sum + r.paxAdultos,
+            0,
+          );
+          const totalChildren = dto.rooms.reduce(
+            (sum, r) => sum + r.paxChilds,
+            0,
+          );
+
+          const reservaInfoForAutocore = {
+            agency: {
+              is_agency: true,
+              agency_type: tiposAgencia.minorista as any,
+              external_ref_id: (userInfo.agencia as any).cobreInfo
+                ?.bolcilloId || '',
+            },
+            reservation: {
+              source_of_bussiness: 'Booking Connect',
+              adults: String(totalAdults),
+              checkin,
+              checkout,
+              children: String(totalChildren),
+              children_ages: '',
+              city: hotelConfig.city.toUpperCase() as any,
+              country: 'COL',
+              currency: 'COP',
+              email: dto.email,
+              telephone: dto.telefono,
+              firstName: dto.titularInfo.firstName,
+              lastName: dto.titularInfo.lastName,
+              nights: String(nights),
+              notes: '',
+              rooms: String(dto.rooms.length),
+              roomsData: dto.rooms.map((room) => ({
+                nombreHabitacion: 'Habitacion',
+                adults: String(room.paxAdultos),
+                children: String(room.paxChilds),
+                children_ages: '',
+                checkin,
+                checkout,
+                currency: 'COP',
+                id: '0',
+                quantity: '1',
+                rateId: '0',
+                unitaryPrice: Math.round(dto.total / dto.rooms.length),
+              })),
+            },
+          };
+
+          const autocoreResult =
+            await this.httpCustomService.createReservaAutocore(
+              hotelConfig.autocoreId,
+              reservaInfoForAutocore as any,
+            );
+
+          if (!autocoreResult || autocoreResult.no_available_rooms) {
+            throw new InternalServerErrorException(
+              'Autocore tampoco pudo crear la reserva: ' +
+                (autocoreResult?.msg || 'sin respuesta'),
+            );
+          }
+
+          reservaChatbotId = autocoreResult.chatbot_id;
+          reservaProvider = 'autocore';
+          usedFallback = true;
+          this.logger.log(
+            `Reserva creada via Autocore (fallback): ${reservaChatbotId}`,
+          );
+        } catch (autocoreError) {
+          this.logger.error(
+            `Fallback a Autocore también falló: ${autocoreError.message}`,
+          );
+          throw new InternalServerErrorException(
+            `No se pudo crear la reserva ni en MyTool ni en Autocore. MyTool (${myToolError?.response?.status || 'N/A'}): ${myToolDetail}. Autocore: ${autocoreError.message}`,
+          );
+        }
+      }
+
+      const retenciones: Record<string, any> = {};
+      if (dto.reteFuente) retenciones.reteFuente = dto.reteFuente;
+      if (dto.reteIca) retenciones.reteIca = dto.reteIca;
+      if (dto.reteIva) retenciones.reteIva = dto.reteIva;
+
+      const reservationData = {
+        source_of_bussiness: 'Booking Connect',
+        adults: String(
+          dto.rooms.reduce((sum, r) => sum + r.paxAdultos, 0),
+        ),
+        checkin,
+        checkout,
+        children: String(
+          dto.rooms.reduce((sum, r) => sum + r.paxChilds, 0),
+        ),
+        children_ages: '',
+        city: hotelConfig.city.toUpperCase(),
+        country: 'COL',
+        currency: 'COP',
+        email: dto.email,
+        telephone: dto.telefono,
+        firstName: dto.titularInfo.firstName,
+        lastName: dto.titularInfo.lastName,
+        nights: String(nights),
+        notes: '',
+        rooms: String(dto.rooms.length),
+        roomsData: dto.rooms.map((room) => ({
+          nombreHabitacion: 'Habitacion',
+          adults: String(room.paxAdultos),
+          children: String(room.paxChilds),
+          children_ages: '',
+          checkin,
+          checkout,
+          currency: 'COP',
+          id: '0',
+          quantity: '1',
+          rateId: '0',
+          unitaryPrice: Math.round(dto.total / dto.rooms.length),
+        })),
+      };
+
+      // Guardar en BD con transaccion
+      const session = await this.connection.startSession();
+      session.startTransaction();
+
+      try {
+        const [reserva] = await this.reservasModel.create(
+          [
+            {
+              hotel: hotelConfig.name,
+              agenciaId: userInfo.agencia._id,
+              userId,
+              cantidadHabitaciones: dto.rooms.length,
+              total: dto.total,
+              totalMitad: dto.total / 2,
+              reservation: reservationData,
+              reservaChatbotId,
+              reservaProvider,
+              titularInfo: dto.titularInfo,
+              fechaLimitePago,
+              fechaLimitePago2,
+              exentoIva: dto.exentoIva || false,
+              ...retenciones,
+              planAlimentario: dto.planAlimentario || '',
+              adicionCena: dto.adicionCena || false,
+              adicionAlmuerzo: dto.adicionAlmuerzo || false,
+              infoTransporte: dto.infoTransporte || null,
+              infoToures: dto.infoToures || null,
+              mascotas: dto.mascotas,
+              mascotasNumber: dto.mascotasNumber,
+              origenIata: dto.origenIata,
+            },
+          ],
+          { session },
+        );
+
+        userInfo.reservas.push(reserva._id as Types.ObjectId);
+        await userInfo.save({ session });
+
+        await session.commitTransaction();
+
+        // Notificaciones de transporte (fire-and-forget)
+        if (dto.infoTransporte) {
+          this.sendTransportNotification(
+            dto,
+            hotelConfig,
+            userInfo,
+            checkin,
+            checkout,
+          ).catch((err) =>
+            this.logger.error('Error enviando notificación transporte:', err),
+          );
+        }
+
+        if (dto.infoToures) {
+          this.sendToursNotification(
+            dto,
+            hotelConfig,
+            userInfo,
+            checkin,
+          ).catch((err) =>
+            this.logger.error('Error enviando notificación tours:', err),
+          );
+        }
+
+        if (dto.rooms.length >= 10) {
+          this.sendGroupNotification(
+            dto,
+            hotelConfig,
+            userInfo,
+            checkin,
+            checkout,
+            reservaChatbotId,
+          ).catch((err) =>
+            this.logger.error('Error enviando notificación grupo:', err),
+          );
+        }
+
+        return {
+          reservaId: reserva._id,
+          reservaChatbotId,
+          reservaProvider,
+          usedFallback,
+          hotel: hotelConfig.name,
+          checkin,
+          checkout,
+          nights,
+          total: dto.total,
+        };
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async cancelarReservaMyTool(reservaId: string, user: User) {
+    try {
+      const reserva = await this.reservasModel.findById(reservaId);
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (reserva.status === ValidPaymentStatus.cancelado) {
+        return { msg: `Reserva ${reserva.reservaChatbotId} ya está cancelada` };
+      }
+
+      if (
+        !user.role.includes('admin') &&
+        !user.role.includes('super-admin') &&
+        reserva.agenciaId.toString() !== user.agencia.toString()
+      ) {
+        throw new ForbiddenException(
+          'No cuentas con los permisos necesarios para cancelar esta reserva',
+        );
+      }
+
+      if (reserva.reservaProvider === 'mytool') {
+        const hotelSlug = this.myToolBookingService.findSlugByHotelName(
+          reserva.hotel,
+        );
+        if (!hotelSlug) {
+          throw new BadRequestException(
+            `No se encontró configuración MyTool para hotel: ${reserva.hotel}`,
+          );
+        }
+
+        try {
+          await this.myToolBookingService.cancelBooking(
+            hotelSlug,
+            reserva.reservaChatbotId,
+            user.fullName || user.email,
+          );
+        } catch (cancelError) {
+          const hotelConfig = hotelMyToolConfig[hotelSlug];
+          if (!hotelConfig?.autocoreId) {
+            throw new InternalServerErrorException(
+              `No se pudo cancelar la reserva en MyTool y este hotel no tiene sistema alternativo.`,
+            );
+          }
+          this.logger.warn(
+            `Error cancelando en MyTool, intentando Autocore: ${cancelError.message}`,
+          );
+          await this.httpCustomService.cancelarReservas(
+            reserva.reservaChatbotId,
+          );
+        }
+      } else {
+        await this.httpCustomService.cancelarReservas(
+          reserva.reservaChatbotId,
+        );
+      }
+
+      reserva.status = ValidPaymentStatus.cancelado;
+      await reserva.save();
+
+      return {
+        msg: `Reserva ${reserva.reservaChatbotId} cancelada correctamente`,
+        reserva,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async searchReservaMyTool(
+    hotelSlug: string,
+    localizador: string,
+    nombre: string,
+  ) {
+    try {
+      return await this.myToolBookingService.searchBooking(
+        hotelSlug,
+        localizador,
+        nombre,
+      );
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  private calculateCheckoutDate(checkin: string, nights: number): string {
+    const date = new Date(checkin + 'T12:00:00');
+    date.setDate(date.getDate() + nights);
+    return date.toISOString().split('T')[0];
+  }
+
+  private async sendTransportNotification(
+    dto: CreateReservaMyToolDto,
+    hotelConfig: { name: string; city: string },
+    userInfo: any,
+    checkin: string,
+    checkout: string,
+  ) {
+    if (
+      !dto.infoTransporte ||
+      !userInfo.agencia ||
+      typeof userInfo.agencia !== 'object' ||
+      !('fullName' in userInfo.agencia) ||
+      userInfo.agencia.fullName === 'geh suites'
+    ) {
+      return;
+    }
+
+    const { name, city } = hotelConfig;
+    const { tipoRecogida } = dto.infoTransporte;
+    const contactInfo =
+      city === 'Santa marta'
+        ? { email: 'reservasgocolombia@gmail.com', tel: '+57 304 3697601' }
+        : city === 'Bogota'
+          ? name === 'Hotel Windsor'
+            ? {
+                email: [
+                  'reservas.zonanglobal@gmail.com',
+                  'recepcion@hotelwindsorhouse.com',
+                ],
+                tel: '+57 333 6025021',
+              }
+            : {
+                email: [
+                  'reservas.zonanglobal@gmail.com',
+                  'recepcionmadisson@gmail.com',
+                ],
+                tel: '+57 333 6025021',
+              }
+          : { email: 'operadortour2025@gmail.com', tel: '+57 304 3697601' };
+
+    const textTipoRecogida =
+      tipoRecogida === 0
+        ? `Servicio de traslado desde el a`
+        : tipoRecogida === 1
+          ? `Servicio de traslado de ${name} a aeropuerto`
+          : `Servicio de traslado de aeropueto a ${name} y salida del ${name} al aeropuerto`;
+
+    await this.emailService.sendEmail(
+      contactInfo.email,
+      `Solictud de servicio de translado para Geh Suites hotels`,
+      notificacionTransporte(
+        textTipoRecogida,
+        checkin,
+        checkout,
+        dto.infoTransporte.cantidadPersonas,
+        dto.infoTransporte.firstContactNumber,
+        dto.infoTransporte.aerolinea,
+        dto.infoTransporte.numeroVuelo,
+        dto.titular,
+        contactInfo.tel,
+        dto.infoTransporte.numeroVueloSalida,
+        dto.infoTransporte.secondContacNumber,
+      ),
+    );
+  }
+
+  private async sendToursNotification(
+    dto: CreateReservaMyToolDto,
+    hotelConfig: { name: string; city: string },
+    userInfo: any,
+    checkin: string,
+  ) {
+    if (
+      !dto.infoToures ||
+      !userInfo.agencia ||
+      typeof userInfo.agencia !== 'object' ||
+      !('fullName' in userInfo.agencia) ||
+      userInfo.agencia.fullName === 'geh suites'
+    ) {
+      return;
+    }
+
+    const { name, city } = hotelConfig;
+    const email =
+      city === 'Santa marta'
+        ? 'reservasgocolombia@gmail.com'
+        : 'operadortour2025@gmail.com';
+
+    const totalPax = dto.rooms.reduce(
+      (sum, r) => sum + r.paxAdultos + r.paxChilds,
+      0,
+    );
+
+    await this.emailService.sendEmail(
+      email,
+      `Solictud de servicio de toures para Geh Suites hotels`,
+      notificacionToures(
+        dto.infoToures.nombres,
+        name,
+        dto.infoToures.firstContactNumber,
+        dto.titular,
+        totalPax,
+        dto.infoToures.secondContacNumber,
+      ),
+    );
+  }
+
+  private async sendGroupNotification(
+    dto: CreateReservaMyToolDto,
+    hotelConfig: { name: string },
+    userInfo: any,
+    checkin: string,
+    checkout: string,
+    reservaChatbotId: string,
+  ) {
+    const agenciaName =
+      userInfo.agencia &&
+      typeof userInfo.agencia === 'object' &&
+      'fullName' in userInfo.agencia
+        ? (userInfo.agencia.fullName as string)
+        : 'Agencia desconocida';
+
+    await this.emailService.sendEmail(
+      'reservas@gehsuites.com',
+      `Reserva para grupo de ${dto.rooms.length} para agencia ${agenciaName}`,
+      notificaiconReservaGrupo(
+        agenciaName,
+        dto.rooms.length,
+        hotelConfig.name,
+        checkin,
+        checkout,
+        reservaChatbotId,
+      ),
+    );
+  }
+
+  // #endregion MyTool Booking
 }

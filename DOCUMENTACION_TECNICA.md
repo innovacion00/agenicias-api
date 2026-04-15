@@ -1,36 +1,40 @@
-# 📚 Documentación Técnica - Agencias API
+# Documentacion Tecnica - Agencias API
 
-## 📋 Índice
+## Indice
 
-1. [Descripción General](#descripción-general)
-2. [Stack Tecnológico](#stack-tecnológico)
+1. [Descripcion General](#descripcion-general)
+2. [Stack Tecnologico](#stack-tecnologico)
 3. [Arquitectura del Sistema](#arquitectura-del-sistema)
-4. [Módulos Principales](#módulos-principales)
+4. [Modulos Principales](#modulos-principales)
 5. [Integraciones Externas](#integraciones-externas)
 6. [Modelos de Datos](#modelos-de-datos)
-7. [Autenticación y Autorización](#autenticación-y-autorización)
+7. [Autenticacion y Autorizacion](#autenticacion-y-autorizacion)
 8. [Flujos de Negocio Principales](#flujos-de-negocio-principales)
 9. [Variables de Entorno](#variables-de-entorno)
 10. [API Endpoints](#api-endpoints)
-11. [Instalación y Configuración](#instalación-y-configuración)
+11. [Instalacion y Configuracion](#instalacion-y-configuracion)
 
 ---
 
-## 📖 Descripción General
+## Descripcion General
 
-**Agencias API** es una plataforma backend desarrollada con NestJS para la gestión integral de agencias de viajes. El sistema permite:
+**Agencias API** es una plataforma backend desarrollada con NestJS para la gestion integral de agencias de viajes. El sistema permite:
 
-- 🏨 **Gestión de Reservas Hoteleras** mediante integración con Autocore
-- ✈️ **Búsqueda y Reserva de Vuelos** mediante integración con Amadeus
-- 💰 **Sistema de Pagos** mediante integración con Cobre
-- 📧 **Cotizaciones y Conversión Automática** a reservas
-- 👥 **Gestión Multi-Agencia** con permisos y roles
-- 📊 **Reportes Automatizados** de reservas pendientes
-- 🔔 **Sistema de Notificaciones** por email
+- **Gestion de Reservas Hoteleras** mediante integracion con Autocore
+- **Busqueda y Reserva de Vuelos** mediante integracion con Amadeus y MaarLab/OceanFlights
+- **Sistema de Pagos** mediante integracion con Cobre
+- **Cotizaciones y Conversion Automatica** a reservas
+- **Gestion Multi-Agencia** con permisos y roles
+- **Reportes Automatizados** de reservas pendientes
+- **Sistema de Notificaciones** por email (SendGrid, Nodemailer, Google Gmail API)
+- **Booking para Personas** (reservas directas sin agencia, con token estatico)
+- **Documentacion Swagger/OpenAPI** integrada
+- **Rate Limiting** global con Throttler
+- **Logging Estructurado** con Pino
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnologico
 
 ### **Framework y Lenguajes**
 - **Framework Backend:** NestJS v10.0.0
@@ -38,7 +42,7 @@
 - **Runtime:** Node.js v20+
 
 ### **Base de Datos**
-- **Base de Datos:** MongoDB v8.6.2
+- **Base de Datos:** MongoDB
 - **ODM:** Mongoose v8.6.2
 
 ### **Principales Dependencias**
@@ -52,11 +56,16 @@
   "@nestjs/mongoose": "^10.0.10",
   "@nestjs/jwt": "^10.2.0",
   "@nestjs/passport": "^10.0.3",
-  "@nestjs/schedule": "^6.0.0"
+  "@nestjs/schedule": "^6.0.0",
+  "@nestjs/swagger": "^7.4.2",
+  "@nestjs/throttler": "^6.5.0",
+  "@nestjs/axios": "^3.0.3",
+  "@nestjs/platform-express": "^10.0.0",
+  "@nestjs/mapped-types": "*"
 }
 ```
 
-#### **Autenticación y Seguridad**
+#### **Autenticacion y Seguridad**
 ```json
 {
   "bcrypt": "^5.1.1",
@@ -69,26 +78,38 @@
 #### **Integraciones y APIs**
 ```json
 {
-  "@nestjs/axios": "^3.0.3",
   "axios": "^1.7.7",
   "@sendgrid/mail": "^8.1.5",
-  "nodemailer": "^6.9.15"
+  "nodemailer": "^7.0.1"
+}
+```
+
+#### **Logging**
+```json
+{
+  "nestjs-pino": "^4.5.0",
+  "pino-http": "^11.0.0",
+  "pino-pretty": "^13.1.3"
 }
 ```
 
 #### **Procesamiento y Utilidades**
 ```json
 {
-  "puppeteer": "^24.23.0",
+  "puppeteer": "^24.25.0",
   "exceljs": "^4.4.0",
   "cloudinary": "^2.5.1",
   "uuid": "^10.0.0",
   "date-fns": "^4.1.0",
-  "libphonenumber-js": "^1.11.19"
+  "@formkit/tempo": "^0.1.2",
+  "libphonenumber-js": "^1.11.19",
+  "slugify": "^1.6.6",
+  "buffer-to-stream": "^1.0.0",
+  "dotenv": "^16.4.5"
 }
 ```
 
-#### **Validación**
+#### **Validacion**
 ```json
 {
   "class-validator": "^0.14.1",
@@ -98,284 +119,374 @@
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ### **Arquitectura por Capas**
 
 ```
-┌─────────────────────────────────────────────┐
-│          Controllers (HTTP Layer)           │
-│  - Reciben requests HTTP                    │
-│  - Validan DTOs                             │
-│  - Retornan responses                       │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│          Services (Business Logic)          │
-│  - Lógica de negocio                        │
-│  - Orquestación de operaciones             │
-│  - Transformación de datos                  │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│     Repositories (Data Access Layer)        │
-│  - Mongoose Models                          │
-│  - Consultas a MongoDB                      │
-│  - Gestión de transacciones                │
-└─────────────────────────────────────────────┘
++---------------------------------------------+
+|          Controllers (HTTP Layer)            |
+|  - Reciben requests HTTP                    |
+|  - Validan DTOs                             |
+|  - Retornan responses                       |
++--------------------+------------------------+
+                     |
++--------------------v------------------------+
+|          Services (Business Logic)           |
+|  - Logica de negocio                         |
+|  - Orquestacion de operaciones               |
+|  - Transformacion de datos                   |
++--------------------+------------------------+
+                     |
++--------------------v------------------------+
+|     Repositories (Data Access Layer)         |
+|  - Mongoose Models                           |
+|  - Consultas a MongoDB                       |
+|  - Gestion de transacciones                  |
++---------------------------------------------+
 ```
 
 ### **Estructura de Directorios**
 
 ```
 src/
-├── agencias/              # Módulo de gestión de agencias
-├── auth/                  # Autenticación y autorización
-├── bot-reservas-pendientes/ # Bot automatizado de reportes
-├── cloudinary/            # Gestión de archivos en la nube
-├── common/                # Recursos compartidos
-│   ├── decorators/        # Decoradores personalizados
-│   ├── dto/               # DTOs compartidos
-│   ├── helpers/           # Funciones auxiliares
-│   ├── interface/         # Interfaces compartidas
-│   ├── pipes/             # Pipes de validación
-│   └── services/          # Servicios compartidos
-├── config/                # Configuración global
-│   └── constants/         # Constantes del sistema
-├── cotizaciones/          # Módulo de cotizaciones
-├── eventos/               # Módulo de eventos
-├── files/                 # Gestión de archivos
-├── integrations/          # Integraciones externas
-├── my-tool/               # Herramientas internas
-├── notificaciones/        # Sistema de notificaciones
-├── reservas/              # Módulo de reservas
-└── vuelos/                # Módulo de vuelos (Amadeus)
+|-- agencias/              # Modulo de gestion de agencias
+|-- auth/                  # Autenticacion y autorizacion
+|   |-- decorators/        # Decoradores: Auth, GetUser, ApiKeyProtected, StaticTokenAuth
+|   |-- entities/          # User, OtpVerification, RefreshToken
+|   |-- guards/            # JwtGuard, UserRoleGuard, ApiKeyGuard, StaticTokenGuard
+|   +-- interfaces/        # ValidRoles, ValidIntegrationsRoles
+|-- booking-personas/      # Reservas directas para personas (sin agencia)
+|   |-- entities/          # BookingPersona, PaymentPending
+|   +-- dto/               # DTOs de disponibilidad, reserva, pago
+|-- bot-reservas-pendientes/ # Bot automatizado de reportes
+|-- cloudinary/            # Gestion de archivos en la nube
+|-- common/                # Recursos compartidos
+|   |-- decorators/        # Decoradores personalizados
+|   |-- dto/               # DTOs compartidos
+|   |-- helpers/           # ErrorManager, ConvertidorMoneda, getCellInfo
+|   |-- interface/         # Interfaces compartidas (IreservaInfoBd, etc.)
+|   |-- pipes/             # Pipes de validacion (ParseMongoIdPipe)
+|   +-- services/          # HttpCustomService, SendEmailService
+|-- config/                # Configuracion global
+|   +-- constants/         # autocoreConstants, amadeusConstants, emailPlantillas, etc.
+|-- cotizaciones/          # Modulo de cotizaciones
+|-- eventos/               # Modulo de eventos/convenciones
+|-- files/                 # Gestion de archivos (upload de imagenes)
+|-- integrations/          # Integraciones externas via API Keys
+|-- my-tool/               # Herramientas internas
+|-- notificaciones/        # Sistema de notificaciones
+|-- reservas/              # Modulo de reservas
+|   |-- pipes/             # ParseCheckinCheckoutPipe, ParseHotelIdPipe
+|   +-- utils/             # fechaLimitePago.utils
++-- vuelos/                # Modulo de vuelos (Amadeus + MaarLab)
+    |-- services/          # FlightEnrichmentService, ErrorHandlerService
+    |-- interceptors/      # ErrorHandlerInterceptor
+    +-- filters/           # ErrorHandlerFilter
 ```
 
 ---
 
-## 📦 Módulos Principales
+## Modulos Principales
 
-### **1. Auth Module** 🔐
-**Responsabilidad:** Gestión de autenticación, autorización y usuarios.
+### **1. Auth Module**
+**Responsabilidad:** Gestion de autenticacion, autorizacion y usuarios.
 
 **Componentes:**
-- `AuthService`: Lógica de autenticación (login, registro, JWT)
-- `AuthController`: Endpoints de autenticación
-- `JwtStrategy`: Estrategia de validación JWT
+- `AuthService`: Logica de autenticacion (login, registro, JWT, OTP)
+- `AuthController`: Endpoints de autenticacion
+- `JwtStrategy`: Estrategia de validacion JWT
 - `ApiKeyGuard`: Guard para API Keys externas
 - `UserRoleGuard`: Guard para roles de usuario
+- `StaticTokenAuthGuard`: Guard para token estatico (booking-personas)
 
 **Entidades:**
 - `User`: Usuarios del sistema
-- `OtpVerification`: Códigos OTP para verificación 2FA
-- `RefreshToken`: Tokens de actualización
+- `OtpVerification`: Codigos OTP para verificacion 2FA
+- `RefreshToken`: Tokens de actualizacion
 
-**Características:**
-- ✅ Autenticación JWT
-- ✅ Refresh tokens
-- ✅ Verificación OTP (opcional por usuario)
-- ✅ Roles y permisos
-- ✅ Gestión de contraseñas (bcrypt)
-- ✅ Cambio de contraseña con validación
+**Decoradores Personalizados:**
+- `@Auth(...roles)`: Combina AuthGuard + RoleProtected + UserRoleGuard
+- `@GetUser(property?)`: Obtiene el usuario autenticado o una propiedad especifica
+- `@ApiKeyProtected(...roles)`: Proteccion por API Key con roles de integracion
+- `@StaticTokenAuth()`: Autenticacion por token estatico (booking-personas)
+- `@GetIntegration(property?)`: Obtiene la integracion autenticada
+- `@RoleProtected(...roles)`: Setea metadata de roles requeridos
+
+**Caracteristicas:**
+- Autenticacion JWT con tokens firmados
+- Refresh tokens (UUID v4 con expiracion)
+- Verificacion OTP (opcional por usuario, configurable en settings.omitirOtp)
+- Roles: `admin`, `user`, `super-admin`, `eventos-super-admin`
+- Hashing de contrasenas con bcrypt
+- Cambio de contrasena con validacion
+- Validacion de tokens (validar-token, validate-access-token)
+- Activacion/desactivacion de usuarios
+- Gestion de politicas de agencia por usuario
+- Rate limiting por endpoint (Throttler)
 
 ---
 
-### **2. Reservas Module** 🏨
-**Responsabilidad:** Gestión completa del ciclo de vida de reservas hoteleras.
+### **2. Reservas Module**
+**Responsabilidad:** Gestion completa del ciclo de vida de reservas hoteleras.
 
 **Componentes:**
-- `ReservasService`: Lógica de negocio de reservas
-- `ReservasController`: Endpoints CRUD de reservas
-- Integración con **Autocore** para disponibilidad y creación de reservas
+- `ReservasService`: Logica de negocio de reservas
+- `ReservasController`: Endpoints CRUD y busquedas de reservas
+- `ParseCheckinCheckoutPipe`: Validacion de fechas check-in/check-out
+- `ParseHotelIdPipe`: Validacion de ID de hotel contra constantes de Autocore
+- Integracion con **Autocore** para disponibilidad y creacion de reservas
 
 **Entidades:**
 - `Reserva`: Reserva hotelera completa
 
-**Características:**
-- ✅ Consulta de disponibilidad en tiempo real (Autocore)
-- ✅ Creación de reservas con validación
-- ✅ Actualización de reservas
-- ✅ Cancelación y reembolsos
-- ✅ Gestión de fechas límite de pago
-- ✅ Cálculo de retenciones fiscales
-- ✅ Soporte para mascotas, transporte y tours
-- ✅ Planes alimentarios (desayuno, almuerzo, cena)
+**Caracteristicas:**
+- Consulta de disponibilidad en tiempo real (Autocore)
+- Creacion de reservas con validacion de hotel
+- Edicion de reservas (datos y en Autocore)
+- Cancelacion de reservas (usuario y admin)
+- Gestion de fechas limite de pago
+- Calculo de retenciones fiscales (reteFuente, reteIva, reteIca)
+- Soporte para mascotas, transporte y tours
+- Planes alimentarios (desayuno, almuerzo, cena)
+- Generacion de links de pago (Cobre)
+- Pago con billetera prepago (single y compuesto)
+- Webhook de cambio de estado de pago (Autocore -> Cobre)
+- Sistema de busqueda avanzado: por chatbotId, agente, agencia, huesped, estado
+- Paginacion en listados
+- Actualizacion manual de status (superAdmin)
+- Actualizacion de fechas de pago
+- Control de cancelacion con locks (cancelInProgress)
+- Historial de links de pago
+- Vinculacion con vuelos MaarLab
 
 ---
 
-### **3. Cotizaciones Module** 💼
-**Responsabilidad:** Gestión de cotizaciones y conversión automática a reservas.
+### **3. Cotizaciones Module**
+**Responsabilidad:** Gestion de cotizaciones y conversion automatica a reservas.
 
 **Componentes:**
-- `CotizacionesService`: Lógica de cotizaciones
+- `CotizacionesService`: Logica de cotizaciones
 - `CotizacionesController`: Endpoints privados (autenticados)
-- `CotizacionesPublicController`: Endpoints públicos (aceptar/rechazar)
+- `CotizacionesPublicController`: Endpoints publicos (token de acceso)
 
 **Entidades:**
-- `Cotizacion`: Cotización con estados (pendiente, aceptada, rechazada, convertida)
+- `Cotizacion`: Cotizacion con estados (EN_ESPERA=0, ACEPTADA=1, RECHAZADA=2, CONVERTIDA_RESERVA=3)
 
-**Características:**
-- ✅ Generación de cotizaciones desde disponibilidad
-- ✅ Generación de PDF con Puppeteer (sin botones)
-- ✅ Landing page personalizada con token de acceso único
-- ✅ Aceptación/Rechazo público mediante token
-- ✅ **Conversión automática a reserva** tras aceptación:
-  - Verifica disponibilidad en tiempo real
-  - Valida variaciones de precio (≥1%)
-  - Crea reserva en Autocore
-  - Guarda reserva en BD local
-  - Actualiza usuario y cotización
-- ✅ Markup personalizado por agencia
-- ✅ Upload de PDF a Cloudinary
-
-**Flujo de Conversión:**
-```
-Cotización Aceptada
-    ↓
-Consultar Disponibilidad (Autocore)
-    ↓
-Validar Habitaciones Disponibles
-    ↓
-Validar Precio (variación < 1%)
-    ↓
-Crear Reserva en Autocore
-    ↓
-Crear Reserva en BD Local
-    ↓
-Actualizar Usuario (agregar reserva)
-    ↓
-Actualizar Cotización (status: CONVERTIDA_RESERVA)
-```
+**Caracteristicas:**
+- Creacion de cotizaciones manuales y desde disponibilidad
+- Generacion de PDF con Puppeteer (sin botones)
+- Landing page personalizada con token de acceso unico
+- Aceptacion/Rechazo publico mediante token
+- Conversion automatica a reserva tras aceptacion
+- Markup personalizado por agencia
+- Upload de PDF a Cloudinary
+- Estadisticas de cotizaciones por agencia
+- Listado paginado (superAdmin ve todas, demas ven las de su agencia)
+- Endpoints publicos sin autenticacion (por token)
+- Endpoints privados de prueba/debug
 
 ---
 
-### **4. Vuelos Module** ✈️
-**Responsabilidad:** Búsqueda y reserva de vuelos mediante Amadeus.
+### **4. Vuelos Module**
+**Responsabilidad:** Busqueda y reserva de vuelos mediante Amadeus y MaarLab/OceanFlights.
 
 **Componentes:**
-- `VuelosService`: Orquestación de búsqueda de vuelos
-- `AmadeusService`: Integración directa con API de Amadeus
+- `VuelosService`: Orquestacion de busqueda de vuelos
+- `AmadeusService`: Integracion directa con API de Amadeus
+- `MaarlabService`: Integracion con MaarLab/OceanFlights
 - `FlightEnrichmentService`: Enriquecimiento de datos (nombres de ciudades)
+- `ErrorHandlerService`: Manejo centralizado de errores de vuelos
 - `VuelosController`: Endpoints de vuelos
+- `ErrorHandlerInterceptor`: Interceptor global de errores del modulo
+- `ErrorHandlerFilter`: Filtro de excepciones del modulo
 
-**Características:**
-- ✅ Búsqueda de ubicaciones (aeropuertos, ciudades)
-- ✅ Búsqueda de vuelos por IATA
-- ✅ Búsqueda de ofertas de vuelos
-- ✅ Enriquecimiento con nombres de ciudades
-- ✅ Creación de órdenes de vuelo (reservas)
-- ✅ Autenticación OAuth2 con Amadeus
+**Caracteristicas Amadeus:**
+- Busqueda de ubicaciones (aeropuertos, ciudades)
+- Busqueda de vuelos por IATA
+- Busqueda de ofertas de vuelos
+- Enriquecimiento con nombres de ciudades
+- Creacion de ordenes de vuelo (reservas)
+- Consulta y cancelacion de ordenes
+- Autenticacion OAuth2 con Amadeus (token cacheado)
+
+**Caracteristicas MaarLab/OceanFlights:**
+- Busqueda de disponibilidad de vuelos
+- Creacion de paquetes (vuelo + hotel)
+- Gestion de equipaje
+- Gestion de extras (agregar/eliminar)
+- Reserva de paquetes
+- Generacion de token de pago
+- Consulta de paquetes
+- Contrato ATOL
+- Proceso completo via Search Engine
+- Proceso completo via Travel Agency (v0 y v1)
+- Mapping de IDs externos
+- API Key por agencia (`agencia.maarlabApiKey`)
 
 ---
 
-### **5. Agencias Module** 🏢
-**Responsabilidad:** Gestión de agencias de viajes (mayoristas y minoristas).
+### **5. Agencias Module**
+**Responsabilidad:** Gestion de agencias de viajes (mayoristas y minoristas).
 
 **Componentes:**
-- `AgenciasService`: Lógica de agencias
+- `AgenciasService`: Logica de agencias
 - `AgenciasController`: Endpoints CRUD
 
 **Entidades:**
-- `Agencia`: Agencia con información de Cobre y Autocore
+- `Agencia`: Agencia con informacion de Cobre, Autocore y MaarLab
 
-**Características:**
-- ✅ Categorías: Mayorista (1) o Minorista (0)
-- ✅ Creación de agencia en Autocore y Cobre simultánea
-- ✅ Gestión de saldo y billetera prepago
-- ✅ Límite de usuarios por agencia
-- ✅ Permisos de cartera
-- ✅ Información de documentos (NIT, CC, CE, PA)
-- ✅ Recarga de billetera
+**Caracteristicas:**
+- Categorias: Mayorista (1) o Minorista (0)
+- Creacion de agencia en Autocore y Cobre simultanea
+- Gestion de saldo y billetera prepago
+- Recarga de billetera
+- Limite de usuarios por agencia (min 1, max 100)
+- Permisos de cartera
+- Informacion de documentos (NIT, CC, CE, PA)
+- Busqueda por propiedad
+- Activacion/desactivacion de agencias
+- Estadisticas: agencias creadas por termino, agencias con reserva
+- Politicas de agencia
+- API Key MaarLab por agencia
+- Obtencion de nombre y politicas de agencia por ID
 
 ---
 
-### **6. Common Module** 🧰
+### **6. Booking Personas Module**
+**Responsabilidad:** Reservas hoteleras directas para personas sin necesidad de agencia.
+
+**Componentes:**
+- `BookingPersonasService`: Logica de reservas para personas
+- `BookingPersonasController`: Endpoints protegidos con token estatico
+
+**Entidades:**
+- `BookingPersona`: Reserva directa para personas
+- `PaymentPending`: Pagos pendientes (tracking de estado de pago)
+
+**Autenticacion:** Token estatico configurado en `BOOKING_PERSONAS_TOKEN` (decorador `@StaticTokenAuth()`)
+
+**Caracteristicas:**
+- Consulta de disponibilidad
+- Generacion de link de pago
+- Creacion de reserva (requiere pago previo)
+- Webhook de cambio de estado de pago (Autocore)
+- Tracking de pagos pendientes con estados: PENDING, PAID, REJECTED, CANCELLED
+
+---
+
+### **7. Common Module**
 **Responsabilidad:** Servicios y utilidades compartidas.
 
 **Servicios:**
 - `HttpCustomService`: Cliente HTTP para integraciones externas
-  - Autocore (reservas, disponibilidad, agencias)
+  - Autocore (reservas, disponibilidad, agencias, billetera)
   - Cobre (pagos, billeteras, links de pago)
-- `SendEmailService`: Envío de emails (SendGrid + Nodemailer)
+- `SendEmailService`: Envio de emails (SendGrid + Nodemailer + Google Gmail API)
 
 **Helpers:**
 - `ErrorManager`: Manejo centralizado de errores
-- `ConvertidorMoneda`: Conversión de divisas
+- `ConvertidorMoneda`: Conversion de divisas
 - `getCellInfo`: Procesamiento de celdas Excel
 
 ---
 
-### **7. Bot Reservas Pendientes Module** 🤖
+### **8. Bot Reservas Pendientes Module**
 **Responsabilidad:** Bot automatizado para reportes de reservas pendientes.
 
-**Características:**
-- ✅ Cron jobs programados con `@nestjs/schedule`
-- ✅ Generación de reportes Excel (ExcelJS)
-- ✅ Envío automático por email
-- ✅ Filtros por estados de pago
-- ✅ Cálculo de diferencias de fechas
+**Caracteristicas:**
+- Cron jobs programados con `@nestjs/schedule` (diario a las 8:00 AM)
+- Generacion de reportes Excel (ExcelJS)
+- Envio automatico por email
+- Filtros por estados de pago y fechas limite
+- Ejecucion manual via endpoint (solo superAdmin)
+- Endpoint de estado del bot
+- Endpoint de diagnostico de reservas
 
 ---
 
-### **8. Cloudinary Module** ☁️
-**Responsabilidad:** Gestión de archivos en Cloudinary.
+### **9. Cloudinary Module**
+**Responsabilidad:** Gestion de archivos en Cloudinary.
 
-**Características:**
-- ✅ Upload de imágenes (usuarios, agencias)
-- ✅ Upload de PDFs (cotizaciones)
-- ✅ Eliminación de recursos
-- ✅ URLs firmadas y seguras
+**Caracteristicas:**
+- Upload de imagenes (usuarios, agencias)
+- Upload de PDFs (cotizaciones)
+- Eliminacion de recursos
+- URLs firmadas y seguras
+
+**Nota:** El controlador esta vacio (sin endpoints expuestos), la logica se usa internamente desde otros servicios.
 
 ---
 
-### **9. Notificaciones Module** 🔔
+### **10. Notificaciones Module**
 **Responsabilidad:** Sistema de notificaciones por email.
 
-**Características:**
-- ✅ Plantillas de email personalizadas
-- ✅ Envío de confirmaciones de reserva
-- ✅ Notificaciones de estado de pago
-- ✅ Recordatorios automáticos
+**Caracteristicas:**
+- Notificacion de pago de reservas
+- Plantillas de email personalizadas (HTML)
+- Envio de confirmaciones de reserva
+- Notificaciones de estado de pago
+
+**Endpoint unico:** `POST /notificaciones/reservas`
 
 ---
 
-### **10. Eventos Module** 📅
-**Responsabilidad:** Gestión de eventos y actividades.
+### **11. Eventos Module**
+**Responsabilidad:** Gestion de reservas de eventos y convenciones.
 
-**Características:**
-- ✅ CRUD de eventos
-- ✅ Vinculación con usuarios
-- ✅ Fechas y horarios
-
----
-
-### **11. Files Module** 📁
-**Responsabilidad:** Procesamiento y gestión de archivos locales.
-
-**Características:**
-- ✅ Validación de archivos
-- ✅ Procesamiento de imágenes
-- ✅ Límites de tamaño
-
----
-
-### **12. Integrations Module** 🔌
-**Responsabilidad:** Gestión de integraciones externas mediante API Keys.
-
-**Características:**
-- ✅ Generación de API Keys para terceros
-- ✅ Autenticación mediante API Key + Secret Key
-- ✅ Endpoints públicos de disponibilidad
-- ✅ Roles de integración (dev, prod)
+**Caracteristicas:**
+- Creacion de reservas de eventos con informacion detallada:
+  - Tipo de evento (enum TipoEvento)
+  - Organizador (nombre, telefono, email)
+  - Cantidad de asistentes
+  - Horarios del evento (multiples dias con asistentes por dia)
+  - Tipo de acomodacion (enum TipoAcomodacion)
+  - Flexibilidad del evento
+  - Alimentos y bebidas (estacion cafe, coffee break, desayuno, almuerzo, cena)
+  - Audiovisuales e items
+  - Decoracion
+  - Alojamiento
+  - Observaciones
+- Listado de eventos (solo superAdmin y eventosSuperAdmin)
 
 ---
 
-## 🌐 Integraciones Externas
+### **12. Files Module**
+**Responsabilidad:** Upload y procesamiento de archivos.
 
-### **1. Autocore (PMS Hotelero)** 🏨
+**Caracteristicas:**
+- Upload de imagen de perfil de usuario
+- Validacion de tipo de archivo (fileFilter)
+- Integracion con Cloudinary para almacenamiento
 
-**Propósito:** Sistema de gestión hotelera para reservas, disponibilidad y pagos.
+---
+
+### **13. Integrations Module**
+**Responsabilidad:** Gestion de integraciones externas mediante API Keys.
+
+**Caracteristicas:**
+- Generacion de API Keys para terceros (crypto random)
+- Autenticacion mediante API Key + Secret Key (hasheada con bcrypt)
+- Endpoints de disponibilidad para integraciones
+- Roles de integracion: `autocore-prod`, `autocore-dev`
+- Soporte para ambiente dev y prod de Autocore
+
+---
+
+### **14. My Tool Module**
+**Responsabilidad:** Herramientas internas de la organizacion.
+
+**Caracteristicas:**
+- Consulta de informacion de reservas consolidada
+- APIs por hotel configuradas en variables de entorno
+
+---
+
+## Integraciones Externas
+
+### **1. Autocore (PMS Hotelero)**
+
+**Proposito:** Sistema de gestion hotelera para reservas, disponibilidad y pagos.
 
 **Endpoints Utilizados:**
 - `POST /v2/bookings/agencies/{category}/availability` - Consultar disponibilidad
@@ -383,56 +494,34 @@ Actualizar Cotización (status: CONVERTIDA_RESERVA)
 - `PUT /v2/bookings/chatbot/{chatbotId}` - Editar reserva
 - `DELETE /v2/bookings/chatbot/{chatbotId}` - Cancelar reserva
 - `POST /v2/agencies` - Crear agencia
-- `GET/PUT /v2/preloaded-balance/agencies/{id}` - Gestión de billetera
+- `GET/PUT /v2/preloaded-balance/agencies/{id}` - Gestion de billetera
 - `POST /v2/links/schedule/` - Crear link de pago
 - `POST /v2/links/preloaded-balance` - Pagar con billetera
 
-**Autenticación:**
+**Autenticacion:**
 ```typescript
 headers: {
-  'access-key': process.env.AUTOCORE_ACCESS_KEY,
-  'secret-key': process.env.AUTOCORE_SECRET_KEY
+  'access_key': envs.autocoreAccessKey,
+  'secret_key': envs.autocoreSecretKey
 }
 ```
 
-**Flujo de Disponibilidad:**
-```typescript
-POST /v2/bookings/agencies/1/availability?checkin=2025-12-10&nights=2&city=CARTAGENA
-
-Body:
-{
-  "layout": [
-    { "adults": 2, "children_ages": [] }
-  ]
-}
-
-Response:
-[
-  {
-    "hotel_id": 13643,
-    "hotel_name": "Hotel Marina",
-    "available_rooms": [
-      {
-        "id": "83528",
-        "name": "Habitacion Doble Standard",
-        "rates": [
-          { "id": "99092", "price": 230000, "currency": "COP" }
-        ]
-      }
-    ]
-  }
-]
+**Hoteles Configurados:**
+```
+Cartagena: Azuan (13645), Aixo (13633), Avexi (13644), Marina (13643),
+           Bocagrande (14364), Abi (17644), Boquilla (13677)
+Bogota:    Windsor (18004), Madisson (16255)
+Santa Marta: Rodadero (17491), Axis (19629), Sansiraka (15740),
+             Playa Salguero Hotel (21590)
 ```
 
-**Manejo de Errores:**
-- Error 500: Se implementa `try-catch` para permitir la creación de reserva sin verificación cuando Autocore falla.
-- El sistema registra un log de advertencia y continúa con la creación.
+**Ambientes:** Produccion y Desarrollo (configurables por env vars separadas)
 
 ---
 
-### **2. Cobre (Pasarela de Pagos)** 💳
+### **2. Cobre (Pasarela de Pagos)**
 
-**Propósito:** Gestión de pagos, billeteras y links de pago.
+**Proposito:** Gestion de pagos, billeteras y links de pago.
 
 **Endpoints Utilizados:**
 - `POST /v1/auth` - Generar token OAuth
@@ -440,160 +529,107 @@ Response:
 - `POST /v1/counterparties` - Crear counterparty (pagador)
 - `POST /v1/money_movements` - Generar link de pago
 
-**Autenticación:**
-```typescript
-POST /v1/auth
-{
-  "user_id": process.env.COBRE_USER_ID,
-  "secret": process.env.COBRE_SECRET
-}
-
-Response:
-{
-  "access_token": "eyJhbGc...",
-  "expires_in": 3600
-}
-```
-
-**Flujo de Link de Pago:**
-```
-1. Generar Token OAuth
-    ↓
-2. Crear Bolcillo (si no existe)
-    ↓
-3. Crear CounterParty (información del pagador)
-    ↓
-4. Generar Money Movement (link de pago)
-    ↓
-5. Retornar URL de pago
-```
-
 ---
 
-### **3. Amadeus (Vuelos)** ✈️
+### **3. Amadeus (Vuelos)**
 
-**Propósito:** Búsqueda y reserva de vuelos internacionales.
+**Proposito:** Busqueda y reserva de vuelos internacionales.
 
 **Endpoints Utilizados:**
-- `POST /v1/security/oauth2/token` - Autenticación
+- `POST /v1/security/oauth2/token` - Autenticacion OAuth2
 - `GET /v1/reference-data/locations` - Buscar aeropuertos/ciudades
 - `GET /v2/shopping/flight-offers` - Buscar ofertas de vuelos
-- `POST /v1/booking/flight-orders` - Crear orden de vuelo (reserva)
-
-**Autenticación:**
-```typescript
-POST /v1/security/oauth2/token
-Headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-Body: {
-  grant_type=client_credentials
-  &client_id={AMADEUS_API_KEY}
-  &client_secret={AMADEUS_API_SECRET}
-}
-```
-
-**Búsqueda de Vuelos:**
-```typescript
-GET /v2/shopping/flight-offers?
-  originLocationCode=BOG&
-  destinationLocationCode=CTG&
-  departureDate=2025-12-10&
-  adults=1&
-  currencyCode=COP
-```
+- `POST /v1/booking/flight-orders` - Crear orden de vuelo
+- `GET /v1/booking/flight-orders/{id}` - Consultar orden
+- `DELETE /v1/booking/flight-orders/{id}` - Cancelar orden
 
 ---
 
-### **4. Cloudinary (Almacenamiento)** ☁️
+### **4. MaarLab / OceanFlights (Vuelos)**
 
-**Propósito:** Almacenamiento de imágenes y PDFs.
+**Proposito:** Busqueda y reserva de vuelos via consolidador MaarLab.
 
-**Recursos Almacenados:**
-- Imágenes de usuarios
-- Imágenes de agencias
-- PDFs de cotizaciones
+**Autenticacion:** Bearer token por agencia (`agencia.maarlabApiKey`), gestionado individualmente.
 
-**Configuración:**
+**Funcionalidades:**
+- Busqueda de disponibilidad
+- Creacion de paquetes
+- Gestion de equipaje y extras
+- Reserva de paquetes
+- Generacion de tokens de pago
+- Contratos ATOL
+- Procesos completos (Search Engine y Travel Agency)
+- Mapping de IDs externos
+
+---
+
+### **5. Cloudinary (Almacenamiento)**
+
+**Proposito:** Almacenamiento de imagenes y PDFs.
+
+**Configuracion:**
 ```typescript
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: envs.cloudinaryName,
+  api_key: envs.cloudinaryApiKey,
+  api_secret: envs.cloudinaryApiSecret
 });
 ```
 
-**Carpetas:**
-```
-cloudinary/
-├── users/              # Fotos de perfil
-├── agencias/           # Logos de agencias
-└── cotizaciones/       # PDFs de cotizaciones
-```
-
 ---
 
-### **5. SendGrid (Emails)** 📧
+### **6. Email (SendGrid + Nodemailer + Google Gmail API)**
 
-**Propósito:** Envío de emails transaccionales y notificaciones.
+**Proposito:** Envio de emails transaccionales y notificaciones.
+
+**Proveedores:**
+- **SendGrid**: Envio principal de emails
+- **Nodemailer**: Envio alternativo
+- **Google Gmail API**: Envio via API de Gmail con OAuth2 refresh tokens
 
 **Tipos de Emails:**
 - Confirmaciones de reserva
 - PDFs de cotizaciones
 - Reportes automatizados (Excel)
-- OTPs de verificación
-- Cambios de contraseña
-
-**Configuración:**
-```typescript
-import sgMail from '@sendgrid/mail';
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-```
+- OTPs de verificacion
+- Cambios de contrasena
+- Notificaciones de pago
 
 ---
 
-### **6. My Tool (Integración Interna)** 🔧
-
-**Propósito:** Herramientas internas de la organización.
+### **7. My Tool (Integracion Interna)**
 
 **APIs por Hotel:**
-```typescript
-{
-  API_AIXO: string,
-  API_AZUAN: string,
-  API_RODADERO: string,
-  API_AVEXI: string,
-  API_BOCAGRANADE: string,
-  API_ABI: string,
-  API_MADISSON: string,
-  API_WINDSOR: string,
-  API_MARINA: string,
-  API_AXIS: string
-}
+```
+API_AIXO, API_AZUAN, API_RODADERO, API_AVEXI, API_BOCAGRANADE,
+API_ABI, API_MADISSON, API_WINDSOR, API_MARINA, API_AXIS
 ```
 
 ---
 
-## 🗄️ Modelos de Datos
+## Modelos de Datos
 
 ### **User (Usuario)**
 
 ```typescript
 {
   _id: ObjectId,
-  email: string,              // Único, lowercase
-  password: string,           // Hasheado con bcrypt
-  telefono: string,
-  fullName: string,           // Lowercase
+  email: string,              // Unico, lowercase, index
+  password: string,           // Hasheado con bcrypt, select: false
+  telefono: string,           // Validacion formato telefonico internacional
+  fullName: string,           // Lowercase, trim, 2-100 caracteres
   isActive: boolean,          // Default: true
   firstLog: boolean,          // Default: true
-  role: string[],             // ['admin', 'user', 'superAdmin']
-  imageUrl: string,
-  agencia: ObjectId,          // Referencia a Agencia
-  otpRef: ObjectId,           // Referencia a OtpVerification
+  role: string[],             // Enum ValidRoles, default: ['admin']
+  imageUrl: string,           // Default: ''
+  agencia: ObjectId,          // Referencia a Agencia, required
+  otpRef: ObjectId,           // Referencia a OtpVerification, default: null
   reservas: ObjectId[],       // Referencias a Reserva
   eventos: ObjectId[],        // Referencias a Evento
   settings: {
     omitirOtp: boolean        // Default: false
   },
+  politicasAgencia: string,   // Default: ''
   createdAt: Date,
   updatedAt: Date
 }
@@ -606,15 +642,15 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 ```typescript
 {
   _id: ObjectId,
-  emailContacto: string,      // Único
-  telefonoContacto: string,
-  fullName: string,           // Lowercase
-  slug: string,               // Único, generado automáticamente
-  saldo: number,              // Default: 0
-  category: 0 | 1,            // 0: Minorista, 1: Mayorista
+  emailContacto: string,      // Unico, index
+  telefonoContacto: string,   // Index
+  fullName: string,           // Lowercase, trim, 2-200 caracteres
+  slug: string,               // Unico, index
+  saldo: number,              // Default: 0, min: 0
+  category: 0 | 1,            // 0: Minorista, 1: Mayorista, index
   documentInfo: {
     tipo: 'CC' | 'NIT' | 'CE' | 'PA',
-    document: string          // Único
+    document: string          // Unico
   },
   cobreInfo: {
     bolcilloId: string,       // ID de billetera en Cobre
@@ -626,8 +662,10 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   empresa: boolean,           // Default: false
   isActive: boolean,          // Default: true
   usuarios: ObjectId[],       // Referencias a User
-  userLimit: number,          // Default: 1
+  userLimit: number,          // Default: 1, min: 1, max: 100
   permisoCartera: boolean,    // Default: false
+  politicasAgencia: string,   // Default: ''
+  maarlabApiKey: string,      // Bearer token MaarLab por agencia, default: ''
   createdAt: Date,
   updatedAt: Date
 }
@@ -640,21 +678,65 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 ```typescript
 {
   _id: ObjectId,
-  hotel: string,
-  agenciaId: ObjectId,        // Referencia a Agencia
-  userId: ObjectId,           // Referencia a User
-  cantidadHabitaciones: number,
-  total: number,
-  totalMitad: number,         // total / 2
-  reservation: {
+  userId: ObjectId,           // Referencia a User, index
+  agenciaId: ObjectId,        // Referencia a Agencia, index
+  hotel: string,              // Nombre del hotel, trim, 1-200 chars, index
+  cantidadHabitaciones: number, // 1-100, entero
+  origenIata: string,
+  mascotas: boolean,
+  mascotasNumber: number,
+  total: number,              // > 0
+  totalMitad: number,         // >= 0, default: 0
+  adicionCena: boolean,       // Default: false
+  adicionAlmuerzo: boolean,   // Default: false
+  pagadoPrimeraMitad: boolean, // Default: false
+  planAlimentario: string,    // Default: ''
+  infoTransporte?: {
+    numeroVuelo: string,
+    numeroVueloSalida?: string,
+    aerolinea: string,
+    tipoRecogida: number,     // Enum ValidTipoRecogida
+    firstContactNumber: string,
+    secondContacNumber?: string,
+    cantidadPersonas: number
+  },
+  infoToures?: {
+    nombres: string[],
+    firstContactNumber: string,
+    secondContacNumber?: string
+  },
+  reteFuente: { porcentaje: number, resultado: number },  // Default: {0, 0}
+  reteIva: { porcentaje: number, resultado: number },      // Default: {0, 0}
+  reteIca: { porcentaje: number, resultado: number },      // Default: {0, 0}
+  exentoIva: boolean,         // Default: false
+  status: ValidPaymentStatus, // 0:espera, 1:proceso, 2:rejected, 3:total, 4:cancelado, 5:mitad, 6:abonada
+  cancelInProgress: boolean,  // Default: false, index
+  cancelRequestedAt?: Date,   // Index
+  cancelProcessedAt?: Date,
+  cancelOpId?: string,
+  asistentes: [{              // Array de asistentes
+    fullName: string,
+    tipoDocumento: 'CC' | 'NIT' | 'CE' | 'PA',
+    documento: string,
+    telefono: string,
+    email: string
+  }],
+  titularInfo: {
+    firstName: string,
+    lastName: string,
+    tipoDocumento: string,
+    documento: string,
+    fechaNacimiento: string
+  },
+  reservation: {              // Informacion de la reserva Autocore
     source_of_bussiness: string,
     adults: string,
-    checkin: Date,            // Formato: YYYY-MM-DD
-    checkout: Date,
+    checkin: string,
+    checkout: string,
     children: string,
     children_ages: string,
-    city: 'CARTAGENA' | 'BOGOTA' | 'SANTA MARTA',
-    country: 'COL',
+    city: string,
+    country: string,
     currency: string,
     email: string,
     telephone: string,
@@ -668,121 +750,148 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
       adults: string,
       children: string,
       children_ages: string,
-      checkin: Date,
-      checkout: Date,
+      checkin: string,
+      checkout: string,
       currency: string,
-      id: string,             // Room ID de Autocore
+      id: string,
       quantity: string,
-      rateId: string,         // Rate ID de Autocore
+      rateId: string,
       unitaryPrice: number
     }]
   },
-  reservaChatbotId: string,   // ID de reserva en Autocore
-  titularInfo: {
-    firstName: string,
-    lastName: string,
-    tipoDocumento: string,
-    documento: string,
-    fechaNacimiento: string
+  reservaChatbotId: string,   // ID en Autocore, unique index
+  paymenIds: string[],        // IDs de pagos
+  fechaLimitePago: string,    // Index
+  fechaLimitePago2: string,   // Index
+  notasSuperAdmin: string,    // Default: ''
+  notasagencias: string,      // Default: ''
+  linkInfo: {
+    link: string,
+    expirationDate: string,
+    idLinkPago: string
   },
-  fechaLimitePago: Date,
-  fechaLimitePago2: Date,
-  exentoIva: boolean,
-  reteFuente: {
-    porcentaje: number,
-    resultado: number
-  },
-  reteIva: {
-    porcentaje: number,
-    resultado: number
-  },
-  reteIca: {
-    porcentaje: number,
-    resultado: number
-  },
-  planAlimentario: string,
-  adicionCena: boolean,
-  adicionAlmuerzo: boolean,
-  infoTransporte: {
-    numeroVuelo: string,
-    numeroVueloSalida?: string,
-    aerolinea: string,
-    tipoRecogida: number,
-    firstContactNumber: string,
-    secondContacNumber?: string,
-    cantidadPersonas: number
-  },
-  infoToures: {
-    nombres: string[],
-    firstContactNumber: string,
-    secondContacNumber?: string
-  },
+  linksHistory: [{            // Historial de links de pago
+    id: string,
+    typeOfPayment: string,
+    state: number,
+    fecha: Date
+  }],
+  vuelo: [{                   // Vuelos MaarLab asociados
+    packageId: string,
+    respuestaMaarLab: object,
+    createdAt: Date
+  }],
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**Indices compuestos:**
+- `{ userId: 1, status: 1, createdAt: -1 }`
+- `{ agenciaId: 1, status: 1, createdAt: -1 }`
+- `{ reservaChatbotId: 1 }` (unique)
+- `{ fechaLimitePago: 1, status: 1 }`
+- `{ status: 1, createdAt: -1 }`
+- `{ cancelInProgress: 1, cancelRequestedAt: 1 }`
+- `{ createdAt: -1 }`
+
+---
+
+### **Cotizacion**
+
+```typescript
+{
+  _id: ObjectId,
+  userId: ObjectId,           // Referencia a User, index
+  agenciaId: ObjectId,        // Referencia a Agencia, index
+  hotel: string,              // Index
+  cantidadHabitaciones: number,
+  origenIata: string,
   mascotas: boolean,
   mascotasNumber: number,
-  origenIata: string,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
----
-
-### **Cotizacion (Cotización)**
-
-```typescript
-{
-  _id: ObjectId,
-  userId: ObjectId,           // Referencia a User
-  agenciaId: ObjectId,        // Referencia a Agencia
-  hotel: string,
-  cantidadHabitaciones: number,
-  mascotasNumber: number,
   total: number,
-  markup: number,
-  porcentajemarkup: number,
-  montoconmarkup: number,     // total + markup
-  totalMitad: number,
-  adicionCena: boolean,
-  adicionAlmuerzo: boolean,
-  planAlimentario: string,
-  reteFuente: {
-    porcentaje: number,
-    resultado: number
-  },
-  reteIva: {
-    porcentaje: number,
-    resultado: number
-  },
-  reteIca: {
-    porcentaje: number,
-    resultado: number
-  },
-  exentoIva: boolean,
-  status: 0 | 1 | 2 | 3,      // 0: Pendiente, 1: Aceptada, 2: Rechazada, 3: Convertida
-  titularInfo: {
-    firstName: string,
-    lastName: string,
+  markup: number,             // Min: 0
+  porcentajemarkup: number,   // Min: 0
+  totalMitad: number,         // Default: 0
+  adicionCena: boolean,       // Default: false
+  adicionAlmuerzo: boolean,   // Default: false
+  planAlimentario: string,    // Default: ''
+  infoTransporte?: { ... },   // Mismo formato que Reserva
+  infoToures?: { ... },       // Mismo formato que Reserva
+  reteFuente: { porcentaje: number, resultado: number },
+  reteIva: { porcentaje: number, resultado: number },
+  reteIca: { porcentaje: number, resultado: number },
+  exentoIva: boolean,         // Default: false
+  status: CotizacionStatus,   // 0:EN_ESPERA, 1:ACEPTADA, 2:RECHAZADA, 3:CONVERTIDA_RESERVA
+  asistentes: [{              // Mismo formato que Reserva
+    fullName: string,
     tipoDocumento: string,
     documento: string,
-    fechaNacimiento: string
+    telefono: string,
+    email: string
+  }],
+  titularInfo: { ... },       // Mismo formato que Reserva
+  reservation: { ... },       // Mismo formato que Reserva (IreservaInfoBd)
+  cotizacionChatbotId: string, // Index
+  fechaLimiteRespuesta: string, // Index
+  notasSuperAdmin: string,    // Default: ''
+  landingUrl: string,         // Index
+  landingHtml: string,        // Default: ''
+  pdfUrl: string,             // Default: ''
+  pdfCloudinaryId: string,    // Default: ''
+  tokenAcceso: string,        // Index, unique
+  fechaAprobacion: Date,      // Default: null
+  fechaRechazo: Date,         // Default: null
+  motivoRechazo: string,      // Default: ''
+  reservaId: ObjectId,        // Referencia a Reserva, default: null
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**Indices compuestos:**
+- `{ agenciaId: 1, createdAt: -1 }`
+- `{ userId: 1, createdAt: -1 }`
+- `{ tokenAcceso: 1 }` (unique)
+- `{ status: 1, createdAt: -1 }`
+- `{ agenciaId: 1, status: 1, createdAt: -1 }`
+
+---
+
+### **BookingPersona (Reserva Directa para Personas)**
+
+```typescript
+{
+  _id: ObjectId,
+  hotel: string,              // Index
+  cantidadHabitaciones: number,
+  origenIata: string,
+  mascotas: boolean,
+  mascotasNumber: number,
+  total: number,
+  adicionCena: boolean,       // Default: false
+  adicionAlmuerzo: boolean,   // Default: false
+  pagadoPrimeraMitad: boolean, // Default: false
+  planAlimentario: string,    // Default: ''
+  exentoIva: boolean,         // Default: false
+  status: ValidPaymentStatus, // Mismo enum que Reserva
+  titularInfo: { ... },       // Mismo formato que Reserva
+  reservation: { ... },       // Mismo formato que Reserva (IreservaInfoBd)
+  reservaChatbotId: string,   // Index
+  paymenIds: string[],
+  fechaLimitePago: string,    // Index
+  fechaLimitePago2: string,   // Index
+  linkInfo: {
+    link: string,
+    expirationDate: string,
+    idLinkPago: string
   },
-  reservation: {              // Mismo formato que Reserva.reservation
-    // ... (ver Reserva)
-  },
-  fechaLimiteRespuesta: Date,
-  notasSuperAdmin: string,
-  landingUrl: string,         // URL de landing page pública
-  landingHtml: string,        // HTML de landing page
-  pdfUrl: string,             // URL de PDF en Cloudinary
-  pdfCloudinaryId: string,    // Public ID en Cloudinary
-  tokenAcceso: string,        // UUID para acceso público
-  fechaAprobacion: Date,
-  fechaRechazo: Date,
-  motivoRechazo: string,
-  reservaId: ObjectId,        // Referencia a Reserva (si fue convertida)
-  infoTransporte: { /* ... */ },
-  infoToures: { /* ... */ },
-  asistentes: [],
+  linksHistory: [{
+    id: string,
+    typeOfPayment: string,
+    state: number,
+    fecha: Date
+  }],
   createdAt: Date,
   updatedAt: Date
 }
@@ -790,15 +899,41 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 ---
 
-### **Integration (Integración Externa)**
+### **PaymentPending (Pagos Pendientes - Booking Personas)**
 
 ```typescript
 {
   _id: ObjectId,
-  name: string,
-  apiKey: string,             // Generado automáticamente
+  payment_code: string,       // Unico, index
+  external_ref_id: string,
+  status: PaymentStatus,      // 'pending' | 'paid' | 'rejected' | 'cancelled'
+  amount: number,
+  currency: string,
+  transaction_id?: string,
+  paid_at?: Date,
+  hotel_id?: string,
+  reservation_data?: any,     // Datos para crear reserva automaticamente
+  reserva_id?: string,        // ID de reserva creada
+  reserva_creada?: boolean,   // Default: false
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**Coleccion:** `payment_pending_personas`
+
+---
+
+### **Integration (Integracion Externa)**
+
+```typescript
+{
+  _id: ObjectId,
+  name: string,               // Unico, lowercase, index
+  apiKey: string,             // Unico, generado con crypto, index
   secretKey: string,          // Hasheado con bcrypt
-  isActive: boolean,
+  isActive: boolean,          // Default: false
+  roles: string[],            // Enum ValidIntegrationsRoles
   createdAt: Date,
   updatedAt: Date
 }
@@ -806,12 +941,55 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 ---
 
-### **OtpVerification (Verificación OTP)**
+### **Evento (Evento/Convencion)**
 
 ```typescript
 {
   _id: ObjectId,
-  otp: string,                // Código OTP (6 dígitos)
+  userId: ObjectId,           // Referencia a User, index
+  agenciaId: ObjectId,        // Referencia a Agencia, index
+  nameEvento: string,         // Lowercase, index
+  tipoEvento: TipoEvento,    // Enum numerico, index
+  nombreOrganizador: string,  // Lowercase, index
+  telefonoOrganizador: string, // Index
+  emailOrganizador: string,   // Index
+  cantidadAsistentes: number,
+  fechaInicioEvento: Date,
+  fechaFinalEvento: Date,
+  horarioEvento: [{           // Horarios por dia
+    fechaInicio: Date,
+    fechaFinal: Date,
+    cantidadAsistenteDia: number
+  }],
+  flexibilidadEvento: boolean, // Default: false
+  tipoAcomodacion: TipoAcomodacion, // Enum numerico
+  alimentacion: boolean,      // Default: false
+  alimentosBebidas: {
+    estacionCafe: boolean,    // Default: false
+    coffeBreak: boolean,      // Default: false
+    desayuno: boolean,        // Default: false
+    almuerzo: boolean,        // Default: false
+    cena: boolean             // Default: false
+  },
+  audiovisuales: boolean,     // Default: false
+  itemsAudiovisuales: string[], // Default: []
+  decoracion: boolean,        // Default: false
+  decoracionDescripcion: string, // Default: ''
+  alojamiento: boolean,       // Default: false
+  observaciones: string,      // Default: ''
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+---
+
+### **OtpVerification (Verificacion OTP)**
+
+```typescript
+{
+  _id: ObjectId,
+  otp: string,                // Codigo OTP (6 digitos)
   expiresAt: Date,
   createdAt: Date
 }
@@ -819,7 +997,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 ---
 
-### **RefreshToken (Token de Actualización)**
+### **RefreshToken (Token de Actualizacion)**
 
 ```typescript
 {
@@ -833,25 +1011,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 ---
 
-### **Evento (Evento)**
-
-```typescript
-{
-  _id: ObjectId,
-  userId: ObjectId,           // Referencia a User
-  title: string,
-  description: string,
-  startDate: Date,
-  endDate: Date,
-  location: string,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
----
-
-## 🔐 Autenticación y Autorización
+## Autenticacion y Autorizacion
 
 ### **Roles del Sistema**
 
@@ -859,7 +1019,8 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 enum ValidRoles {
   admin = 'admin',
   user = 'user',
-  superAdmin = 'superAdmin'
+  superAdmin = 'super-admin',
+  eventosSuperAdmin = 'eventos-super-admin'
 }
 ```
 
@@ -867,30 +1028,30 @@ enum ValidRoles {
 
 ```typescript
 enum ValidIntegrationsRoles {
-  autocoreDev = 'autocore_dev',
-  autocore = 'autocore'
+  autocoreProd = 'autocore-prod',
+  autodoreDev = 'autocore-dev'
 }
 ```
 
-### **Flujo de Autenticación JWT**
+### **Flujo de Autenticacion JWT**
 
 ```
-1. Cliente hace POST /auth/login
+1. Cliente hace POST /auth/sign-in
    Body: { email, password }
-    ↓
+    |
 2. AuthService valida credenciales (bcrypt)
-    ↓
-3. Si OTP está habilitado → generar y enviar OTP
-    ↓
-4. Cliente envía POST /auth/validate-otp
+    |
+3. Si OTP NO esta omitido -> generar y enviar OTP
+    |
+4. Cliente envia POST /auth/validate-otp
    Body: { email, otp }
-    ↓
+    |
 5. AuthService genera JWT + Refresh Token
-    ↓
+    |
 6. Response: {
      token: "eyJhbGc...",
      refreshToken: "uuid-v4...",
-     user: { id, email, fullName, role }
+     user: { id, email, fullName, role, agencia }
    }
 ```
 
@@ -898,371 +1059,257 @@ enum ValidIntegrationsRoles {
 
 #### **1. Auth Guard (JWT)**
 ```typescript
-@UseGuards(AuthGuard)
-// Requiere token JWT válido en header Authorization: Bearer {token}
+@Auth()
+// Requiere token JWT valido en header Authorization: Bearer {token}
 ```
 
 #### **2. User Role Guard**
 ```typescript
-@Auth(ValidRoles.admin)
-// Requiere JWT + rol específico
+@Auth(ValidRoles.admin, ValidRoles.superAdmin)
+// Requiere JWT + rol especifico
 ```
 
 #### **3. API Key Guard**
 ```typescript
-@UseGuards(ApiKeyGuard)
-// Requiere API Key en header x-api-key
+@ApiKeyProtected(ValidIntegrationsRoles.autocoreProd)
+// Requiere API Key en header + roles de integracion
+```
+
+#### **4. Static Token Guard**
+```typescript
+@StaticTokenAuth()
+// Requiere token estatico en header (booking-personas)
 ```
 
 ### **Decoradores Personalizados**
 
 ```typescript
-// Obtener usuario autenticado
-@GetUser() user: User
+@GetUser() user: User              // Obtener usuario autenticado completo
+@GetUser('_id') id: string         // Obtener propiedad especifica
+@GetUser('agencia') agencia: Types.ObjectId
 
-// Verificar roles
-@Auth(...roles: ValidRoles[])
-
-// Obtener headers raw
-@RawHeaders() rawHeaders: string[]
+@Auth(...roles: ValidRoles[])      // JWT + roles
+@ApiKeyProtected(...roles)         // API Key + roles de integracion
+@StaticTokenAuth()                 // Token estatico
+@GetIntegration('roles') roles     // Obtener datos de integracion
+@RoleProtected(...roles)           // Solo setear metadata de roles
 ```
 
 ---
 
-## 🔄 Flujos de Negocio Principales
+## Flujos de Negocio Principales
 
-### **1. Flujo de Creación de Reserva**
+### **1. Flujo de Creacion de Reserva**
 
 ```
-┌─────────────────────────────────────────────┐
-│ 1. Consultar Disponibilidad                │
-│    POST /reservas/disponibilidad            │
-│    - Enviar layout (adultos, niños)         │
-│    - Autocore retorna hoteles disponibles   │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 2. Cliente selecciona hotel y habitación   │
-│    - Obtiene IDs de room y rate            │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 3. Crear Reserva                            │
-│    POST /reservas                           │
-│    - Validar datos del titular             │
-│    - Crear reserva en Autocore             │
-│    - Guardar en BD local                   │
-│    - Actualizar usuario                    │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 4. Generar Link de Pago (Opcional)         │
-│    POST /reservas/:id/link-pago             │
-│    - Crear counterparty en Cobre           │
-│    - Generar link de pago                  │
-│    - Retornar URL de pago                  │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 5. Cliente realiza pago                    │
-│    - Webhook de Cobre notifica pago        │
-│    - Actualizar estado de reserva          │
-└─────────────────────────────────────────────┘
+1. Consultar Disponibilidad
+   POST /reservas/disponibilidad
+   - Enviar layout (adultos, ninos)
+   - Autocore retorna hoteles disponibles
+    |
+2. Cliente selecciona hotel y habitacion
+   - Obtiene IDs de room y rate
+    |
+3. Crear Reserva
+   POST /reservas/reservar?hotelId={id}
+   - Validar hotelId contra constantes (ParseHotelIdPipe)
+   - Validar fechas checkin/checkout (ParseCheckinCheckoutPipe)
+   - Crear reserva en Autocore
+   - Guardar en BD local
+   - Actualizar usuario (push reserva)
+    |
+4. Generar Link de Pago
+   POST /reservas/generate-link
+   - Crear counterparty en Cobre
+   - Generar link de pago
+   - Retornar URL de pago
+    |
+5. Pago (alternativas)
+   a) Link de pago (Cobre webhook -> POST /reservas/change-status)
+   b) Billetera single: POST /reservas/pago-billetera-single
+   c) Billetera compuesto: POST /reservas/pago-billetera-compuesto
 ```
 
 ---
 
-### **2. Flujo de Cotización con Conversión Automática**
+### **2. Flujo de Cotizacion con Conversion Automatica**
 
 ```
-┌─────────────────────────────────────────────┐
-│ 1. Agencia Crea Cotización                 │
-│    POST /cotizaciones/from-disponibilidad   │
-│    - Incluye landing HTML                  │
-│    - Genera token de acceso único (UUID)   │
-│    - Status: PENDIENTE (0)                 │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 2. Cliente Recibe Landing Page             │
-│    GET /cotizaciones/public/:token          │
-│    - Ve detalles de la cotización          │
-│    - Botón: Aceptar / Rechazar             │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 3A. Cliente Acepta Cotización               │
-│    POST /cotizaciones/public/responder/:token│
-│    Body: { respuesta: 'ACEPTAR' }          │
-│    - Status: ACEPTADA (1)                  │
-│    - fechaAprobacion: Date.now()           │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 4. Conversión Automática a Reserva         │
-│    convertirAReservaAutomatica()            │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.1. Buscar Hotel ID por nombre    │ │
-│    │      - Búsqueda exacta o parcial   │ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.2. Construir Layout               │ │
-│    │      - Parsear adults, children_ages│ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.3. Consultar Disponibilidad       │ │
-│    │      - Autocore API                 │ │
-│    │      - Try/Catch: Si falla (500),   │ │
-│    │        continuar sin verificación   │ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.4. Validar Disponibilidad         │ │
-│    │      - Verificar habitaciones       │ │
-│    │      - Verificar precios (±1%)      │ │
-│    │      - Si no disponible: throw error│ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.5. Crear Reserva en Autocore      │ │
-│    │      - POST /v2/bookings/...        │ │
-│    │      - Obtener chatbot_id           │ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.6. Crear Reserva en BD Local      │ │
-│    │      - reservaModel.create({...})   │ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.7. Actualizar Usuario             │ │
-│    │      - user.reservas.push(reserva)  │ │
-│    └─────────────────────────────────────┘ │
-│    ┌─────────────────────────────────────┐ │
-│    │ 4.8. Actualizar Cotización          │ │
-│    │      - status: CONVERTIDA_RESERVA(3)│ │
-│    │      - reservaId: reserva._id       │ │
-│    └─────────────────────────────────────┘ │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 5. Respuesta Exitosa                       │
-│    {                                        │
-│      message: "Reserva creada...",         │
-│      reservaId: "...",                     │
-│      reservaChatbotId: "...",              │
-│      cotizacionId: "..."                   │
-│    }                                        │
-└─────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────┐
-│ 3B. Cliente Rechaza Cotización             │
-│    POST /cotizaciones/public/responder/:token│
-│    Body: { respuesta: 'RECHAZAR', motivo } │
-│    - Status: RECHAZADA (2)                 │
-│    - fechaRechazo: Date.now()              │
-│    - motivoRechazo: string                 │
-└─────────────────────────────────────────────┘
+1. Agencia Crea Cotizacion
+   POST /cotizaciones o POST /cotizaciones/from-disponibilidad
+   - Genera token de acceso unico (UUID)
+   - Genera landing URL y HTML
+   - Status: EN_ESPERA (0)
+    |
+2. Cliente Recibe Landing Page
+   GET /cotizaciones/public/token/:tokenAcceso
+   - Ve detalles de la cotizacion
+   - Boton: Aceptar / Rechazar
+    |
+3A. Cliente Acepta
+    POST /cotizaciones/public/responder/:tokenAcceso
+    Body: { respuesta: 'ACEPTAR' }
+    - Status: ACEPTADA (1)
+    - Inicia conversion automatica a reserva
+    |
+3B. Cliente Rechaza
+    POST /cotizaciones/public/responder/:tokenAcceso
+    Body: { respuesta: 'RECHAZAR', motivo }
+    - Status: RECHAZADA (2)
+    |
+4. Conversion Automatica (si aceptada)
+   - Buscar Hotel ID por nombre (exacta o parcial)
+   - Construir layout
+   - Consultar disponibilidad (Autocore, try/catch)
+   - Validar disponibilidad y precios (variacion < 1%)
+   - Crear reserva en Autocore
+   - Crear reserva en BD local
+   - Actualizar usuario
+   - Actualizar cotizacion -> status: CONVERTIDA_RESERVA (3)
 ```
 
 ---
 
-### **3. Flujo de Generación de PDF**
+### **3. Flujo de Booking Personas**
 
 ```
-┌─────────────────────────────────────────────┐
-│ 1. Solicitar Generación de PDF             │
-│    POST /cotizaciones/pdf                   │
-│    Body: { cotizacionId }                  │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 2. Verificar si ya existe PDF              │
-│    - Si cotizacion.pdfUrl existe →         │
-│      retornar URL directamente             │
-└────────────────┬────────────────────────────┘
-                 │ No existe
-┌────────────────▼────────────────────────────┐
-│ 3. Inyectar CSS para Ocultar Botones       │
-│    removerBotonesDelHTML(landingHtml)       │
-│    - Agrega <style> con display: none      │
-│    - Selectores: button[type="submit"],    │
-│      .btn-aceptar, .btn-rechazar, etc.     │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 4. Generar PDF con Puppeteer               │
-│    - Launch browser headless               │
-│    - page.setContent(htmlModificado)       │
-│    - page.pdf({ format: 'A4', ... })       │
-│    - browser.close()                       │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 5. Subir PDF a Cloudinary                  │
-│    uploadPdfToCloudinary(buffer, path)      │
-│    - Retorna secure_url y public_id        │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 6. Actualizar Cotización                   │
-│    - cotizacion.pdfUrl = secure_url        │
-│    - cotizacion.pdfCloudinaryId = public_id│
-│    - cotizacion.save()                     │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 7. Retornar URL del PDF                    │
-│    return pdfUrl                            │
-└─────────────────────────────────────────────┘
+1. Consultar Disponibilidad
+   POST /booking-personas/disponibilidad
+   Auth: Static Token
+    |
+2. Generar Link de Pago
+   POST /booking-personas/generar-link-pago?hotelId={id}
+   - Crea PaymentPending con status PENDING
+   - Genera link de pago Autocore
+    |
+3. Cliente Paga
+   Webhook: POST /booking-personas/change-status
+   - Actualiza PaymentPending.status -> PAID
+    |
+4. Crear Reserva
+   POST /booking-personas/reservar?hotelId={id}&paymentCode={code}
+   - Verifica que el pago fue completado
+   - Crea reserva en Autocore
+   - Guarda BookingPersona en BD
 ```
 
 ---
 
-### **4. Flujo de Búsqueda de Vuelos (Amadeus)**
+### **4. Flujo de Busqueda de Vuelos (Amadeus)**
 
 ```
-┌─────────────────────────────────────────────┐
-│ 1. Cliente Busca Vuelos                    │
-│    POST /vuelos/search                      │
-│    Body: {                                  │
-│      originLocationCode: 'BOG',            │
-│      destinationLocationCode: 'CTG',       │
-│      departureDate: '2025-12-10',          │
-│      adults: 1,                             │
-│      currencyCode: 'COP'                   │
-│    }                                        │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 2. Autenticación con Amadeus               │
-│    amadeusService.authenticate()            │
-│    - POST /v1/security/oauth2/token        │
-│    - Cachear token hasta expiración        │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 3. Buscar Ofertas de Vuelos                │
-│    amadeusService.searchFlightOffers()      │
-│    - GET /v2/shopping/flight-offers        │
-│    - Parámetros: origen, destino, fecha    │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 4. Enriquecer Datos con Nombres            │
-│    flightEnrichmentService.enrichFlightOffers()│
-│    - Agregar nombres de ciudades           │
-│    - Formatear duración                    │
-│    - Calcular escalas                      │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 5. Retornar Ofertas Enriquecidas           │
-│    return {                                 │
-│      data: [...],                           │
-│      meta: { count, ... },                 │
-│      dictionaries: { ... }                 │
-│    }                                        │
-└─────────────────────────────────────────────┘
+1. Cliente Busca Vuelos
+   POST /vuelos/disponibilidad
+   Body: { originLocationCode, destinationLocationCode, departureDate, adults, ... }
+    |
+2. Autenticacion con Amadeus (OAuth2, token cacheado)
+    |
+3. Buscar Ofertas de Vuelos (GET /v2/shopping/flight-offers)
+    |
+4. Enriquecer Datos con Nombres de Ciudades
+    |
+5. Retornar Ofertas Enriquecidas
 ```
 
 ---
 
-### **5. Flujo de Bot de Reservas Pendientes**
+### **5. Flujo de Vuelos MaarLab**
 
 ```
-┌─────────────────────────────────────────────┐
-│ 1. Cron Job se Ejecuta (Programado)        │
-│    @Cron('0 9 * * *')  // Diario a las 9am │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 2. Buscar Reservas Pendientes de Pago      │
-│    reservaModel.find({ status: 'pending' }) │
-│    - Filtrar por fechas límite             │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 3. Generar Reporte Excel                   │
-│    - ExcelJS: crear workbook               │
-│    - Agregar columnas: Hotel, Cliente,     │
-│      Check-in, Total, Días Restantes       │
-│    - Estilizar con colores                 │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 4. Enviar Email con Adjunto                │
-│    sendEmailService.sendEmail({            │
-│      to: 'admin@agencia.com',              │
-│      subject: 'Reservas Pendientes',       │
-│      attachments: [excelBuffer]            │
-│    })                                       │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│ 5. Log de Éxito                            │
-│    logger.log('Reporte enviado: X reservas')│
-└─────────────────────────────────────────────┘
+1. Buscar Disponibilidad
+   POST /vuelos/maarlab/disponibilidad
+   Auth: JWT (Bearer token de agencia.maarlabApiKey)
+    |
+2. Crear Paquete
+   POST /vuelos/maarlab/paquete
+    |
+3. Agregar Extras/Equipaje
+   POST /vuelos/maarlab/extras
+   GET /vuelos/maarlab/equipaje
+    |
+4. Reservar Paquete
+   POST /vuelos/maarlab/reservar
+    |
+5. Obtener Token de Pago
+   GET /vuelos/maarlab/token-pago
+    |
+O: Proceso Completo
+   POST /vuelos/maarlab/search-engine/complete-process
+   POST /vuelos/maarlab/travel-agency/complete-process
+   POST /vuelos/maarlab/v1/travel-agency/complete-process
 ```
 
 ---
 
-## 🔧 Variables de Entorno
+### **6. Flujo de Bot de Reservas Pendientes**
+
+```
+1. Cron Job (diario a las 8:00 AM) o ejecucion manual
+   POST /bot-reservas-pendientes/ejecutar-manualmente (superAdmin)
+    |
+2. Buscar Reservas Pendientes de Pago
+   - Filtrar por fechas limite y estados
+    |
+3. Generar Reporte Excel (ExcelJS)
+    |
+4. Enviar Email con Adjunto
+    |
+5. Log de exito
+```
+
+---
+
+## Variables de Entorno
 
 ### **Archivo `.env` Requerido**
 
 ```env
-# ============================================
 # SERVER
-# ============================================
 PORT=3000
 
-# ============================================
 # DATABASE
-# ============================================
 MONGO_URL=mongodb://localhost:27017/agencias
 
-# ============================================
 # JWT AUTHENTICATION
-# ============================================
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_SECRET=your-super-secret-jwt-key
 
-# ============================================
 # COBRE (Pagos)
-# ============================================
 COBRE_API_URL=https://api.cobredigital.com
 COBRE_USER_ID=your-cobre-user-id
 COBRE_SECRET=your-cobre-secret
 COBRE_AUTH_STRING=your-auth-string
 COBRE_API_KEY=your-cobre-api-key
 
-# ============================================
 # CLOUDINARY (Archivos)
-# ============================================
 CLOUDINARY_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 
-# ============================================
 # EMAIL (SendGrid)
-# ============================================
 SENDGRID_API_KEY=SG.your-sendgrid-api-key
+
+# EMAIL (Nodemailer)
 SENDER_EMAIL=noreply@youragency.com
 EMAIL_APP_PASSWORD=your-email-app-password
 
-# ============================================
-# AUTOCORE (PMS Hotelero) - PRODUCCIÓN
-# ============================================
+# GOOGLE GMAIL API
+GOOGLE_GMAIL_API_KEY=your-gmail-access-token
+GOOGLE_GMAIL_URL=https://gmail.googleapis.com/gmail/v1/users/me/messages/send
+GOOGLE_GMAIL_CLIENT_ID=your-client-id
+GOOGLE_GMAIL_CLIENT_SECRET=your-client-secret
+GOOGLE_GMAIL_REFRESH_TOKEN=your-refresh-token
+
+# AUTOCORE (PMS Hotelero) - PRODUCCION
 AUTOCORE_URL=https://api.autocore.com
 AUTOCORE_ACCESS_KEY=your-autocore-access-key
 AUTOCORE_SECRET_KEY=your-autocore-secret-key
 
-# ============================================
-# AUTOCORE (PMS Hotelero) - DESARROLLO
-# ============================================
+# AUTOCORE - DESARROLLO (opcionales)
 AUTOCORE_URL_DEV=https://dev-api.autocore.com
 AUTOCORE_ACCESS_KEY_DEV=your-dev-access-key
 AUTOCORE_SECRET_KEY_DEV=your-dev-secret-key
 
-# ============================================
 # MY TOOL (Interno)
-# ============================================
 MY_TOOL_EMAIL=admin@mytool.com
 MY_TOOL_CLAVE=your-mytool-password
 
@@ -1278,149 +1325,245 @@ API_WINDSOR=https://api.hotel-windsor.com
 API_MARINA=https://api.hotel-marina.com
 API_AXIS=https://api.hotel-axis.com
 
-# ============================================
 # AMADEUS (Vuelos)
-# ============================================
 AMADEUS_API_KEY=your-amadeus-api-key
 AMADEUS_API_SECRET=your-amadeus-api-secret
 AMADEUS_BASE_URL=https://api.amadeus.com
+
+# BOOKING PERSONAS
+BOOKING_PERSONAS_TOKEN=your-static-token
+
+# MAARLAB / OCEANFLIGHTS
+MAARLAB_BASE_URL=https://api.maarlab.com
+MAARLAB_AUTH_TOKEN=                  # Legado, no usar
 ```
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### **Base URL**
 ```
-http://localhost:3000/agencias/v1
+http://localhost:3000/agencias/v1/
 ```
 
-### **Autenticación**
-
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| POST | `/auth/register` | Registrar usuario | ❌ |
-| POST | `/auth/login` | Iniciar sesión | ❌ |
-| POST | `/auth/validate-otp` | Validar código OTP | ❌ |
-| POST | `/auth/refresh-token` | Renovar token JWT | ❌ |
-| GET | `/auth/check-status` | Verificar sesión activa | ✅ JWT |
-| POST | `/auth/request-password-change` | Solicitar cambio de contraseña | ❌ |
-| POST | `/auth/new-password` | Establecer nueva contraseña | ❌ |
+### **Swagger/OpenAPI**
+```
+http://localhost:3000/agencias/v1/api-docs
+```
 
 ---
 
-### **Reservas**
+### **Autenticacion** (`/auth`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/reservas/disponibilidad` | Consultar disponibilidad | ✅ JWT |
-| POST | `/reservas` | Crear reserva | ✅ JWT |
-| GET | `/reservas` | Listar reservas del usuario | ✅ JWT |
-| GET | `/reservas/:id` | Obtener reserva por ID | ✅ JWT |
-| PATCH | `/reservas/:id` | Actualizar reserva | ✅ JWT |
-| DELETE | `/reservas/:id` | Cancelar reserva | ✅ JWT |
-| POST | `/reservas/:id/link-pago` | Generar link de pago | ✅ JWT |
-| POST | `/reservas/:id/pago-billetera` | Pagar con billetera | ✅ JWT |
+| POST | `/auth/sign-up/:agenciaId` | Crear usuario asociado a agencia | No (throttle: 3/min) |
+| POST | `/auth/register-user` | Registrar usuario en agencia | JWT (admin, superAdmin) |
+| POST | `/auth/sign-in` | Iniciar sesion | No (throttle: 5/min) |
+| POST | `/auth/validar-token` | Validar token JWT completo | No |
+| POST | `/auth/validate-access-token` | Validar access token | No |
+| POST | `/auth/refresh-token` | Renovar token JWT | No (throttle: 10/min) |
+| POST | `/auth/validate-otp` | Validar codigo OTP | No (throttle: 5/min) |
+| POST | `/auth/request-password-change` | Solicitar cambio de contrasena | No (throttle: 3/min) |
+| PATCH | `/auth/new-credentials` | Cambiar contrasena | JWT |
+| PATCH | `/auth/switch-activation-status/:userId` | Activar/desactivar usuario | JWT (admin, superAdmin) |
+| GET | `/auth/getAllUsers` | Listar todos los usuarios | JWT (superAdmin) |
+| PATCH | `/auth/politicas-agencia` | Actualizar politicas de agencia | JWT |
 
 ---
 
-### **Cotizaciones (Privadas)**
+### **Reservas** (`/reservas`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/cotizaciones` | Crear cotización manual | ✅ JWT |
-| POST | `/cotizaciones/from-disponibilidad` | Crear desde disponibilidad | ✅ JWT |
-| GET | `/cotizaciones` | Listar cotizaciones | ✅ JWT |
-| GET | `/cotizaciones/:id` | Obtener cotización por ID | ✅ JWT |
-| PATCH | `/cotizaciones/:id` | Actualizar cotización | ✅ JWT |
-| DELETE | `/cotizaciones/:id` | Eliminar cotización | ✅ JWT |
-| POST | `/cotizaciones/pdf` | Generar PDF | ✅ JWT |
-| POST | `/cotizaciones/convertir-reserva/:id` | Convertir a reserva (manual) | ✅ JWT |
+| POST | `/reservas/disponibilidad` | Consultar disponibilidad | JWT |
+| POST | `/reservas/disponibilidad-debug` | Disponibilidad con debug | JWT |
+| POST | `/reservas/reservar?hotelId={id}` | Crear reserva | JWT |
+| PUT | `/reservas/editar-reserva/:reservaId` | Editar reserva | JWT |
+| DELETE | `/reservas/cancelar-reserva` | Cancelar reserva | JWT |
+| POST | `/reservas/change-status` | Webhook cambio estado pago | No |
+| GET | `/reservas/reservas-by-user` | Reservas del usuario | JWT |
+| GET | `/reservas/reservas-by-agencia` | Reservas de la agencia | JWT (admin) |
+| POST | `/reservas/generate-link` | Generar link de pago | JWT |
+| POST | `/reservas/pago-billetera-single` | Pagar con billetera | JWT |
+| POST | `/reservas/pago-billetera-compuesto` | Pago compuesto billetera | JWT |
+| GET | `/reservas/buscar/chatbot-id?reservaChatbotId=` | Buscar por chatbot ID | JWT |
+| GET | `/reservas/buscar/agente?nombre=` | Buscar por nombre agente | JWT |
+| GET | `/reservas/buscar/agencia?nombre=` | Buscar por nombre agencia | JWT |
+| GET | `/reservas/buscar/huesped?nombre=` | Buscar por nombre huesped | JWT |
+| GET | `/reservas/buscar/estado?status=` | Buscar por estado | JWT |
+| GET | `/reservas?page=&all=&hotel=&nombreAgencia=&fechaDesde=&fechaHasta=` | Todas las reservas | JWT (superAdmin) |
+| DELETE | `/reservas/cancelar-reserva-admin/:reservaId` | Cancelar reserva (admin) | JWT (superAdmin) |
+| PUT | `/reservas/status/:reservaId` | Actualizar status manual | JWT (superAdmin) |
+| PUT | `/reservas/fechas-pago/:reservaId` | Actualizar fechas de pago | JWT (admin, superAdmin) |
 
 ---
 
-### **Cotizaciones (Públicas)**
+### **Cotizaciones Privadas** (`/cotizaciones`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| GET | `/cotizaciones-public/:token` | Ver cotización por token | ❌ |
-| POST | `/cotizaciones-public/responder/:token` | Aceptar/Rechazar cotización | ❌ |
+| POST | `/cotizaciones` | Crear cotizacion | JWT |
+| POST | `/cotizaciones/from-disponibilidad` | Crear desde disponibilidad | JWT |
+| GET | `/cotizaciones?page=&limit=` | Listar cotizaciones | JWT |
+| GET | `/cotizaciones/estadisticas` | Estadisticas | JWT |
+| GET | `/cotizaciones/debug-user` | Debug usuario | JWT |
+| GET | `/cotizaciones/test-disponibilidad-directa` | Test disponibilidad | JWT |
+| GET | `/cotizaciones/:id` | Obtener por ID | JWT |
+| GET | `/cotizaciones/token/:tokenAcceso` | Obtener por token | JWT |
+| POST | `/cotizaciones/responder/:tokenAcceso` | Responder cotizacion | JWT |
+| POST | `/cotizaciones/pdf` | Generar PDF | JWT |
+| POST | `/cotizaciones/convertir-reserva/:id` | Convertir a reserva | JWT |
+| POST | `/cotizaciones/test-validation` | Test validacion DTO | JWT |
+| PATCH | `/cotizaciones/:id` | Actualizar | JWT |
+| DELETE | `/cotizaciones/:id` | Eliminar | JWT |
 
 ---
 
-### **Vuelos**
+### **Cotizaciones Publicas** (`/cotizaciones/public`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/vuelos/search` | Buscar vuelos | ✅ JWT |
-| GET | `/vuelos/locations` | Buscar aeropuertos/ciudades | ✅ JWT |
-| GET | `/vuelos/airports/:iata` | Buscar aeropuerto por IATA | ✅ JWT |
-| POST | `/vuelos/order` | Crear orden de vuelo | ✅ JWT |
-| GET | `/vuelos/test-auth` | Probar autenticación Amadeus | ✅ JWT |
+| GET | `/cotizaciones/public/token/:tokenAcceso` | Ver cotizacion por token | No |
+| GET | `/cotizaciones/public/:id` | Ver cotizacion por ID | No |
+| POST | `/cotizaciones/public/responder/:tokenAcceso` | Aceptar/Rechazar | No |
 
 ---
 
-### **Agencias**
+### **Vuelos - Amadeus** (`/vuelos`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/agencias` | Crear agencia | ✅ JWT (Admin) |
-| GET | `/agencias` | Listar agencias | ✅ JWT (Admin) |
-| GET | `/agencias/:id` | Obtener agencia por ID | ✅ JWT |
-| PATCH | `/agencias/:id` | Actualizar agencia | ✅ JWT (Admin) |
-| DELETE | `/agencias/:id` | Desactivar agencia | ✅ JWT (SuperAdmin) |
-| POST | `/agencias/:id/recargar-billetera` | Recargar billetera | ✅ JWT |
-| GET | `/agencias/:id/saldo` | Obtener saldo | ✅ JWT |
+| GET | `/vuelos/test` | Verificar modulo | No |
+| GET | `/vuelos/test-auth` | Probar auth Amadeus | No |
+| GET | `/vuelos/ubicaciones` | Buscar ubicaciones | No |
+| GET | `/vuelos/aeropuertos/iata/:iataCode` | Buscar por IATA | No |
+| GET | `/vuelos/ciudades` | Buscar ciudades | No |
+| GET | `/vuelos/ciudades/buscar` | Buscar ciudades avanzado | No |
+| POST | `/vuelos/disponibilidad-test` | Test disponibilidad | No |
+| POST | `/vuelos/disponibilidad` | Buscar vuelos | No |
+| POST | `/vuelos/reservar` | Crear orden de vuelo | No |
+| GET | `/vuelos/reservas/:flightOrderId` | Consultar orden | No |
+| DELETE | `/vuelos/reservas/:flightOrderId` | Cancelar orden | No |
 
 ---
 
-### **Integraciones (API Key)**
+### **Vuelos - MaarLab** (`/vuelos/maarlab`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/integrations` | Crear integración | ✅ JWT (SuperAdmin) |
-| POST | `/integrations/disponibilidad` | Consultar disponibilidad | ✅ API Key |
+| POST | `/vuelos/maarlab/disponibilidad` | Buscar disponibilidad | JWT |
+| POST | `/vuelos/maarlab/paquete` | Crear paquete | JWT |
+| GET | `/vuelos/maarlab/equipaje` | Consultar equipaje | JWT |
+| POST | `/vuelos/maarlab/extras` | Agregar extras | JWT |
+| DELETE | `/vuelos/maarlab/extras` | Eliminar extras | JWT |
+| POST | `/vuelos/maarlab/reservar` | Reservar paquete | JWT |
+| GET | `/vuelos/maarlab/token-pago` | Token de pago | JWT |
+| GET | `/vuelos/maarlab/paquete` | Consultar paquete | JWT |
+| GET | `/vuelos/maarlab/contrato-atol` | Contrato ATOL | JWT |
+| POST | `/vuelos/maarlab/search-engine/complete-process` | Proceso completo SE | JWT |
+| POST | `/vuelos/maarlab/travel-agency/complete-process` | Proceso completo TA | JWT |
+| POST | `/vuelos/maarlab/v1/travel-agency/complete-process` | Proceso completo TA v1 | JWT |
+| GET | `/vuelos/maarlab/search-engine/mapping-external-id/:id` | Mapping ID externo | JWT |
 
 ---
 
-### **Cloudinary**
+### **Agencias** (`/agencias`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/cloudinary/upload` | Subir imagen | ✅ JWT |
-| DELETE | `/cloudinary/:publicId` | Eliminar recurso | ✅ JWT |
+| POST | `/agencias/create` | Crear agencia | No |
+| POST | `/agencias/recharge-wallet` | Recargar billetera | JWT |
+| GET | `/agencias/obtener-saldo` | Obtener saldo | JWT |
+| GET | `/agencias?page=&limit=` | Listar agencias | JWT (superAdmin) |
+| GET | `/agencias/getByProperty?search=` | Buscar por propiedad | JWT (superAdmin) |
+| PATCH | `/agencias/update/:id` | Actualizar agencia | JWT (superAdmin) |
+| PATCH | `/agencias/switch-activation-agencia/:agenciaId` | Activar/desactivar | JWT (superAdmin) |
+| GET | `/agencias/agencies-by-term?search=` | Agencias por termino | No |
+| GET | `/agencias/agencias-con-reserva` | Agencias con reserva | JWT (superAdmin) |
+| GET | `/agencias/:id/politicas` | Politicas de agencia | JWT |
+| GET | `/agencias/:agenciaId/nombre` | Nombre de agencia | JWT |
 
 ---
 
-### **Notificaciones**
+### **Booking Personas** (`/booking-personas`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/notificaciones/send` | Enviar notificación manual | ✅ JWT (Admin) |
-| GET | `/notificaciones/usuario/:userId` | Listar notificaciones | ✅ JWT |
+| POST | `/booking-personas/disponibilidad` | Consultar disponibilidad | Static Token |
+| POST | `/booking-personas/generar-link-pago?hotelId=` | Generar link de pago | Static Token |
+| POST | `/booking-personas/reservar?hotelId=&paymentCode=` | Crear reserva | Static Token |
+| POST | `/booking-personas/change-status` | Webhook estado de pago | No |
 
 ---
 
-### **Eventos**
+### **Integraciones** (`/integrations`)
 
-| Método | Endpoint | Descripción | Auth |
+| Metodo | Endpoint | Descripcion | Auth |
 |--------|----------|-------------|------|
-| POST | `/eventos` | Crear evento | ✅ JWT |
-| GET | `/eventos` | Listar eventos | ✅ JWT |
-| GET | `/eventos/:id` | Obtener evento | ✅ JWT |
-| PATCH | `/eventos/:id` | Actualizar evento | ✅ JWT |
-| DELETE | `/eventos/:id` | Eliminar evento | ✅ JWT |
+| POST | `/integrations/create` | Crear integracion | No |
+| POST | `/integrations/disponibilidad` | Consultar disponibilidad | API Key |
 
 ---
 
-## 🚀 Instalación y Configuración
+### **Bot Reservas Pendientes** (`/bot-reservas-pendientes`)
+
+| Metodo | Endpoint | Descripcion | Auth |
+|--------|----------|-------------|------|
+| POST | `/bot-reservas-pendientes/ejecutar-manualmente` | Ejecutar bot | JWT (superAdmin) |
+| POST | `/bot-reservas-pendientes/estado` | Estado del bot | JWT (superAdmin) |
+| POST | `/bot-reservas-pendientes/diagnostico` | Diagnostico | JWT (superAdmin) |
+
+---
+
+### **Files** (`/files`)
+
+| Metodo | Endpoint | Descripcion | Auth |
+|--------|----------|-------------|------|
+| POST | `/files/user-profile` | Subir imagen de perfil | JWT |
+
+---
+
+### **My Tool** (`/my-tool`)
+
+| Metodo | Endpoint | Descripcion | Auth |
+|--------|----------|-------------|------|
+| GET | `/my-tool/reservas-info` | Info de reservas | No |
+
+---
+
+### **Notificaciones** (`/notificaciones`)
+
+| Metodo | Endpoint | Descripcion | Auth |
+|--------|----------|-------------|------|
+| POST | `/notificaciones/reservas` | Notificacion de pago | No |
+
+---
+
+### **Eventos** (`/eventos`)
+
+| Metodo | Endpoint | Descripcion | Auth |
+|--------|----------|-------------|------|
+| POST | `/eventos/create` | Crear reserva de evento | JWT |
+| GET | `/eventos` | Listar eventos | JWT (superAdmin, eventosSuperAdmin) |
+
+---
+
+### **Cloudinary** (`/cloudinary`)
+
+El controlador esta vacio. La logica de Cloudinary se usa internamente desde otros servicios (cotizaciones, files).
+
+---
+
+## Instalacion y Configuracion
 
 ### **Requisitos Previos**
 - Node.js v20+
 - MongoDB v6+
 - npm v9+
 
-### **Instalación**
+### **Instalacion**
 
 ```bash
 # 1. Clonar repositorio
@@ -1431,269 +1574,137 @@ cd agencias-api
 npm install
 
 # 3. Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus credenciales
+# Crear archivo .env con las variables listadas arriba
 
-# 4. Iniciar MongoDB (si es local)
-mongod --dbpath /path/to/data
-
-# 5. Compilar proyecto
+# 4. Compilar proyecto
 npm run build
 
-# 6. Iniciar servidor
+# 5. Iniciar servidor
 npm run start:dev  # Desarrollo con hot-reload
-npm run start:prod # Producción
+npm run start:prod # Produccion
 ```
 
-### **Verificación de Instalación**
+### **Verificacion de Instalacion**
 
 ```bash
-# Verificar que el servidor está corriendo
-curl http://localhost:3000/agencias/v1/auth/check-status
+# Verificar que el servidor esta corriendo
+curl http://localhost:3000/agencias/v1/vuelos/test
+
+# Acceder a Swagger
+# http://localhost:3000/agencias/v1/api-docs
 ```
 
 ---
 
-## 📊 Manejo de Errores
+## Manejo de Errores
 
-### **Errores Comunes**
+### **ErrorManager (Centralizado)**
+Cada servicio usa `ErrorManager` para manejar y propagar errores de forma consistente.
 
-#### **1. Error 500 de Autocore durante disponibilidad**
-**Problema:** El API de Autocore retorna error 500.
+### **Vuelos: ErrorHandlerService + Interceptor + Filter**
+El modulo de vuelos tiene un sistema propio de manejo de errores con interceptor y filtro que estandariza las respuestas de error.
 
-**Solución Implementada:**
-```typescript
-try {
-  disponibilidadResponse = await httpCustomService.getDisponibilidadAutocore(...);
-  disponibilidadVerificada = true;
-} catch (error) {
-  logger.warn('⚠️ Autocore no disponible. Continuando sin verificación...');
-  disponibilidadResponse = null;
-  disponibilidadVerificada = false;
-}
-```
+### **Error 500 de Autocore durante disponibilidad**
+El sistema implementa `try-catch` para permitir la creacion de reserva sin verificacion cuando Autocore falla. Se registra log de advertencia y continua.
 
-**Resultado:** El sistema continúa creando la reserva sin verificación de disponibilidad cuando Autocore falla.
+### **Hotel no encontrado**
+Busqueda flexible por nombre: primero exacta, luego parcial (includes).
+
+### **Variacion de precio en conversion de cotizacion**
+Se bloquea la conversion y se notifica si hay una variacion >= 1% en el precio.
 
 ---
 
-#### **2. Hotel no encontrado en configuración**
-**Problema:** El nombre del hotel en la cotización no coincide exactamente con `autocoreConstants.ts`.
-
-**Solución Implementada:**
-```typescript
-private encontrarHotelIdPorNombre(nombreHotel: string): string | null {
-  // Búsqueda exacta
-  let hotelEncontrado = hoteles.find(
-    ([_, data]) => data.name.toLowerCase() === nombreHotel.toLowerCase()
-  );
-  
-  // Si no encuentra, búsqueda parcial
-  if (!hotelEncontrado) {
-    hotelEncontrado = hoteles.find(([_, data]) => {
-      const hotelNameLower = data.name.toLowerCase();
-      const searchNameLower = nombreHotel.toLowerCase();
-      return (
-        hotelNameLower.includes(searchNameLower) ||
-        searchNameLower.includes(hotelNameLower)
-      );
-    });
-  }
-  
-  return hotelEncontrado ? hotelEncontrado[0] : null;
-}
-```
-
-**Resultado:** Búsqueda flexible que permite coincidencias parciales.
-
----
-
-#### **3. Variación de precio en conversión de cotización**
-**Problema:** El precio cambió entre la generación de la cotización y la aceptación.
-
-**Solución Implementada:**
-```typescript
-const precioOriginal = room.unitaryPrice;
-const precioActual = habitacionEncontrada.rates[0].price;
-const diferencia = Math.abs(precioActual - precioOriginal);
-const porcentajeDiferencia = (diferencia / precioOriginal) * 100;
-
-if (porcentajeDiferencia >= 1) {
-  variacionesPrecio.push({
-    habitacion: room.nombreHabitacion,
-    precioOriginal,
-    precioActual,
-    diferencia: precioActual - precioOriginal,
-    porcentaje: porcentajeDiferencia.toFixed(2),
-  });
-}
-```
-
-**Resultado:** Se bloquea la conversión y se notifica al cliente si hay una variación ≥ 1%.
-
----
-
-## 🔒 Seguridad
+## Seguridad
 
 ### **Medidas Implementadas**
 
-1. **Hashing de Contraseñas:** bcrypt con 10 rounds
+1. **Hashing de Contrasenas:** bcrypt con 10 rounds
 2. **JWT:** Tokens firmados con secret key
-3. **Refresh Tokens:** UUID v4 con expiración
-4. **Validación de DTOs:** class-validator + class-transformer
-5. **Guards de Roles:** Protección de endpoints por rol
+3. **Refresh Tokens:** UUID v4 con expiracion
+4. **Validacion de DTOs:** class-validator + class-transformer con whitelist y forbidNonWhitelisted
+5. **Guards de Roles:** Proteccion de endpoints por rol
 6. **API Keys Hasheadas:** bcrypt para integrations
-7. **CORS Configurado:** Solo orígenes permitidos
-8. **Sanitización de Inputs:** whitelist + forbidNonWhitelisted
-9. **Rate Limiting:** (Recomendado implementar)
-10. **HTTPS:** (Recomendado en producción)
+7. **Static Token Auth:** Para booking-personas
+8. **CORS Configurado:** origin: true, credentials: true
+9. **Rate Limiting Global:** ThrottlerModule con 3 niveles:
+   - Short: 100 req / 60s
+   - Medium: 500 req / 10min
+   - Long: 2000 req / 1h
+10. **Rate Limiting por Endpoint:** Throttle personalizado en auth (login, registro, OTP)
+11. **Sanitizacion de Inputs:** whitelist + forbidNonWhitelisted + transform
+12. **Swagger con Auth:** Bearer auth configurable en Swagger UI
 
 ---
 
-## 📈 Escalabilidad y Rendimiento
+## Logging
 
-### **Optimizaciones Implementadas**
+El sistema usa **Pino** como logger estructurado (via `nestjs-pino`):
 
-1. **Conexión Persistente a MongoDB:** Mongoose pooling
-2. **Cacheo de Tokens OAuth:** Amadeus token cacheado
-3. **Índices en MongoDB:**
-   - `User.email` (unique)
-   - `Agencia.slug` (unique)
-   - `Agencia.documentInfo.document` (unique)
-4. **Lazy Loading de Módulos:** Imports dinámicos
-5. **Puppeteer Headless:** Generación de PDF sin GUI
-
-### **Recomendaciones para Producción**
-
-1. **Load Balancer:** Nginx o AWS ELB
-2. **Clusters de Node.js:** PM2 para multi-core
-3. **CDN para Cloudinary:** Servir assets desde CDN
-4. **Redis para Sesiones:** Cacheo de sesiones JWT
-5. **MongoDB Atlas:** Cluster replicado
-6. **Monitoring:** Sentry, Datadog, New Relic
-7. **CI/CD:** GitHub Actions, GitLab CI
-8. **Contenedores:** Docker + Docker Compose
+- **Desarrollo:** pino-pretty con colores y formato legible
+- **Produccion:** JSON estructurado (nivel: info)
+- **Serializers personalizados:** para req, res, err
+- **Auto-logging:** ignora health checks y favicon
+- **Contexto HTTP** automatico en cada request
 
 ---
 
-## 📝 Scripts NPM
+## Scripts NPM
 
 ```bash
 # Desarrollo
 npm run start:dev       # Inicia con hot-reload
+npm run start:debug     # Inicia con debugger
 
-# Producción
+# Produccion
 npm run build           # Compila TypeScript
-npm run start:prod      # Inicia versión compilada
+npm run start:prod      # Inicia version compilada
 
 # Testing
 npm run test            # Unit tests
-npm run test:e2e        # E2E tests
+npm run test:watch      # Tests en modo watch
 npm run test:cov        # Coverage report
+npm run test:e2e        # E2E tests
 
 # Linting y Formateo
-npm run lint            # ESLint
+npm run lint            # ESLint con fix
 npm run format          # Prettier
+
+# Migraciones / Scripts
+npm run migrate:maarlab-api-key       # Migrar API keys MaarLab
+npm run script:register-agencias-maarlab  # Registrar agencias en MaarLab
 ```
 
 ---
 
-## 🐛 Debugging
+## Contacto y Soporte
 
-### **Logs del Sistema**
-
-El sistema utiliza el Logger de NestJS:
-
-```typescript
-private readonly logger = new Logger(ServiceName.name);
-
-this.logger.log('✅ Operación exitosa');
-this.logger.warn('⚠️ Advertencia');
-this.logger.error('❌ Error crítico', error);
-```
-
-### **Niveles de Log Configurados**
-
-```typescript
-logger: ['log', 'error', 'warn']  // En main.ts
-```
-
-### **Debugging con VS Code**
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug NestJS",
-      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
-      "args": ["${workspaceFolder}/src/main.ts"],
-      "env": {
-        "NODE_ENV": "development"
-      },
-      "sourceMaps": true,
-      "cwd": "${workspaceFolder}",
-      "protocol": "inspector"
-    }
-  ]
-}
-```
-
----
-
-## 📚 Recursos Adicionales
-
-### **Documentación de Dependencias**
-
-- [NestJS](https://docs.nestjs.com)
-- [Mongoose](https://mongoosejs.com/docs/)
-- [Puppeteer](https://pptr.dev/)
-- [Amadeus API](https://developers.amadeus.com/)
-- [SendGrid](https://docs.sendgrid.com/)
-- [Cloudinary](https://cloudinary.com/documentation)
-
-### **Scripts Útiles**
-
-```bash
-# PowerShell Scripts (Windows)
-.\ejecutar-bot.ps1         # Ejecutar bot de reportes
-.\validar-token.ps1        # Validar token JWT
-```
-
----
-
-## 📞 Contacto y Soporte
-
-Para preguntas técnicas o soporte, contactar a:
+Para preguntas tecnicas o soporte, contactar a:
 - **Email:** innovacion@gehsuites.com
-- **Repositorio:** (URL del repositorio)
 
 ---
 
-## 📅 Changelog
+## Changelog
 
-### **v0.0.1** (Fecha actual)
-- ✅ Sistema de autenticación JWT completo
-- ✅ Módulo de reservas con Autocore
-- ✅ Módulo de cotizaciones con conversión automática
-- ✅ Generación de PDFs con Puppeteer
-- ✅ Integración con Amadeus para vuelos
-- ✅ Sistema de pagos con Cobre
-- ✅ Bot automatizado de reportes
-- ✅ Gestión multi-agencia
-- ✅ Upload de archivos a Cloudinary
-- ✅ Sistema de notificaciones por email
+### **v0.0.1**
+- Sistema de autenticacion JWT completo con OTP
+- Modulo de reservas con Autocore
+- Modulo de cotizaciones con conversion automatica
+- Generacion de PDFs con Puppeteer
+- Integracion con Amadeus para vuelos
+- Integracion con MaarLab/OceanFlights para vuelos
+- Sistema de pagos con Cobre
+- Bot automatizado de reportes
+- Gestion multi-agencia
+- Upload de archivos a Cloudinary
+- Sistema de notificaciones (SendGrid + Nodemailer + Gmail API)
+- Booking personas (reservas directas sin agencia)
+- Swagger/OpenAPI documentacion integrada
+- Rate limiting global con Throttler
+- Logging estructurado con Pino
+- Gestion de eventos/convenciones
 
 ---
 
-## 📄 Licencia
-
-**UNLICENSED** - Código propietario
-
----
-
-**Última actualización:** Octubre 28, 2025
-**Versión del documento:** 1.0.0
-
+**Ultima actualizacion:** Abril 15, 2026
+**Version del documento:** 2.0.0

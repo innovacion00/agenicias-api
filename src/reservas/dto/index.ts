@@ -7,3 +7,4 @@ export * from './pago-reserva-billetera.dto';
 export * from './update-fechas-pago.dto';
 export * from './update-reserva-status.dto';
 export * from './update-reserva.dto';
+export * from './create-reserva-mytool.dto';

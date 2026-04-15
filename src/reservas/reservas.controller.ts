@@ -32,9 +32,11 @@ import {
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { ParseCheckinCheckoutPipe, ParseHotelIdPipe } from './pipes';
+import { ParseCheckinCheckoutPipe, ParseHotelIdPipe, ParseHotelSlugPipe } from './pipes';
 import { ValidRoles } from 'src/auth/interfaces';
 import { ValidPaymentStatus } from './interfaces';
+import { CreateReservaMyToolDto, CancelReservaMyToolDto, SearchReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import type { MyToolBookingResponse } from './services/my-tool-booking.service';
 
 @ApiTags('reservas')
 @Controller('reservas')
@@ -413,8 +415,81 @@ export class ReservasController {
     );
   }
 
-  // @Post('prueba')
-  // prueba() {
-  //   return this.reservasService.prueba();
-  // }
+  // #region MyTool Booking
+
+  @Post('mytool/:hotelSlug/:checkin/:nights')
+  @Auth()
+  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore' })
+  @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
+  @ApiBearerAuth()
+  createReservaMyTool(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+    @Param('checkin') checkin: string,
+    @Param('nights') nights: string,
+    @Body() dto: CreateReservaMyToolDto,
+    @GetUser() user: User,
+  ) {
+    const nightsNum = parseInt(nights, 10);
+    if (isNaN(nightsNum) || nightsNum < 1 || nightsNum > 60) {
+      throw new BadRequestException('nights debe ser un numero entre 1 y 60');
+    }
+
+    const checkinRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!checkinRegex.test(checkin)) {
+      throw new BadRequestException(
+        'checkin debe estar en formato YYYY-MM-DD',
+      );
+    }
+
+    const checkinDate = new Date(checkin + 'T12:00:00');
+    if (isNaN(checkinDate.getTime())) {
+      throw new BadRequestException('checkin no es una fecha valida');
+    }
+
+    return this.reservasService.createReservaMyTool(
+      dto,
+      hotelSlug,
+      checkin,
+      nightsNum,
+      user._id.toString(),
+    );
+  }
+
+  @Get('mytool/:hotelSlug/mappings')
+  @Auth()
+  @ApiOperation({ summary: 'Obtener mappings de un hotel desde MyTool' })
+  @ApiBearerAuth()
+  getMyToolMappings(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+  ) {
+    return this.reservasService.getMyToolMappings(hotelSlug);
+  }
+
+  @Post('mytool/cancelar')
+  @Auth()
+  @ApiOperation({ summary: 'Cancelar reserva (detecta provider automaticamente)' })
+  @ApiBearerAuth()
+  cancelReservaMyTool(
+    @Body() dto: CancelReservaMyToolDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.cancelarReservaMyTool(dto.reservaId, user);
+  }
+
+  @Get('mytool/:hotelSlug/buscar')
+  @Auth()
+  @ApiOperation({ summary: 'Buscar reserva en MyTool por localizador y nombre' })
+  @ApiBearerAuth()
+  searchReservaMyTool(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+    @Query() dto: SearchReservaMyToolDto,
+  ): Promise<MyToolBookingResponse> {
+    return this.reservasService.searchReservaMyTool(
+      hotelSlug,
+      dto.localizador,
+      dto.nombre,
+    );
+  }
+
+  // #endregion MyTool Booking
 }
