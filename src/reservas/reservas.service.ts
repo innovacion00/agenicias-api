@@ -1974,8 +1974,6 @@ export class ReservasService {
   async createReservaMyTool(
     dto: CreateReservaMyToolDto,
     hotelSlug: string,
-    checkin: string,
-    nights: number,
     userId: string,
   ) {
     try {
@@ -1996,6 +1994,10 @@ export class ReservasService {
         throw new BadRequestException('Información de agencia no disponible');
       }
 
+      const checkin = dto.checkIn;
+      const checkout = dto.checkOut;
+      const nights = this.calculateNights(checkin, checkout);
+
       const isReservaGrupo = dto.rooms.length >= 10;
       const fechasLimite = calcularFechaLimitePago(
         checkin,
@@ -2004,29 +2006,31 @@ export class ReservasService {
       );
       const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
-      const checkout = this.calculateCheckoutDate(checkin, nights);
-
-      let reservaChatbotId: string;
+      let reservaChatbotId: string = dto.bookData.localizador;
       let reservaProvider: 'mytool' | 'autocore' = 'mytool';
       let usedFallback = false;
 
-      // Intentar crear via MyTool
-      try {
-        const mappings = await this.myToolBookingService.getMappings(hotelSlug);
-        const usuario = userInfo.fullName || userInfo.email;
+      // Construir body exacto para MyTool (sin campos internos)
+      const myToolBody: Record<string, any> = {
+        hotelId: dto.hotelId,
+        checkIn: dto.checkIn,
+        checkOut: dto.checkOut,
+        usuario: dto.usuario || userInfo.fullName || userInfo.email,
+        maquinaId: dto.maquinaId ?? 1,
+        bookData: dto.bookData,
+        rooms: dto.rooms,
+      };
 
+      try {
         const myToolResult = await this.myToolBookingService.createBooking(
           hotelSlug,
-          checkin,
-          nights,
-          dto.rooms,
-          { titular: dto.titular, telefono: dto.telefono, email: dto.email },
-          dto.total,
-          mappings,
-          usuario,
+          myToolBody,
         );
 
-        reservaChatbotId = myToolResult.localizador || `MT-${Date.now()}`;
+        if (myToolResult.localizador) {
+          reservaChatbotId = myToolResult.localizador;
+        }
+
         this.logger.log(
           `Reserva creada via MyTool: ${reservaChatbotId} para hotel ${hotelSlug}`,
         );
@@ -2075,8 +2079,8 @@ export class ReservasService {
               city: hotelConfig.city.toUpperCase() as any,
               country: 'COL',
               currency: 'COP',
-              email: dto.email,
-              telephone: dto.telefono,
+              email: dto.bookData.solicitante.email,
+              telephone: dto.bookData.solicitante.telefono,
               firstName: dto.titularInfo.firstName,
               lastName: dto.titularInfo.lastName,
               nights: String(nights),
@@ -2145,13 +2149,13 @@ export class ReservasService {
         children_ages: '',
         city: hotelConfig.city.toUpperCase(),
         country: 'COL',
-        currency: 'COP',
-        email: dto.email,
-        telephone: dto.telefono,
+        currency: dto.bookData.monedaCode || 'COP',
+        email: dto.bookData.solicitante.email,
+        telephone: dto.bookData.solicitante.telefono,
         firstName: dto.titularInfo.firstName,
         lastName: dto.titularInfo.lastName,
         nights: String(nights),
-        notes: '',
+        notes: dto.bookData.acuerdos || '',
         rooms: String(dto.rooms.length),
         roomsData: dto.rooms.map((room) => ({
           nombreHabitacion: 'Habitacion',
@@ -2160,7 +2164,7 @@ export class ReservasService {
           children_ages: '',
           checkin,
           checkout,
-          currency: 'COP',
+          currency: dto.bookData.monedaCode || 'COP',
           id: '0',
           quantity: '1',
           rateId: '0',
@@ -2208,7 +2212,6 @@ export class ReservasService {
 
         await session.commitTransaction();
 
-        // Notificaciones de transporte (fire-and-forget)
         if (dto.infoTransporte) {
           this.sendTransportNotification(
             dto,
@@ -2355,10 +2358,10 @@ export class ReservasService {
     }
   }
 
-  private calculateCheckoutDate(checkin: string, nights: number): string {
-    const date = new Date(checkin + 'T12:00:00');
-    date.setDate(date.getDate() + nights);
-    return date.toISOString().split('T')[0];
+  private calculateNights(checkin: string, checkout: string): number {
+    const start = new Date(checkin + 'T12:00:00');
+    const end = new Date(checkout + 'T12:00:00');
+    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   }
 
   private async sendTransportNotification(
@@ -2419,7 +2422,7 @@ export class ReservasService {
         dto.infoTransporte.firstContactNumber,
         dto.infoTransporte.aerolinea,
         dto.infoTransporte.numeroVuelo,
-        dto.titular,
+        dto.bookData.solicitante.titular,
         contactInfo.tel,
         dto.infoTransporte.numeroVueloSalida,
         dto.infoTransporte.secondContacNumber,
@@ -2461,7 +2464,7 @@ export class ReservasService {
         dto.infoToures.nombres,
         name,
         dto.infoToures.firstContactNumber,
-        dto.titular,
+        dto.bookData.solicitante.titular,
         totalPax,
         dto.infoToures.secondContacNumber,
       ),

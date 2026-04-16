@@ -417,40 +417,19 @@ export class ReservasController {
 
   // #region MyTool Booking
 
-  @Post('mytool/:hotelSlug/:checkin/:nights')
+  @Post('mytool/:hotelSlug')
   @Auth()
-  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore' })
+  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore. Body usa estructura exacta de MyTool.' })
   @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
   @ApiBearerAuth()
   createReservaMyTool(
     @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
-    @Param('checkin') checkin: string,
-    @Param('nights') nights: string,
     @Body() dto: CreateReservaMyToolDto,
     @GetUser() user: User,
   ) {
-    const nightsNum = parseInt(nights, 10);
-    if (isNaN(nightsNum) || nightsNum < 1 || nightsNum > 60) {
-      throw new BadRequestException('nights debe ser un numero entre 1 y 60');
-    }
-
-    const checkinRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!checkinRegex.test(checkin)) {
-      throw new BadRequestException(
-        'checkin debe estar en formato YYYY-MM-DD',
-      );
-    }
-
-    const checkinDate = new Date(checkin + 'T12:00:00');
-    if (isNaN(checkinDate.getTime())) {
-      throw new BadRequestException('checkin no es una fecha valida');
-    }
-
     return this.reservasService.createReservaMyTool(
       dto,
       hotelSlug,
-      checkin,
-      nightsNum,
       user._id.toString(),
     );
   }

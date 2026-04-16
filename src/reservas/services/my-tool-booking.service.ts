@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosError } from 'axios';
-import { v4 as uuid } from 'uuid';
 
 import { envs } from 'src/config';
 import {
@@ -9,7 +8,6 @@ import {
   MY_TOOL_CANAL_VENTA_ID,
   MY_TOOL_MAQUINA_ID,
 } from 'src/config/constants/myToolBookingConstants';
-import { MyToolRoomDto } from '../dto/create-reserva-mytool.dto';
 
 interface MyToolMappingItem {
   id: number;
@@ -52,10 +50,10 @@ export class MyToolBookingService {
   private readonly logger = new Logger(MyToolBookingService.name);
 
   private tokenCache = new Map<string, CachedItem<string>>();
-  private readonly TOKEN_TTL = 50 * 60 * 1000; // 50 min (tokens suelen durar 1h)
+  private readonly TOKEN_TTL = 50 * 60 * 1000;
 
   private mappingsCache = new Map<string, CachedItem<MyToolMappings>>();
-  private readonly MAPPINGS_TTL = 5 * 60 * 1000; // 5 min
+  private readonly MAPPINGS_TTL = 5 * 60 * 1000;
 
   private buildUrl(hotelIp: string, path: string): string {
     const base = hotelIp.replace(/\/+$/, '');
@@ -181,12 +179,6 @@ export class MyToolBookingService {
       this.logger.log(
         `Mappings obtenidos para ${hotelSlug}: ${data.categorias.length} categorias, ${data.ratePlans.length} ratePlans, ${data.canalesVenta.length} canales`,
       );
-      this.logger.debug(
-        `[getMappings] Categorias: ${JSON.stringify(data.categorias)}`,
-      );
-      this.logger.debug(
-        `[getMappings] RatePlans: ${JSON.stringify(data.ratePlans)}`,
-      );
       return data;
     } catch (error) {
       const details = this.extractErrorDetails(error);
@@ -197,100 +189,22 @@ export class MyToolBookingService {
     }
   }
 
+  /**
+   * Reenvía el body exacto tal cual a MyTool sin transformación.
+   * El body debe tener la estructura: { hotelId, checkIn, checkOut, usuario, maquinaId, bookData, rooms }
+   */
   async createBooking(
     hotelSlug: string,
-    checkin: string,
-    nights: number,
-    rooms: MyToolRoomDto[],
-    solicitante: { titular: string; telefono: string; email: string },
-    total: number,
-    mappings: MyToolMappings,
-    usuario: string,
+    myToolBody: Record<string, any>,
   ): Promise<MyToolBookingResponse> {
     const config = this.getHotelConfig(hotelSlug);
-
-    const checkout = this.calculateCheckout(checkin, nights);
-    const localizador = this.generateLocalizador();
-
-    const categoriaId = this.pickMapCode(mappings.categorias, 'St. Doble') ?? mappings.categorias[0]?.mapCode;
-    const canalVentaId = this.pickMapCode(mappings.canalesVenta, 'Booking Connect') ?? MY_TOOL_CANAL_VENTA_ID;
-    const ratePlanCode = this.pickMapCode(mappings.ratePlans, 'Booking Connect Neto')
-      ?? this.pickMapCode(mappings.ratePlans, 'STANDAR B2B')
-      ?? mappings.ratePlans[0]?.mapCode;
-    const segmentoId = this.pickMapCode(mappings.segmentos, 'Tarifa Regular') ?? mappings.segmentos[0]?.mapCode ?? 1;
-    const subSegmentoId = this.pickMapCode(mappings.subSegmentos, 'Tarifa Regular Portal Propio')
-      ?? mappings.subSegmentos[0]?.mapCode ?? 1;
-    const motivoId = this.pickMapCode(mappings.motivos, 'TURISMO') ?? mappings.motivos[0]?.mapCode ?? 8;
-
-    this.logger.debug(
-      `[createBooking] Valores de mappings → categoriaId=${categoriaId} | canalVentaId=${canalVentaId} | ratePlan=${ratePlanCode} | segmentoId=${segmentoId} | subSegmentoId=${subSegmentoId} | motivoId=${motivoId}`,
-    );
-
-    const pricePerNight = Math.round(total / (nights * rooms.length));
-
-    const body = {
-      checkIn: checkin,
-      checkOut: checkout,
-      usuario,
-      maquinaId: MY_TOOL_MAQUINA_ID,
-      solicitud: {
-        titular: solicitante.titular,
-        telefono: solicitante.telefono,
-        email: solicitante.email,
-      },
-      bookData: {
-        solicitante: {
-          titular: solicitante.titular,
-          telefono: solicitante.telefono,
-          email: solicitante.email,
-        },
-        canalVentaId,
-        ratePlan: String(ratePlanCode),
-        paisCode: 'CO',
-        monedaCode: 'COP',
-        localizador,
-        comision: 0,
-        siAgregaImpto: false,
-        acuerdos: `Precio por noche: ${pricePerNight} COP x ${nights} noches`,
-        motivoId,
-        subSegmentoId,
-        segmentoId,
-        agenciaId: 0,
-        agenteId: 0,
-      },
-      rooms: rooms.map((room) => ({
-        categoriaId,
-        paxAdultos: room.paxAdultos,
-        paxChilds: room.paxChilds,
-        dayPrice: this.buildDayPrices(checkin, nights, pricePerNight),
-        guest: room.guest.map((g) => ({
-          documId: g.documId,
-          documTypeId: g.documTypeId,
-          name: g.name,
-          firstLastName: g.firstLastName,
-          secondLastName: g.secondLastName || '',
-          birthDay: g.birthDay,
-          nacionalityId: g.nacionalityId ?? 170,
-          generId: g.generId,
-          address: g.address || '',
-          city: g.city || '',
-          phone: g.phone,
-          countryId: g.countryId ?? 57,
-          email: g.email,
-          isOwner: g.isOwner,
-          image1: null,
-          image2: null,
-        })),
-      })),
-    };
-
     const targetUrl = this.buildUrl(config.ip, 'BookingAvailability/GetBookAvail');
 
     this.logger.debug(
-      `[createBooking] POST ${targetUrl} | hotelSlug=${hotelSlug} checkin=${checkin} nights=${nights}`,
+      `[createBooking] POST ${targetUrl} | hotelSlug=${hotelSlug}`,
     );
     this.logger.debug(
-      `[createBooking] Body enviado: ${JSON.stringify(body, null, 2)}`,
+      `[createBooking] Body enviado: ${JSON.stringify(myToolBody, null, 2)}`,
     );
 
     try {
@@ -298,7 +212,7 @@ export class MyToolBookingService {
         config.ip,
         (token) =>
           axios
-            .post<MyToolBookingResponse>(targetUrl, body, {
+            .post<MyToolBookingResponse>(targetUrl, myToolBody, {
               headers: { Authorization: `Bearer ${token}` },
               timeout: 60000,
             })
@@ -306,13 +220,10 @@ export class MyToolBookingService {
       );
 
       this.logger.log(
-        `Reserva creada en MyTool para ${hotelSlug}: ${localizador}`,
+        `Reserva creada en MyTool para ${hotelSlug}: localizador=${myToolBody.bookData?.localizador}`,
       );
 
-      return {
-        ...data,
-        localizador,
-      };
+      return data;
     } catch (error) {
       const details = this.extractErrorDetails(error);
       this.logger.error(
@@ -325,7 +236,7 @@ export class MyToolBookingService {
         `[createBooking] Response headers: ${JSON.stringify(details.responseHeaders, null, 2)}`,
       );
       this.logger.error(
-        `[createBooking] Request body enviado: ${JSON.stringify(body, null, 2)}`,
+        `[createBooking] Request body enviado: ${JSON.stringify(myToolBody, null, 2)}`,
       );
       throw error;
     }
@@ -431,48 +342,5 @@ export class MyToolBookingService {
       );
     });
     return entry ? entry[0] : null;
-  }
-
-  private calculateCheckout(checkin: string, nights: number): string {
-    const date = new Date(checkin + 'T12:00:00');
-    date.setDate(date.getDate() + nights);
-    return date.toISOString().split('T')[0];
-  }
-
-  private generateLocalizador(): string {
-    const short = uuid().replace(/-/g, '').substring(0, 10).toUpperCase();
-    return `MT-${short}`;
-  }
-
-  private pickMapCode(
-    items: MyToolMappingItem[],
-    preferredName: string,
-  ): number | undefined {
-    if (!items?.length) return undefined;
-    const nameLower = preferredName.toLowerCase();
-    const match = items.find((i) =>
-      i.mapName.toLowerCase().includes(nameLower),
-    );
-    return match?.mapCode;
-  }
-
-  private buildDayPrices(
-    checkin: string,
-    nights: number,
-    pricePerNight: number,
-  ): Array<{ fecha: string; precioBase: number }> {
-    const prices: Array<{ fecha: string; precioBase: number }> = [];
-    const startDate = new Date(checkin + 'T12:00:00');
-
-    for (let i = 0; i < nights; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      prices.push({
-        fecha: date.toISOString().split('T')[0],
-        precioBase: pricePerNight,
-      });
-    }
-
-    return prices;
   }
 }

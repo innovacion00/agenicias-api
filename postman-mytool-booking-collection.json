@@ -1,15 +1,13 @@
 {
   "info": {
     "name": "Agencias API - MyTool Booking",
-    "description": "Endpoints para crear, cancelar y buscar reservas via MyTool API con fallback automático a Autocore.\n\nVariables requeridas:\n- baseUrl: URL base de la API (ej: http://localhost:3000)\n- token: JWT obtenido del login\n- hotelSlug: slug del hotel (aixo, azuan, avexi, marina, bocagrande, abi, boquilla, madisson, windsor, rodadero, axis)\n- checkin: fecha checkin en formato YYYY-MM-DD\n- nights: cantidad de noches",
+    "description": "Endpoints para crear, cancelar y buscar reservas via MyTool API con fallback automático a Autocore.\n\nEl body de creación usa la misma estructura exacta que el API original de MyTool.\n\nVariables requeridas:\n- baseUrl: URL base de la API (ej: http://localhost:3000)\n- token: JWT obtenido del login\n- hotelSlug: slug del hotel (aixo, azuan, avexi, marina, bocagrande, abi, boquilla, madisson, windsor, rodadero, axis, marques)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "token", "value": "" },
     { "key": "hotelSlug", "value": "avexi" },
-    { "key": "checkin", "value": "2026-05-15" },
-    { "key": "nights", "value": "3" },
     { "key": "reservaId", "value": "" }
   ],
   "item": [
@@ -63,11 +61,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["reservas", "mytool", "{{hotelSlug}}", "mappings"]
             },
-            "description": "Obtiene los mappings (categorías, rate plans, segmentos, etc.) de un hotel desde MyTool. Los mappings se cachean por 5 minutos.\n\nHoteles disponibles: aixo, azuan, avexi, marina, bocagrande, abi, boquilla, madisson, windsor, rodadero, axis"
+            "description": "Obtiene los mappings (categorías, rate plans, segmentos, etc.) de un hotel desde MyTool.\nLos valores de mapCode se usan para llenar campos como categoriaId, ratePlan, segmentoId, subSegmentoId, motivoId, canalVentaId."
           }
         },
         {
-          "name": "Crear Reserva MyTool (1 habitación, 1 huésped)",
+          "name": "Crear Reserva MyTool (estructura exacta)",
           "event": [
             {
               "listen": "test",
@@ -89,19 +87,19 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/{{checkin}}/{{nights}}",
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}",
               "host": ["{{baseUrl}}"],
-              "path": ["reservas", "mytool", "{{hotelSlug}}", "{{checkin}}", "{{nights}}"]
+              "path": ["reservas", "mytool", "{{hotelSlug}}"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titular\": \"Juan Pérez\",\n  \"telefono\": \"+573001234567\",\n  \"email\": \"juan.perez@ejemplo.com\",\n  \"rooms\": [\n    {\n      \"paxAdultos\": 2,\n      \"paxChilds\": 0,\n      \"guest\": [\n        {\n          \"documId\": \"1234567890\",\n          \"documTypeId\": 1,\n          \"name\": \"Juan\",\n          \"firstLastName\": \"Pérez\",\n          \"secondLastName\": \"García\",\n          \"birthDay\": \"1990-05-15\",\n          \"nacionalityId\": 170,\n          \"generId\": 1,\n          \"address\": \"Calle 50 #30-20\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"+573001234567\",\n          \"countryId\": 57,\n          \"email\": \"juan.perez@ejemplo.com\",\n          \"isOwner\": true\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Juan\",\n    \"lastName\": \"Pérez García\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"1234567890\",\n    \"fechaNacimiento\": \"1990-05-15\"\n  },\n  \"total\": 750000\n}"
+              "raw": "{\n  \"hotelId\": 4,\n  \"checkIn\": \"2026-11-01\",\n  \"checkOut\": \"2026-11-06\",\n  \"usuario\": \"valeria\",\n  \"maquinaId\": 1,\n  \"bookData\": {\n    \"solicitante\": {\n      \"titular\": \"Juan Carlos Vega Gonzalez\",\n      \"telefono\": \"3001234567\",\n      \"email\": \"juan.vega@email.com\"\n    },\n    \"canalVentaId\": 41,\n    \"ratePlan\": \"99097\",\n    \"paisCode\": \"CO\",\n    \"monedaCode\": \"COP\",\n    \"localizador\": \"RES001851-21355\",\n    \"comision\": 0,\n    \"siAgregaImpto\": false,\n    \"acuerdos\": \"Precio por noche 297900 COP x 5 noches\",\n    \"motivoId\": 2,\n    \"subSegmentoId\": 4,\n    \"segmentoId\": 1,\n    \"agenciaId\": 0,\n    \"agenteId\": 0\n  },\n  \"rooms\": [\n    {\n      \"categoriaId\": 4,\n      \"paxAdultos\": 2,\n      \"paxChilds\": 0,\n      \"dayPrice\": [\n        { \"fecha\": \"2026-11-01\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-02\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-03\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-04\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-05\", \"precioBase\": 297900 }\n      ],\n      \"guest\": [\n        {\n          \"documId\": \"1020304050\",\n          \"documTypeId\": 1,\n          \"name\": \"Juan Carlos\",\n          \"firstLastName\": \"Vega\",\n          \"secondLastName\": \"Gonzalez\",\n          \"birthDay\": \"1980-06-04T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 1,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3001234567\",\n          \"countryId\": 47,\n          \"email\": \"juan.vega@email.com\",\n          \"isOwner\": true,\n          \"image1\": null,\n          \"image2\": null\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Juan Carlos\",\n    \"lastName\": \"Vega Gonzalez\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"1020304050\",\n    \"fechaNacimiento\": \"1980-06-04\"\n  },\n  \"total\": 1489500\n}"
             },
-            "description": "Crea una reserva via MyTool API. Si MyTool falla, automáticamente intenta crear la reserva via Autocore (fallback).\n\nParámetros de ruta:\n- hotelSlug: slug del hotel (ej: avexi, windsor, rodadero)\n- checkin: fecha de checkin YYYY-MM-DD\n- nights: cantidad de noches (1-60)\n\nLa respuesta incluye:\n- reservaId: ID en MongoDB\n- reservaChatbotId: localizador MyTool o chatbot_id Autocore\n- reservaProvider: 'mytool' o 'autocore'\n- usedFallback: true si se usó Autocore como fallback"
+            "description": "Crea una reserva via MyTool API. El body usa la MISMA estructura exacta que el endpoint original GetBookAvail de MyTool.\n\nCampos MyTool (se reenvían tal cual):\n- hotelId, checkIn, checkOut, usuario, maquinaId\n- bookData: solicitante, canalVentaId, ratePlan, paisCode, monedaCode, localizador, comision, siAgregaImpto, acuerdos, motivoId, subSegmentoId, segmentoId, agenciaId, agenteId\n- rooms[]: categoriaId, paxAdultos, paxChilds, dayPrice[], guest[]\n\nCampos internos (para guardar en MongoDB):\n- titularInfo, total\n- Opcionales: planAlimentario, adicionCena, adicionAlmuerzo, mascotas, reteFuente, reteIva, reteIca, infoTransporte, infoToures\n\nSi MyTool falla, automáticamente intenta Autocore como fallback (excepto hoteles solo-MyTool como El Marques)."
           }
         },
         {
-          "name": "Crear Reserva MyTool (2 habitaciones, múltiples huéspedes)",
+          "name": "Crear Reserva MyTool (con 2 huéspedes)",
           "event": [
             {
               "listen": "test",
@@ -123,49 +121,15 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/{{checkin}}/{{nights}}",
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}",
               "host": ["{{baseUrl}}"],
-              "path": ["reservas", "mytool", "{{hotelSlug}}", "{{checkin}}", "{{nights}}"]
+              "path": ["reservas", "mytool", "{{hotelSlug}}"]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titular\": \"María López\",\n  \"telefono\": \"+573009876543\",\n  \"email\": \"maria.lopez@ejemplo.com\",\n  \"rooms\": [\n    {\n      \"paxAdultos\": 2,\n      \"paxChilds\": 1,\n      \"guest\": [\n        {\n          \"documId\": \"9876543210\",\n          \"documTypeId\": 1,\n          \"name\": \"María\",\n          \"firstLastName\": \"López\",\n          \"secondLastName\": \"Martínez\",\n          \"birthDay\": \"1985-08-20\",\n          \"nacionalityId\": 170,\n          \"generId\": 2,\n          \"address\": \"Carrera 15 #80-45\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"+573009876543\",\n          \"countryId\": 57,\n          \"email\": \"maria.lopez@ejemplo.com\",\n          \"isOwner\": true\n        },\n        {\n          \"documId\": \"1122334455\",\n          \"documTypeId\": 1,\n          \"name\": \"Carlos\",\n          \"firstLastName\": \"López\",\n          \"secondLastName\": \"Martínez\",\n          \"birthDay\": \"1987-03-10\",\n          \"nacionalityId\": 170,\n          \"generId\": 1,\n          \"address\": \"Carrera 15 #80-45\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"+573001112233\",\n          \"countryId\": 57,\n          \"email\": \"carlos.lopez@ejemplo.com\",\n          \"isOwner\": false\n        }\n      ]\n    },\n    {\n      \"paxAdultos\": 1,\n      \"paxChilds\": 0,\n      \"guest\": [\n        {\n          \"documId\": \"5566778899\",\n          \"documTypeId\": 1,\n          \"name\": \"Ana\",\n          \"firstLastName\": \"García\",\n          \"secondLastName\": \"Ruiz\",\n          \"birthDay\": \"1992-11-05\",\n          \"nacionalityId\": 170,\n          \"generId\": 2,\n          \"address\": \"Av. 68 #25-30\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"+573004455667\",\n          \"countryId\": 57,\n          \"email\": \"ana.garcia@ejemplo.com\",\n          \"isOwner\": false\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"María\",\n    \"lastName\": \"López Martínez\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"9876543210\",\n    \"fechaNacimiento\": \"1985-08-20\"\n  },\n  \"total\": 1500000,\n  \"planAlimentario\": \"Desayuno incluido\",\n  \"adicionCena\": true\n}"
+              "raw": "{\n  \"hotelId\": 4,\n  \"checkIn\": \"2026-11-01\",\n  \"checkOut\": \"2026-11-06\",\n  \"usuario\": \"valeria\",\n  \"maquinaId\": 1,\n  \"bookData\": {\n    \"solicitante\": {\n      \"titular\": \"Rous Von Oberstaing\",\n      \"telefono\": \"3015687156\",\n      \"email\": \"rous@gmail.com\"\n    },\n    \"canalVentaId\": 41,\n    \"ratePlan\": \"99097\",\n    \"paisCode\": \"CO\",\n    \"monedaCode\": \"COP\",\n    \"localizador\": \"RES001851-21355\",\n    \"comision\": 0,\n    \"siAgregaImpto\": false,\n    \"acuerdos\": \"Precio por noche 297900 COP x 5 noches\",\n    \"motivoId\": 2,\n    \"subSegmentoId\": 4,\n    \"segmentoId\": 1,\n    \"agenciaId\": 0,\n    \"agenteId\": 0\n  },\n  \"rooms\": [\n    {\n      \"categoriaId\": 4,\n      \"paxAdultos\": 4,\n      \"paxChilds\": 0,\n      \"dayPrice\": [\n        { \"fecha\": \"2026-11-01\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-02\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-03\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-04\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-05\", \"precioBase\": 297900 }\n      ],\n      \"guest\": [\n        {\n          \"documId\": \"1020304050\",\n          \"documTypeId\": 1,\n          \"name\": \"Juan Carlos\",\n          \"firstLastName\": \"Vega\",\n          \"secondLastName\": \"Gonzalez\",\n          \"birthDay\": \"1980-06-04T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 1,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3001234567\",\n          \"countryId\": 47,\n          \"email\": \"juan.vega@email.com\",\n          \"isOwner\": true,\n          \"image1\": null,\n          \"image2\": null\n        },\n        {\n          \"documId\": \"1098765432\",\n          \"documTypeId\": 1,\n          \"name\": \"Maria Fernanda\",\n          \"firstLastName\": \"Lopez\",\n          \"secondLastName\": \"Rojas\",\n          \"birthDay\": \"1985-08-15T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 2,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3007654321\",\n          \"countryId\": 47,\n          \"email\": \"maria@email.com\",\n          \"isOwner\": false,\n          \"image1\": null,\n          \"image2\": null\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Rous\",\n    \"lastName\": \"Von Oberstaing\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"1020304050\",\n    \"fechaNacimiento\": \"1997-12-02\"\n  },\n  \"total\": 1489500\n}"
             },
-            "description": "Ejemplo con múltiples habitaciones y huéspedes, incluyendo opciones de plan alimentario."
-          }
-        },
-        {
-          "name": "Crear Reserva MyTool (con transporte y tours)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.reservaId) {",
-                  "    pm.collectionVariables.set('reservaId', jsonData.reservaId);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/{{checkin}}/{{nights}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reservas", "mytool", "{{hotelSlug}}", "{{checkin}}", "{{nights}}"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titular\": \"Pedro Ramírez\",\n  \"telefono\": \"+573005554433\",\n  \"email\": \"pedro.ramirez@ejemplo.com\",\n  \"rooms\": [\n    {\n      \"paxAdultos\": 2,\n      \"paxChilds\": 0,\n      \"guest\": [\n        {\n          \"documId\": \"8899001122\",\n          \"documTypeId\": 1,\n          \"name\": \"Pedro\",\n          \"firstLastName\": \"Ramírez\",\n          \"secondLastName\": \"Sánchez\",\n          \"birthDay\": \"1988-01-25\",\n          \"nacionalityId\": 170,\n          \"generId\": 1,\n          \"address\": \"Calle 100 #15-20\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"+573005554433\",\n          \"countryId\": 57,\n          \"email\": \"pedro.ramirez@ejemplo.com\",\n          \"isOwner\": true\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Pedro\",\n    \"lastName\": \"Ramírez Sánchez\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"8899001122\",\n    \"fechaNacimiento\": \"1988-01-25\"\n  },\n  \"total\": 900000,\n  \"infoTransporte\": {\n    \"tipoRecogida\": 2,\n    \"firstContactNumber\": \"+573005554433\",\n    \"secondContacNumber\": \"+573006667788\",\n    \"cantidadPersonas\": 2,\n    \"aerolinea\": \"Avianca\",\n    \"numeroVuelo\": \"AV1234\",\n    \"numeroVueloSalida\": \"AV5678\"\n  },\n  \"infoToures\": {\n    \"nombres\": \"Tour Islas del Rosario, Tour Ciudad Amurallada\",\n    \"firstContactNumber\": \"+573005554433\",\n    \"secondContacNumber\": \"+573006667788\"\n  },\n  \"reteFuente\": {\n    \"porcentaje\": 3.5,\n    \"resultado\": 31500\n  }\n}"
-            },
-            "description": "Ejemplo completo con información de transporte, tours y retención en la fuente."
+            "description": "Ejemplo idéntico al de la colección original de MyTool (Crear una reserva) con 2 huéspedes en una habitación."
           }
         },
         {
@@ -185,7 +149,7 @@
               "mode": "raw",
               "raw": "{\n  \"reservaId\": \"{{reservaId}}\"\n}"
             },
-            "description": "Cancela una reserva detectando automáticamente el provider (MyTool o Autocore) según el campo reservaProvider guardado en la reserva.\n\nSi la reserva fue creada por MyTool, intenta cancelar en MyTool primero. Si falla, cancela via Autocore como fallback."
+            "description": "Cancela una reserva detectando automáticamente el provider (MyTool o Autocore)."
           }
         },
         {
@@ -196,15 +160,15 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/buscar?localizador=MT-ABC1234567&nombre=Juan",
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/buscar?localizador=RES001851-21355&nombre=Juan",
               "host": ["{{baseUrl}}"],
               "path": ["reservas", "mytool", "{{hotelSlug}}", "buscar"],
               "query": [
-                { "key": "localizador", "value": "MT-ABC1234567", "description": "Localizador de la reserva en MyTool" },
-                { "key": "nombre", "value": "Juan", "description": "Nombre del huésped para buscar" }
+                { "key": "localizador", "value": "RES001851-21355" },
+                { "key": "nombre", "value": "Juan" }
               ]
             },
-            "description": "Busca una reserva directamente en el API de MyTool por localizador y nombre del huésped.\n\nParámetros de query:\n- localizador: código de la reserva (ej: MT-ABC1234567)\n- nombre: nombre del huésped"
+            "description": "Busca una reserva directamente en MyTool por localizador y nombre."
           }
         }
       ]
