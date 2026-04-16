@@ -535,6 +535,7 @@ describe('MyTool Reservas (e2e)', () => {
         },
         reservaChatbotId: `RES-CANCEL-${Date.now()}`,
         reservaProvider: 'mytool',
+        myToolCanalVentaId: 101,
         titularInfo: {
           firstName: 'Test',
           lastName: 'User',
@@ -548,14 +549,19 @@ describe('MyTool Reservas (e2e)', () => {
       savedReservaId = reserva._id.toString();
     });
 
-    it('debe cancelar una reserva mytool existente', async () => {
+    it('debe cancelar una reserva mytool existente con su canalVentaId', async () => {
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
         .send({ reservaId: savedReservaId })
         .expect(201);
 
       expect(res.body.msg).toContain('cancelada correctamente');
-      expect(mockMyToolBookingService.cancelBooking).toHaveBeenCalled();
+      expect(mockMyToolBookingService.cancelBooking).toHaveBeenCalledWith(
+        'aixo',
+        expect.any(String),
+        expect.any(String),
+        101,
+      );
 
       const updated = await reservaModel.findById(savedReservaId);
       expect(updated!.status).toBe(ValidPaymentStatus.cancelado);

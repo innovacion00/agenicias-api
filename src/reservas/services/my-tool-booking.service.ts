@@ -246,12 +246,13 @@ export class MyToolBookingService {
     hotelSlug: string,
     localizador: string,
     usuario: string,
+    canalVentaId?: number,
   ): Promise<MyToolBookingResponse> {
     const config = this.getHotelConfig(hotelSlug);
 
     const body = {
       localizador,
-      canalVentaId: MY_TOOL_CANAL_VENTA_ID,
+      canalVentaId: canalVentaId ?? MY_TOOL_CANAL_VENTA_ID,
       usuarioCancela: usuario,
       maquinaId: MY_TOOL_MAQUINA_ID,
     };

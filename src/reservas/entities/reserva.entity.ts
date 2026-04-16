@@ -388,6 +388,9 @@ export class Reserva extends Document {
   })
   reservaProvider: string;
 
+  @Prop({ type: Number, default: null })
+  myToolCanalVentaId: number;
+
   // #region MaarLab flights (interno)
   @Prop({
     type: [

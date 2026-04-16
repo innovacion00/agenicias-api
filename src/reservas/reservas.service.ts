@@ -2201,6 +2201,7 @@ export class ReservasService {
               reservation: reservationData,
               reservaChatbotId,
               reservaProvider,
+              myToolCanalVentaId: dto.bookData?.canalVentaId ?? null,
               titularInfo: dto.titularInfo,
               fechaLimitePago,
               fechaLimitePago2,
@@ -2319,6 +2320,7 @@ export class ReservasService {
             hotelSlug,
             reserva.reservaChatbotId,
             user.fullName || user.email,
+            reserva.myToolCanalVentaId ?? undefined,
           );
         } catch (cancelError) {
           const hotelConfig = hotelMyToolConfig[hotelSlug];
