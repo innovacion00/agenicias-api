@@ -2010,7 +2010,19 @@ export class ReservasService {
       let reservaProvider: 'mytool' | 'autocore' = 'mytool';
       let usedFallback = false;
 
-      // Construir body exacto para MyTool (sin campos internos)
+      const cleanRooms = dto.rooms.map((room) => {
+        const cleanGuests = (room.guest || []).map((g) => {
+          const cleanGuest: Record<string, any> = {};
+          for (const [k, v] of Object.entries(g)) {
+            if (v !== null && v !== undefined) {
+              cleanGuest[k] = v;
+            }
+          }
+          return cleanGuest;
+        });
+        return { ...room, guest: cleanGuests };
+      });
+
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,
@@ -2018,7 +2030,7 @@ export class ReservasService {
         usuario: dto.usuario || userInfo.fullName || userInfo.email,
         maquinaId: dto.maquinaId ?? 1,
         bookData: dto.bookData,
-        rooms: dto.rooms,
+        rooms: cleanRooms,
       };
 
       try {

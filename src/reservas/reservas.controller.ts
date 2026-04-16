@@ -417,21 +417,15 @@ export class ReservasController {
 
   // #region MyTool Booking
 
-  @Post('mytool/:hotelSlug')
+  @Post('mytool/cancelar')
   @Auth()
-  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore. Body usa estructura exacta de MyTool.' })
-  @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
+  @ApiOperation({ summary: 'Cancelar reserva (detecta provider automaticamente)' })
   @ApiBearerAuth()
-  createReservaMyTool(
-    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
-    @Body() dto: CreateReservaMyToolDto,
+  cancelReservaMyTool(
+    @Body() dto: CancelReservaMyToolDto,
     @GetUser() user: User,
   ) {
-    return this.reservasService.createReservaMyTool(
-      dto,
-      hotelSlug,
-      user._id.toString(),
-    );
+    return this.reservasService.cancelarReservaMyTool(dto.reservaId, user);
   }
 
   @Get('mytool/:hotelSlug/mappings')
@@ -442,17 +436,6 @@ export class ReservasController {
     @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
   ) {
     return this.reservasService.getMyToolMappings(hotelSlug);
-  }
-
-  @Post('mytool/cancelar')
-  @Auth()
-  @ApiOperation({ summary: 'Cancelar reserva (detecta provider automaticamente)' })
-  @ApiBearerAuth()
-  cancelReservaMyTool(
-    @Body() dto: CancelReservaMyToolDto,
-    @GetUser() user: User,
-  ) {
-    return this.reservasService.cancelarReservaMyTool(dto.reservaId, user);
   }
 
   @Get('mytool/:hotelSlug/buscar')
@@ -467,6 +450,23 @@ export class ReservasController {
       hotelSlug,
       dto.localizador,
       dto.nombre,
+    );
+  }
+
+  @Post('mytool/:hotelSlug')
+  @Auth()
+  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore. Body usa estructura exacta de MyTool.' })
+  @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
+  @ApiBearerAuth()
+  createReservaMyTool(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+    @Body() dto: CreateReservaMyToolDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.createReservaMyTool(
+      dto,
+      hotelSlug,
+      user._id.toString(),
     );
   }
 

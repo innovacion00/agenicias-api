@@ -20,6 +20,82 @@ import { Type } from 'class-transformer';
 import { IAsistente, ITitularInfo } from '../interfaces';
 import { InfoTransporteDto, InfoTouresDto } from './create-reserva.dto';
 
+// ────────────────── Clases auxiliares internas ──────────────────
+
+class TitularInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(50)
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(50)
+  lastName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(20)
+  tipoDocumento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @Matches(/^[^\s._]+$/, {
+    message: 'document no puede contener espacios ni guiones bajos.',
+  })
+  documento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'fechaNacimiento debe venir en formato YYYY-MM-DD',
+  })
+  fechaNacimiento: string;
+}
+
+class RetencionesDto {
+  @IsNumber()
+  @IsOptional()
+  @IsPositive()
+  porcentaje: number;
+
+  @IsNumber()
+  @IsOptional()
+  @IsPositive()
+  resultado: number;
+}
+
+class AsistenteDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  @MinLength(5)
+  fullName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(['CC', 'NIT', 'CE', 'PA'])
+  tipoDocumento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  documento: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsPhoneNumber()
+  telefono: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
 // ────────────────── Estructura exacta de MyTool ──────────────────
 
 export class MyToolDayPriceDto {
@@ -190,13 +266,11 @@ export class MyToolBookDataDto {
   @IsNotEmpty()
   segmentoId: number;
 
-  @IsNumber()
   @IsOptional()
-  agenciaId?: number;
+  agenciaId?: number | string;
 
-  @IsNumber()
   @IsOptional()
-  agenteId?: number;
+  agenteId?: number | string;
 }
 
 // ────────────────── DTO principal (body exacto de MyTool + campos internos) ──────────────────
@@ -312,82 +386,6 @@ export class CreateReservaMyToolDto {
   @IsArray()
   @IsOptional()
   asistentes?: IAsistente[];
-}
-
-// ────────────────── Clases auxiliares internas ──────────────────
-
-class TitularInfoDto {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(50)
-  firstName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(50)
-  lastName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(20)
-  tipoDocumento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  @Matches(/^[^\s._]+$/, {
-    message: 'document no puede contener espacios ni guiones bajos.',
-  })
-  documento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'fechaNacimiento debe venir en formato YYYY-MM-DD',
-  })
-  fechaNacimiento: string;
-}
-
-class RetencionesDto {
-  @IsNumber()
-  @IsOptional()
-  @IsPositive()
-  porcentaje: number;
-
-  @IsNumber()
-  @IsOptional()
-  @IsPositive()
-  resultado: number;
-}
-
-class AsistenteDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  @MinLength(5)
-  fullName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(['CC', 'NIT', 'CE', 'PA'])
-  tipoDocumento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  documento: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsPhoneNumber()
-  telefono: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
 }
 
 // ────────────────── DTOs de cancelación y búsqueda ──────────────────
