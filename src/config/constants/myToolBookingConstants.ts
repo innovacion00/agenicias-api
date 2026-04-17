@@ -20,6 +20,8 @@ export const hotelMyToolConfig: Record<string, MyToolHotelConfig> = {
   'rodadero': { ip: envs.apiRodadero, autocoreId: '17491', name: 'Hotel Rodadero', city: 'Santa marta' },
   'axis': { ip: envs.apiAxis, autocoreId: '19629', name: 'Hotel Axis', city: 'Santa marta' },
   'marques': { ip: envs.apiMarques, autocoreId: null, name: 'Hotel El Marques', city: 'Cartagena' },
+  'sansiraka': { ip: envs.apiSansiraka, autocoreId: '15740', name: 'Hotel Sansiraka', city: 'Santa marta' },
+  'playasalguero': { ip: envs.apiPlayaSalguero, autocoreId: '21590', name: 'Playa Salguero Hotel', city: 'Santa marta' },
 };
 
 export const hotelMyToolSlugs = Object.keys(hotelMyToolConfig);

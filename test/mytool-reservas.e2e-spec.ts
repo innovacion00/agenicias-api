@@ -738,7 +738,7 @@ describe('MyTool Reservas (e2e)', () => {
     const validSlugs = [
       'aixo', 'azuan', 'avexi', 'marina', 'bocagrande',
       'abi', 'boquilla', 'madisson', 'windsor', 'rodadero',
-      'axis', 'marques',
+      'axis', 'marques', 'sansiraka', 'playasalguero',
     ];
 
     validSlugs.forEach((slug) => {
