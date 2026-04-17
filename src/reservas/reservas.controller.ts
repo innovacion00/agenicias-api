@@ -390,13 +390,20 @@ export class ReservasController {
     updateReservaStatusDto: UpdateReservaStatusDto,
     /** Si true o 1, no bloquea por fecha de check-in (solo superAdmin). */
     @Query('saltarValidacionCheckin') saltarValidacionCheckin?: string,
+    /** Si true o 1, permite cancelar aunque exista pago de primera mitad pendiente de saldo (solo superAdmin). */
+    @Query('forzarCancelacionConPagoMitad')
+    forzarCancelacionConPagoMitad?: string,
   ) {
     const saltar =
       saltarValidacionCheckin === 'true' || saltarValidacionCheckin === '1';
+    const forzarCancelMitad =
+      forzarCancelacionConPagoMitad === 'true' ||
+      forzarCancelacionConPagoMitad === '1';
     return this.reservasService.actualizarStatusReservaManual(
       reservaId,
       updateReservaStatusDto.status,
       saltar,
+      forzarCancelMitad,
     );
   }
 

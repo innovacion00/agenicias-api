@@ -25,6 +25,7 @@ import {
   hotelesAutocorePaymenLink,
   notificacionCancelacionToures,
   notificacionCancelacionVoluntariaReservas,
+  notificacionSaldoPendienteIntentoCancelacion,
   notificacionToures,
   notificacionTransporte,
   notificaiconReservaGrupo,
@@ -41,7 +42,11 @@ import {
   UpdateReservaDto,
 } from './dto';
 import { Reserva } from './entities';
-import { calcularFechaLimitePago, obtenerCiudadPorNombre } from './utils';
+import {
+  calcularFechaLimitePago,
+  obtenerCiudadPorNombre,
+  debeBloquearCancelacionPorPrimeraMitadPagada,
+} from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
@@ -707,6 +712,24 @@ export class ReservasService {
     }
   }
 
+  private async enviarCorreoSaldoPendienteIntentoCancelacion(
+    reserva: Reserva,
+    recipientEmail: string,
+  ): Promise<void> {
+    const checkin = reserva.reservation?.checkin ?? '';
+    const checkout = reserva.reservation?.checkout ?? '';
+    const html = notificacionSaldoPendienteIntentoCancelacion(
+      reserva.reservaChatbotId,
+      checkin,
+      checkout,
+    );
+    await this.emailService.sendEmail(
+      recipientEmail,
+      'Booking connect - Saldo pendiente de su reserva',
+      html,
+    );
+  }
+
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
@@ -744,6 +767,19 @@ export class ReservasService {
       ) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
+        );
+      }
+
+      if (
+        debeBloquearCancelacionPorPrimeraMitadPagada(reserva) &&
+        !user.role.includes('super-admin')
+      ) {
+        await this.enviarCorreoSaldoPendienteIntentoCancelacion(
+          reserva,
+          user.email,
+        );
+        throw new BadRequestException(
+          'No es posible cancelar esta reserva porque ya registra el pago de la primera mitad con saldo pendiente. Se envió un correo con los pasos para gestionar el pago restante.',
         );
       }
 
@@ -1779,6 +1815,7 @@ export class ReservasService {
     reservaId: Types.ObjectId | string,
     status: ValidPaymentStatus,
     saltarValidacionCheckin = false,
+    forzarCancelacionConPagoMitad = false,
   ) {
     try {
       const _id =
@@ -1836,6 +1873,20 @@ export class ReservasService {
       }
 
       if (statusNorm === ValidPaymentStatus.cancelado) {
+        if (
+          !forzarCancelacionConPagoMitad &&
+          debeBloquearCancelacionPorPrimeraMitadPagada(reserva)
+        ) {
+          const destino =
+            reserva.reservation?.email?.trim() || 'reservas@gehsuites.com';
+          await this.enviarCorreoSaldoPendienteIntentoCancelacion(
+            reserva,
+            destino,
+          );
+          throw new BadRequestException(
+            'No es posible cancelar esta reserva porque ya registra el pago de la primera mitad con saldo pendiente. Se envió un correo con los pasos para gestionar el pago restante. Use forzarCancelacionConPagoMitad=true si debe cancelar de forma excepcional.',
+          );
+        }
         await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
       }
 
@@ -2302,6 +2353,19 @@ export class ReservasService {
       ) {
         throw new ForbiddenException(
           'No cuentas con los permisos necesarios para cancelar esta reserva',
+        );
+      }
+
+      if (
+        debeBloquearCancelacionPorPrimeraMitadPagada(reserva) &&
+        !user.role.includes('super-admin')
+      ) {
+        await this.enviarCorreoSaldoPendienteIntentoCancelacion(
+          reserva,
+          user.email,
+        );
+        throw new BadRequestException(
+          'No es posible cancelar esta reserva porque ya registra el pago de la primera mitad con saldo pendiente. Se envió un correo con los pasos para gestionar el pago restante.',
         );
       }
 
