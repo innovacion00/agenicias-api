@@ -59,6 +59,9 @@ interface EnvVars {
   API_WINDSOR: string;
   API_MARINA: string;
   API_AXIS: string;
+  API_MARQUES: string;
+  API_SANSIRAKA: string;
+  API_PLAYASALGUERO: string;
 
   //? Amadeus
   AMADEUS_API_KEY: string;
@@ -132,6 +135,9 @@ const envSchema = joi
     API_WINDSOR: joi.string().required(),
     API_MARINA: joi.string().required(),
     API_AXIS: joi.string().required(),
+    API_MARQUES: joi.string().required(),
+    API_SANSIRAKA: joi.string().required(),
+    API_PLAYASALGUERO: joi.string().required(),
 
     //? Amadeus
     AMADEUS_API_KEY: joi.string().required(),
@@ -212,6 +218,9 @@ export const envs = {
   apiWindsor: envVars.API_WINDSOR,
   apiMarina: envVars.API_MARINA,
   apiAxis: envVars.API_AXIS,
+  apiMarques: envVars.API_MARQUES,
+  apiSansiraka: envVars.API_SANSIRAKA,
+  apiPlayaSalguero: envVars.API_PLAYASALGUERO,
 
   //? Amadeus
   amadeusApiKey: envVars.AMADEUS_API_KEY,

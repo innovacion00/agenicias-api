@@ -1,7 +1,6 @@
 import {
   IsEmail,
   IsOptional,
-  IsPhoneNumber,
   IsString,
   Matches,
   MaxLength,
@@ -29,7 +28,9 @@ export class UpdateReservaDto {
   @IsString()
   @MinLength(7)
   @MaxLength(15)
-  @IsPhoneNumber()
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'telephone debe venir en formato telefonico valido',
+  })
   @IsOptional()
   telephone?: string;
 

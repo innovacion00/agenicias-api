@@ -1,0 +1,315 @@
+{
+  "info": {
+    "name": "Agencias API - MyTool Booking",
+    "description": "Endpoints para crear, cancelar y buscar reservas via MyTool API con fallback automático a Autocore.\n\nEl body de creación usa la misma estructura exacta que el API original de MyTool.\n\nVariables requeridas:\n- baseUrl: URL base de la API (ej: http://localhost:3000)\n- token: JWT obtenido del login\n- hotelSlug: slug del hotel (aixo, azuan, avexi, marina, bocagrande, abi, boquilla, madisson, windsor, rodadero, axis, marques)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "hotelSlug", "value": "avexi" },
+    { "key": "reservaId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign In (obtener token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tu-email@ejemplo.com\",\n  \"password\": \"tu-password\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MyTool Booking",
+      "item": [
+        {
+          "name": "Obtener Mappings de Hotel",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "{{hotelSlug}}", "mappings"]
+            },
+            "description": "Obtiene los mappings (categorías, rate plans, segmentos, etc.) de un hotel desde MyTool.\nLos valores de mapCode se usan para llenar campos como categoriaId, ratePlan, segmentoId, subSegmentoId, motivoId, canalVentaId."
+          }
+        },
+        {
+          "name": "Crear Reserva MyTool (estructura exacta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.reservaId) {",
+                  "    pm.collectionVariables.set('reservaId', jsonData.reservaId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "{{hotelSlug}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotelId\": 4,\n  \"checkIn\": \"2026-11-01\",\n  \"checkOut\": \"2026-11-06\",\n  \"usuario\": \"valeria\",\n  \"maquinaId\": 1,\n  \"bookData\": {\n    \"solicitante\": {\n      \"titular\": \"Juan Carlos Vega Gonzalez\",\n      \"telefono\": \"3001234567\",\n      \"email\": \"juan.vega@email.com\"\n    },\n    \"canalVentaId\": 41,\n    \"ratePlan\": \"99097\",\n    \"paisCode\": \"CO\",\n    \"monedaCode\": \"COP\",\n    \"localizador\": \"RES001851-21355\",\n    \"comision\": 0,\n    \"siAgregaImpto\": false,\n    \"acuerdos\": \"Precio por noche 297900 COP x 5 noches\",\n    \"motivoId\": 2,\n    \"subSegmentoId\": 4,\n    \"segmentoId\": 1,\n    \"agenciaId\": 0,\n    \"agenteId\": 0\n  },\n  \"rooms\": [\n    {\n      \"categoriaId\": 4,\n      \"paxAdultos\": 2,\n      \"paxChilds\": 0,\n      \"dayPrice\": [\n        { \"fecha\": \"2026-11-01\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-02\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-03\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-04\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-05\", \"precioBase\": 297900 }\n      ],\n      \"guest\": [\n        {\n          \"documId\": \"1020304050\",\n          \"documTypeId\": 1,\n          \"name\": \"Juan Carlos\",\n          \"firstLastName\": \"Vega\",\n          \"secondLastName\": \"Gonzalez\",\n          \"birthDay\": \"1980-06-04T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 1,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3001234567\",\n          \"countryId\": 47,\n          \"email\": \"juan.vega@email.com\",\n          \"isOwner\": true,\n          \"image1\": null,\n          \"image2\": null\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Juan Carlos\",\n    \"lastName\": \"Vega Gonzalez\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"1020304050\",\n    \"fechaNacimiento\": \"1980-06-04\"\n  },\n  \"total\": 1489500\n}"
+            },
+            "description": "Crea una reserva via MyTool API. El body usa la MISMA estructura exacta que el endpoint original GetBookAvail de MyTool.\n\nCampos MyTool (se reenvían tal cual):\n- hotelId, checkIn, checkOut, usuario, maquinaId\n- bookData: solicitante, canalVentaId, ratePlan, paisCode, monedaCode, localizador, comision, siAgregaImpto, acuerdos, motivoId, subSegmentoId, segmentoId, agenciaId, agenteId\n- rooms[]: categoriaId, paxAdultos, paxChilds, dayPrice[], guest[]\n\nCampos internos (para guardar en MongoDB):\n- titularInfo, total\n- Opcionales: planAlimentario, adicionCena, adicionAlmuerzo, mascotas, reteFuente, reteIva, reteIca, infoTransporte, infoToures\n\nSi MyTool falla, automáticamente intenta Autocore como fallback (excepto hoteles solo-MyTool como El Marques)."
+          }
+        },
+        {
+          "name": "Crear Reserva MyTool (con 2 huéspedes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.reservaId) {",
+                  "    pm.collectionVariables.set('reservaId', jsonData.reservaId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "{{hotelSlug}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotelId\": 4,\n  \"checkIn\": \"2026-11-01\",\n  \"checkOut\": \"2026-11-06\",\n  \"usuario\": \"valeria\",\n  \"maquinaId\": 1,\n  \"bookData\": {\n    \"solicitante\": {\n      \"titular\": \"Rous Von Oberstaing\",\n      \"telefono\": \"3015687156\",\n      \"email\": \"rous@gmail.com\"\n    },\n    \"canalVentaId\": 41,\n    \"ratePlan\": \"99097\",\n    \"paisCode\": \"CO\",\n    \"monedaCode\": \"COP\",\n    \"localizador\": \"RES001851-21355\",\n    \"comision\": 0,\n    \"siAgregaImpto\": false,\n    \"acuerdos\": \"Precio por noche 297900 COP x 5 noches\",\n    \"motivoId\": 2,\n    \"subSegmentoId\": 4,\n    \"segmentoId\": 1,\n    \"agenciaId\": 0,\n    \"agenteId\": 0\n  },\n  \"rooms\": [\n    {\n      \"categoriaId\": 4,\n      \"paxAdultos\": 4,\n      \"paxChilds\": 0,\n      \"dayPrice\": [\n        { \"fecha\": \"2026-11-01\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-02\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-03\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-04\", \"precioBase\": 297900 },\n        { \"fecha\": \"2026-11-05\", \"precioBase\": 297900 }\n      ],\n      \"guest\": [\n        {\n          \"documId\": \"1020304050\",\n          \"documTypeId\": 1,\n          \"name\": \"Juan Carlos\",\n          \"firstLastName\": \"Vega\",\n          \"secondLastName\": \"Gonzalez\",\n          \"birthDay\": \"1980-06-04T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 1,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3001234567\",\n          \"countryId\": 47,\n          \"email\": \"juan.vega@email.com\",\n          \"isOwner\": true,\n          \"image1\": null,\n          \"image2\": null\n        },\n        {\n          \"documId\": \"1098765432\",\n          \"documTypeId\": 1,\n          \"name\": \"Maria Fernanda\",\n          \"firstLastName\": \"Lopez\",\n          \"secondLastName\": \"Rojas\",\n          \"birthDay\": \"1985-08-15T00:00:00\",\n          \"nacionalityId\": 47,\n          \"generId\": 2,\n          \"address\": \"Calle 123 #45-67\",\n          \"city\": \"Bogotá\",\n          \"phone\": \"3007654321\",\n          \"countryId\": 47,\n          \"email\": \"maria@email.com\",\n          \"isOwner\": false,\n          \"image1\": null,\n          \"image2\": null\n        }\n      ]\n    }\n  ],\n  \"titularInfo\": {\n    \"firstName\": \"Rous\",\n    \"lastName\": \"Von Oberstaing\",\n    \"tipoDocumento\": \"Cédula de ciudadanía\",\n    \"documento\": \"1020304050\",\n    \"fechaNacimiento\": \"1997-12-02\"\n  },\n  \"total\": 1489500\n}"
+            },
+            "description": "Ejemplo idéntico al de la colección original de MyTool (Crear una reserva) con 2 huéspedes en una habitación."
+          }
+        },
+        {
+          "name": "Cancelar Reserva MyTool",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "cancelar"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservaId\": \"{{reservaId}}\"\n}"
+            },
+            "description": "Cancela una reserva detectando automáticamente el provider (MyTool o Autocore)."
+          }
+        },
+        {
+          "name": "Buscar Reserva en MyTool",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/{{hotelSlug}}/buscar?localizador=RES001851-21355&nombre=Juan",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "{{hotelSlug}}", "buscar"],
+              "query": [
+                { "key": "localizador", "value": "RES001851-21355" },
+                { "key": "nombre", "value": "Juan" }
+              ]
+            },
+            "description": "Busca una reserva directamente en MyTool por localizador y nombre."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Referencia - Hoteles Disponibles",
+      "item": [
+        {
+          "name": "Mappings - Hotel Aixo (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/aixo/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "aixo", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Azuan (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/azuan/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "azuan", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Avexi (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/avexi/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "avexi", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Marina (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/marina/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "marina", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Bocagrande (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/bocagrande/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "bocagrande", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Abi (Cartagena)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/abi/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "abi", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Madisson (Bogotá)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/madisson/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "madisson", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Windsor (Bogotá)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/windsor/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "windsor", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Rodadero (Santa Marta)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/rodadero/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "rodadero", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel Axis (Santa Marta)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/axis/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "axis", "mappings"]
+            }
+          }
+        },
+        {
+          "name": "Mappings - Hotel El Marques (Cartagena) [Solo MyTool]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/mytool/marques/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservas", "mytool", "marques", "mappings"]
+            },
+            "description": "Hotel El Marques solo funciona con MyTool (sin fallback a Autocore)."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -380,6 +380,17 @@ export class Reserva extends Document {
   })
   linksHistory: LinksHistory[];
 
+  @Prop({
+    type: String,
+    enum: ['autocore', 'mytool'],
+    default: 'autocore',
+    index: true,
+  })
+  reservaProvider: string;
+
+  @Prop({ type: Number, default: null })
+  myToolCanalVentaId: number;
+
   // #region MaarLab flights (interno)
   @Prop({
     type: [

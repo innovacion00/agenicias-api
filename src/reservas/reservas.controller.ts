@@ -32,9 +32,11 @@ import {
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { ParseCheckinCheckoutPipe, ParseHotelIdPipe } from './pipes';
+import { ParseCheckinCheckoutPipe, ParseHotelIdPipe, ParseHotelSlugPipe } from './pipes';
 import { ValidRoles } from 'src/auth/interfaces';
 import { ValidPaymentStatus } from './interfaces';
+import { CreateReservaMyToolDto, CancelReservaMyToolDto, SearchReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import type { MyToolBookingResponse } from './services/my-tool-booking.service';
 
 @ApiTags('reservas')
 @Controller('reservas')
@@ -388,13 +390,20 @@ export class ReservasController {
     updateReservaStatusDto: UpdateReservaStatusDto,
     /** Si true o 1, no bloquea por fecha de check-in (solo superAdmin). */
     @Query('saltarValidacionCheckin') saltarValidacionCheckin?: string,
+    /** Si true o 1, permite cancelar aunque exista pago de primera mitad pendiente de saldo (solo superAdmin). */
+    @Query('forzarCancelacionConPagoMitad')
+    forzarCancelacionConPagoMitad?: string,
   ) {
     const saltar =
       saltarValidacionCheckin === 'true' || saltarValidacionCheckin === '1';
+    const forzarCancelMitad =
+      forzarCancelacionConPagoMitad === 'true' ||
+      forzarCancelacionConPagoMitad === '1';
     return this.reservasService.actualizarStatusReservaManual(
       reservaId,
       updateReservaStatusDto.status,
       saltar,
+      forzarCancelMitad,
     );
   }
 
@@ -413,8 +422,60 @@ export class ReservasController {
     );
   }
 
-  // @Post('prueba')
-  // prueba() {
-  //   return this.reservasService.prueba();
-  // }
+  // #region MyTool Booking
+
+  @Post('mytool/cancelar')
+  @Auth()
+  @ApiOperation({ summary: 'Cancelar reserva (detecta provider automaticamente)' })
+  @ApiBearerAuth()
+  cancelReservaMyTool(
+    @Body() dto: CancelReservaMyToolDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.cancelarReservaMyTool(dto.reservaId, user);
+  }
+
+  @Get('mytool/:hotelSlug/mappings')
+  @Auth()
+  @ApiOperation({ summary: 'Obtener mappings de un hotel desde MyTool' })
+  @ApiBearerAuth()
+  getMyToolMappings(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+  ) {
+    return this.reservasService.getMyToolMappings(hotelSlug);
+  }
+
+  @Get('mytool/:hotelSlug/buscar')
+  @Auth()
+  @ApiOperation({ summary: 'Buscar reserva en MyTool por localizador y nombre' })
+  @ApiBearerAuth()
+  searchReservaMyTool(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+    @Query() dto: SearchReservaMyToolDto,
+  ): Promise<MyToolBookingResponse> {
+    return this.reservasService.searchReservaMyTool(
+      hotelSlug,
+      dto.localizador,
+      dto.nombre,
+    );
+  }
+
+  @Post('mytool/:hotelSlug')
+  @Auth()
+  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore. Body usa estructura exacta de MyTool.' })
+  @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
+  @ApiBearerAuth()
+  createReservaMyTool(
+    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
+    @Body() dto: CreateReservaMyToolDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.createReservaMyTool(
+      dto,
+      hotelSlug,
+      user._id.toString(),
+    );
+  }
+
+  // #endregion MyTool Booking
 }

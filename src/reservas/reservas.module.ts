@@ -9,6 +9,7 @@ import { CommonModule } from 'src/common/common.module';
 import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { CancellationLockReconciliationService } from './cancellation-lock-reconciliation.service';
+import { MyToolBookingService } from './services/my-tool-booking.service';
 
 @Module({
   controllers: [ReservasController],
@@ -16,6 +17,7 @@ import { CancellationLockReconciliationService } from './cancellation-lock-recon
     ReservasService,
     CancellationTasksQueueService,
     CancellationLockReconciliationService,
+    MyToolBookingService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),

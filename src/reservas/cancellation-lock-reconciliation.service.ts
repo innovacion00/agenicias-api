@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { HttpCustomService } from 'src/common/services';
 import { ValidPaymentStatus } from './interfaces';
 import { Reserva } from './entities';
+import { debeBloquearCancelacionPorPrimeraMitadPagada } from './utils';
 
 @Injectable()
 export class CancellationLockReconciliationService
@@ -47,6 +48,20 @@ export class CancellationLockReconciliationService
 
   private async reconcileSingleReservation(reserva: Reserva) {
     try {
+      if (debeBloquearCancelacionPorPrimeraMitadPagada(reserva)) {
+        await this.reservaModel.updateOne(
+          { _id: reserva._id },
+          {
+            $set: { cancelInProgress: false },
+            $unset: { cancelOpId: '' },
+          },
+        );
+        this.logger.warn(
+          `Reconciliacion cancelada: reserva ${reserva.reservaChatbotId} tiene primera mitad pagada; no se completa cancelacion en Autocore.`,
+        );
+        return;
+      }
+
       const cancellationResult = await this.httpCustomService.cancelarReservas(
         reserva.reservaChatbotId,
       );

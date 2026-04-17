@@ -11,4 +11,7 @@ export const hotelesIps = [
   envs.apiAzuan,
   envs.apiAxis,
   envs.apiAixo,
+  envs.apiMarques,
+  envs.apiSansiraka,
+  envs.apiPlayaSalguero,
 ];
