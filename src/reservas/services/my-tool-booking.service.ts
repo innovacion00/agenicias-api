@@ -55,8 +55,17 @@ export class MyToolBookingService {
   private mappingsCache = new Map<string, CachedItem<MyToolMappings>>();
   private readonly MAPPINGS_TTL = 5 * 60 * 1000;
 
+  /** Evita URLs como http://http://host (error típico en .env) y recorta slashes finales. */
+  private normalizeHotelBaseUrl(raw: string): string {
+    let s = raw.trim().replace(/\/+$/, '');
+    s = s.replace(/^(https?:\/\/)+/i, (matched) =>
+      matched.toLowerCase().includes('https://') ? 'https://' : 'http://',
+    );
+    return s.replace(/\/+$/, '');
+  }
+
   private buildUrl(hotelIp: string, path: string): string {
-    const base = hotelIp.replace(/\/+$/, '');
+    const base = this.normalizeHotelBaseUrl(hotelIp);
     return `${base}/api/${path}`;
   }
 
@@ -92,7 +101,8 @@ export class MyToolBookingService {
   }
 
   async authenticate(hotelIp: string, forceRefresh = false): Promise<string> {
-    const cacheKey = hotelIp;
+    const normalizedIp = this.normalizeHotelBaseUrl(hotelIp);
+    const cacheKey = normalizedIp;
     const cached = this.tokenCache.get(cacheKey);
 
     if (
@@ -105,7 +115,7 @@ export class MyToolBookingService {
 
     try {
       const { data } = await axios.post<{ token: string; valido: string }>(
-        this.buildUrl(hotelIp, 'Autenticacion/Validar'),
+        this.buildUrl(normalizedIp, 'Autenticacion/Validar'),
         {
           correo: envs.myToolEmail,
           clave: envs.myToolClave,
@@ -114,12 +124,12 @@ export class MyToolBookingService {
       );
 
       this.tokenCache.set(cacheKey, { data: data.token, timestamp: Date.now() });
-      this.logger.log(`Token MyTool obtenido para ${hotelIp}`);
+      this.logger.log(`Token MyTool obtenido para ${normalizedIp}`);
       return data.token;
     } catch (error) {
       const details = this.extractErrorDetails(error);
       this.logger.error(
-        `[authenticate] ERROR ${details.status} | ${hotelIp} | Response: ${JSON.stringify(details.responseData)} | ${details.message}`,
+        `[authenticate] ERROR ${details.status} | ${normalizedIp} | Response: ${JSON.stringify(details.responseData)} | ${details.message}`,
       );
       throw error;
     }
