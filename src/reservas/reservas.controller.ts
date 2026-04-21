@@ -462,7 +462,10 @@ export class ReservasController {
 
   @Post('mytool/:hotelSlug')
   @Auth()
-  @ApiOperation({ summary: 'Crear reserva via MyTool con fallback a Autocore. Body usa estructura exacta de MyTool.' })
+  @ApiOperation({
+    summary:
+      'Crear reserva via MyTool con fallback a Autocore. Body alineado con MyTool; bookData.localizador se genera en el servidor (formato reservaChatbotId, ej. CB88D9393D).',
+  })
   @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
   @ApiBearerAuth()
   createReservaMyTool(
