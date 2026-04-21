@@ -288,7 +288,6 @@ export class VuelosController {
       throw error;
     }
   }
-
   /**
    * Crear una reserva de vuelo
    * @param orderDto - Datos de la reserva de vuelo
@@ -522,7 +521,6 @@ export class VuelosController {
       throw error;
     }
   }
-
   /**
    * Obtener información de equipaje disponible para un paquete usando la API de MaarLab Oceanflights
    * @param packageId - ID del paquete obtenido después de su creación (query param)
@@ -581,7 +579,6 @@ export class VuelosController {
       throw error;
     }
   }
-
   /**
    * Agregar extras seleccionados a un paquete de vuelo usando la API de MaarLab Oceanflights
    * @param addExtrasDto - Datos de los extras a agregar
@@ -650,7 +647,6 @@ export class VuelosController {
       throw error;
     }
   }
-
   /**
    * Eliminar un extra específico de un paquete de vuelo usando la API de MaarLab Oceanflights
    * @param packageId - ID del paquete del cual se elimina el extra (query param)

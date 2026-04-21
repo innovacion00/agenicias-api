@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 
+import { randomBytes } from 'crypto';
 import { Model, Types, Connection } from 'mongoose';
 
 import { addDay, format, addMinute } from '@formkit/tempo';
@@ -1993,6 +1994,11 @@ export class ReservasService {
     }
   }
 
+  /** Mismo estilo que reservaChatbotId de Autocore (ej. CB88D9393D). */
+  private generateMyToolLocalizador(): string {
+    return `CB${randomBytes(4).toString('hex').toUpperCase()}`;
+  }
+
   private parseYyyyMmDdOrThrow(value: string, fieldName: string): Date {
     const raw = value.trim();
     const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -2057,7 +2063,8 @@ export class ReservasService {
       );
       const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
-      let reservaChatbotId: string = dto.bookData.localizador;
+      const localizadorGenerado = this.generateMyToolLocalizador();
+      let reservaChatbotId: string = localizadorGenerado;
       let reservaProvider: 'mytool' | 'autocore' = 'mytool';
       let usedFallback = false;
 
@@ -2080,7 +2087,7 @@ export class ReservasService {
         checkOut: dto.checkOut,
         usuario: dto.usuario || userInfo.fullName || userInfo.email,
         maquinaId: dto.maquinaId ?? 1,
-        bookData: dto.bookData,
+        bookData: { ...dto.bookData, localizador: localizadorGenerado },
         rooms: cleanRooms,
       };
 

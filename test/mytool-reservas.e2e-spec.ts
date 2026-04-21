@@ -72,12 +72,14 @@ const mockMyToolBookingService = {
       { id: 50, tipo: 'Canal de Venta', mapCode: 41, mapName: 'OTA' },
     ],
   }),
-  createBooking: jest.fn().mockResolvedValue({
-    isSuccess: true,
-    message: 'Reserva creada',
-    localizador: 'RES-TEST-001',
-    result: { id: 123 },
-  }),
+  createBooking: jest.fn().mockImplementation((_slug: string, body: any) =>
+    Promise.resolve({
+      isSuccess: true,
+      message: 'Reserva creada',
+      localizador: body.bookData.localizador,
+      result: { id: 123 },
+    }),
+  ),
   cancelBooking: jest.fn().mockResolvedValue({
     isSuccess: true,
     message: 'Reserva cancelada',
@@ -132,7 +134,6 @@ function buildValidCreateDto() {
       ratePlan: '99098',
       paisCode: 'CO',
       monedaCode: 'COP',
-      localizador: 'RES-TEST-001',
       comision: 0,
       siAgregaImpto: false,
       acuerdos: '',
@@ -294,7 +295,7 @@ describe('MyTool Reservas (e2e)', () => {
     });
     await seedReserva.deleteOne();
   }, 60000);
-1111111111111111111111111111111111112222
+
   afterAll(async () => {
     await app.close();
     await mongod.stop();
@@ -356,11 +357,16 @@ describe('MyTool Reservas (e2e)', () => {
           hotelId: 1,
           checkIn: '2026-12-01',
           checkOut: '2026-12-06',
+          bookData: expect.objectContaining({
+            localizador: expect.stringMatching(/^CB[0-9A-F]{8}$/),
+          }),
         }),
       );
 
+      expect(res.body.reservaChatbotId).toMatch(/^CB[0-9A-F]{8}$/);
+
       const savedReserva = await reservaModel.findOne({
-        reservaChatbotId: 'RES-TEST-001',
+        reservaChatbotId: res.body.reservaChatbotId,
       });
       expect(savedReserva).toBeTruthy();
       expect(savedReserva!.hotel).toBe('Hotel Aixo');
@@ -376,7 +382,6 @@ describe('MyTool Reservas (e2e)', () => {
       );
 
       const dto = buildValidCreateDto();
-      dto.bookData.localizador = 'RES-FALLBACK-001';
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/aixo')
@@ -400,7 +405,6 @@ describe('MyTool Reservas (e2e)', () => {
       });
 
       const dto = buildValidCreateDto();
-      dto.bookData.localizador = 'RES-NOFALLBACK-001';
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/marques')
@@ -411,7 +415,6 @@ describe('MyTool Reservas (e2e)', () => {
 
     it('debe limpiar campos null de guest (image1, image2)', async () => {
       const dto = buildValidCreateDto();
-      dto.bookData.localizador = 'RES-CLEAN-001';
       (dto.rooms[0].guest[0] as any).image1 = null;
       (dto.rooms[0].guest[0] as any).image2 = null;
 

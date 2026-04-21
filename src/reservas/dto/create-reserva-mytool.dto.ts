@@ -238,10 +238,6 @@ export class MyToolBookDataDto {
   @IsOptional()
   monedaCode?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  localizador: string;
-
   @IsNumber()
   @IsOptional()
   comision?: number;
