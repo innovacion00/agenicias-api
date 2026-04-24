@@ -2398,28 +2398,13 @@ export class ReservasService {
           );
         }
 
-        try {
-          await this.myToolBookingService.cancelBooking(
-            hotelSlug,
-            reserva.reservaChatbotId,
-            usuarioCancela,
-            canalVentaParaMyTool,
-            dto.maquinaId,
-          );
-        } catch (cancelError) {
-          const hotelConfig = hotelMyToolConfig[hotelSlug];
-          if (!hotelConfig?.autocoreId) {
-            throw new InternalServerErrorException(
-              `No se pudo cancelar la reserva en MyTool y este hotel no tiene sistema alternativo.`,
-            );
-          }
-          this.logger.warn(
-            `Error cancelando en MyTool, intentando Autocore: ${cancelError.message}`,
-          );
-          await this.httpCustomService.cancelarReservas(
-            reserva.reservaChatbotId,
-          );
-        }
+        await this.myToolBookingService.cancelBooking(
+          hotelSlug,
+          reserva.reservaChatbotId,
+          usuarioCancela,
+          canalVentaParaMyTool,
+          dto.maquinaId,
+        );
       } else {
         await this.httpCustomService.cancelarReservas(
           reserva.reservaChatbotId,

@@ -149,7 +149,7 @@
               "mode": "raw",
               "raw": "{\n  \"localizador\": \"{{localizador}}\",\n  \"canalVentaId\": 41,\n  \"usuarioCancela\": \"Usuario API\",\n  \"maquinaId\": 1\n}"
             },
-            "description": "Body alineado con MyTool cancelBookAvail. localizador = reservaChatbotId en BD. canalVentaId, usuarioCancela y maquinaId son opcionales (valores por defecto / usuario autenticado si faltan)."
+            "description": "Solo cancela en MyTool (API cancelBookAvail). No hay respaldo a Autocore. localizador = reservaChatbotId en BD. canalVentaId, usuarioCancela y maquinaId son opcionales."
           }
         },
         {

@@ -489,9 +489,7 @@ describe('MyTool Reservas (e2e)', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
-  // POST cancelar reserva
-  // ─────────────────────────────────────────────
+ 
   describe('POST /agencias/v1/reservas/mytool/cancelar', () => {
     let savedReservaId: string;
     let savedLocalizador: string;
@@ -601,18 +599,17 @@ describe('MyTool Reservas (e2e)', () => {
       expect(mockMyToolBookingService.cancelBooking).not.toHaveBeenCalled();
     });
 
-    it('debe usar fallback Autocore si cancelación MyTool falla', async () => {
+    it('no debe llamar a Autocore si falla la cancelación en MyTool', async () => {
       mockMyToolBookingService.cancelBooking.mockRejectedValueOnce(
         new Error('MyTool cancel failed'),
       );
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ localizador: savedLocalizador })
-        .expect(201);
+        .send({ localizador: savedLocalizador });
 
-      expect(res.body.msg).toContain('cancelada correctamente');
-      expect(mockHttpCustomService.cancelarReservas).toHaveBeenCalled();
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(mockHttpCustomService.cancelarReservas).not.toHaveBeenCalled();
     });
 
     it('no debe confundir "cancelar" como hotelSlug', async () => {

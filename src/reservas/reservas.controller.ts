@@ -428,7 +428,7 @@ export class ReservasController {
   @Auth()
   @ApiOperation({
     summary:
-      'Cancelar reserva (body alineado con MyTool cancelBookAvail; busca por localizador = reservaChatbotId)',
+      'Cancelar en MyTool (cancelBookAvail). Si reservaProvider es autocore, cancela en Autocore. Busca por localizador = reservaChatbotId',
   })
   @ApiBearerAuth()
   cancelReservaMyTool(
