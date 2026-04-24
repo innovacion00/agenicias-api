@@ -51,7 +51,10 @@ import {
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
-import { CreateReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import {
+  CancelReservaMyToolDto,
+  CreateReservaMyToolDto,
+} from './dto/create-reserva-mytool.dto';
 import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
 
 @Injectable()
@@ -2342,12 +2345,21 @@ export class ReservasService {
     }
   }
 
-  async cancelarReservaMyTool(reservaId: string, user: User) {
+  async cancelarReservaMyTool(dto: CancelReservaMyToolDto, user: User) {
     try {
-      const reserva = await this.reservasModel.findById(reservaId);
+      const reserva = await this.reservasModel.findOne({
+        reservaChatbotId: dto.localizador,
+      });
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
       }
+
+      const usuarioCancela =
+        (dto.usuarioCancela && dto.usuarioCancela.trim()) ||
+        user.fullName ||
+        user.email;
+      const canalVentaParaMyTool =
+        dto.canalVentaId ?? reserva.myToolCanalVentaId ?? undefined;
 
       if (reserva.status === ValidPaymentStatus.cancelado) {
         return { msg: `Reserva ${reserva.reservaChatbotId} ya está cancelada` };
@@ -2390,8 +2402,9 @@ export class ReservasService {
           await this.myToolBookingService.cancelBooking(
             hotelSlug,
             reserva.reservaChatbotId,
-            user.fullName || user.email,
-            reserva.myToolCanalVentaId ?? undefined,
+            usuarioCancela,
+            canalVentaParaMyTool,
+            dto.maquinaId,
           );
         } catch (cancelError) {
           const hotelConfig = hotelMyToolConfig[hotelSlug];

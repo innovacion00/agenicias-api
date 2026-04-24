@@ -426,13 +426,16 @@ export class ReservasController {
 
   @Post('mytool/cancelar')
   @Auth()
-  @ApiOperation({ summary: 'Cancelar reserva (detecta provider automaticamente)' })
+  @ApiOperation({
+    summary:
+      'Cancelar reserva (body alineado con MyTool cancelBookAvail; busca por localizador = reservaChatbotId)',
+  })
   @ApiBearerAuth()
   cancelReservaMyTool(
     @Body() dto: CancelReservaMyToolDto,
     @GetUser() user: User,
   ) {
-    return this.reservasService.cancelarReservaMyTool(dto.reservaId, user);
+    return this.reservasService.cancelarReservaMyTool(dto, user);
   }
 
   @Get('mytool/:hotelSlug/mappings')
