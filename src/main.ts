@@ -62,6 +62,7 @@ async function bootstrap() {
     .addTag('my-tool', 'Endpoints de herramientas internas')
     .addTag('cloudinary', 'Endpoints de Cloudinary')
     .addTag('integrations', 'Endpoints de integraciones')
+    .addTag('referencia-aeropuertos', 'Catálogo local de aeropuertos (búsqueda predictiva)')
     .addServer('http://localhost:3000', 'Servidor de desarrollo')
     .build();
 

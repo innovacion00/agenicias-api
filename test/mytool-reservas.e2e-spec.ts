@@ -489,13 +489,13 @@ describe('MyTool Reservas (e2e)', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
-  // POST cancelar reserva
-  // ─────────────────────────────────────────────
+ 
   describe('POST /agencias/v1/reservas/mytool/cancelar', () => {
     let savedReservaId: string;
+    let savedLocalizador: string;
 
     beforeEach(async () => {
+      const localizador = `RES-CANCEL-${Date.now()}`;
       const reserva = await reservaModel.create({
         userId: TEST_USER_ID,
         agenciaId: TEST_AGENCIA_ID,
@@ -536,7 +536,7 @@ describe('MyTool Reservas (e2e)', () => {
             },
           ],
         },
-        reservaChatbotId: `RES-CANCEL-${Date.now()}`,
+        reservaChatbotId: localizador,
         reservaProvider: 'mytool',
         myToolCanalVentaId: 101,
         titularInfo: {
@@ -550,20 +550,27 @@ describe('MyTool Reservas (e2e)', () => {
         status: ValidPaymentStatus.espera,
       });
       savedReservaId = reserva._id.toString();
+      savedLocalizador = localizador;
     });
 
     it('debe cancelar una reserva mytool existente con su canalVentaId', async () => {
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: savedReservaId })
+        .send({
+          localizador: savedLocalizador,
+          canalVentaId: 101,
+          usuarioCancela: 'Test User',
+          maquinaId: 1,
+        })
         .expect(201);
 
       expect(res.body.msg).toContain('cancelada correctamente');
       expect(mockMyToolBookingService.cancelBooking).toHaveBeenCalledWith(
         'aixo',
-        expect.any(String),
-        expect.any(String),
+        savedLocalizador,
+        'Test User',
         101,
+        1,
       );
 
       const updated = await reservaModel.findById(savedReservaId);
@@ -571,11 +578,9 @@ describe('MyTool Reservas (e2e)', () => {
     });
 
     it('debe retornar 404 si la reserva no existe', async () => {
-      const fakeId = new Types.ObjectId().toString();
-
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: fakeId });
+        .send({ localizador: 'LOCALIZADOR-INEXISTENTE-99999' });
 
       expect(res.status).toBeGreaterThanOrEqual(400);
     });
@@ -587,37 +592,36 @@ describe('MyTool Reservas (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: savedReservaId })
+        .send({ localizador: savedLocalizador })
         .expect(201);
 
       expect(res.body.msg).toContain('ya está cancelada');
       expect(mockMyToolBookingService.cancelBooking).not.toHaveBeenCalled();
     });
 
-    it('debe usar fallback Autocore si cancelación MyTool falla', async () => {
+    it('no debe llamar a Autocore si falla la cancelación en MyTool', async () => {
       mockMyToolBookingService.cancelBooking.mockRejectedValueOnce(
         new Error('MyTool cancel failed'),
       );
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: savedReservaId })
-        .expect(201);
+        .send({ localizador: savedLocalizador });
 
-      expect(res.body.msg).toContain('cancelada correctamente');
-      expect(mockHttpCustomService.cancelarReservas).toHaveBeenCalled();
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(mockHttpCustomService.cancelarReservas).not.toHaveBeenCalled();
     });
 
     it('no debe confundir "cancelar" como hotelSlug', async () => {
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: savedReservaId });
+        .send({ localizador: savedLocalizador });
 
       expect(res.body.message ?? '').not.toContain('no es valido');
       expect(res.body).toHaveProperty('msg');
     });
 
-    it('debe rechazar body sin reservaId', async () => {
+    it('debe rechazar body sin localizador', async () => {
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
         .send({})
@@ -714,7 +718,7 @@ describe('MyTool Reservas (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/agencias/v1/reservas/mytool/cancelar')
-        .send({ reservaId: reserva._id.toString() });
+        .send({ localizador: reserva.reservaChatbotId });
 
       expect(res.body.message ?? '').not.toContain('no es valido');
       expect(res.body.msg).toContain('cancelada');

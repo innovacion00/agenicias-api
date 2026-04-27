@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -386,10 +387,29 @@ export class CreateReservaMyToolDto {
 
 // ────────────────── DTOs de cancelación y búsqueda ──────────────────
 
+/** Body alineado con lo que envía el backend a MyTool `POST .../cancelBookAvail`. */
 export class CancelReservaMyToolDto {
+  /** Localizador de la reserva (mismo valor que `reservaChatbotId` en BD). */
   @IsString()
   @IsNotEmpty()
-  reservaId: string;
+  localizador: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  canalVentaId?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  usuarioCancela?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maquinaId?: number;
 }
 
 export class SearchReservaMyToolDto {

@@ -51,7 +51,10 @@ import {
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
-import { CreateReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import {
+  CancelReservaMyToolDto,
+  CreateReservaMyToolDto,
+} from './dto/create-reserva-mytool.dto';
 import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
 
 @Injectable()
@@ -2342,12 +2345,21 @@ export class ReservasService {
     }
   }
 
-  async cancelarReservaMyTool(reservaId: string, user: User) {
+  async cancelarReservaMyTool(dto: CancelReservaMyToolDto, user: User) {
     try {
-      const reserva = await this.reservasModel.findById(reservaId);
+      const reserva = await this.reservasModel.findOne({
+        reservaChatbotId: dto.localizador,
+      });
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
       }
+
+      const usuarioCancela =
+        (dto.usuarioCancela && dto.usuarioCancela.trim()) ||
+        user.fullName ||
+        user.email;
+      const canalVentaParaMyTool =
+        dto.canalVentaId ?? reserva.myToolCanalVentaId ?? undefined;
 
       if (reserva.status === ValidPaymentStatus.cancelado) {
         return { msg: `Reserva ${reserva.reservaChatbotId} ya está cancelada` };
@@ -2386,27 +2398,13 @@ export class ReservasService {
           );
         }
 
-        try {
-          await this.myToolBookingService.cancelBooking(
-            hotelSlug,
-            reserva.reservaChatbotId,
-            user.fullName || user.email,
-            reserva.myToolCanalVentaId ?? undefined,
-          );
-        } catch (cancelError) {
-          const hotelConfig = hotelMyToolConfig[hotelSlug];
-          if (!hotelConfig?.autocoreId) {
-            throw new InternalServerErrorException(
-              `No se pudo cancelar la reserva en MyTool y este hotel no tiene sistema alternativo.`,
-            );
-          }
-          this.logger.warn(
-            `Error cancelando en MyTool, intentando Autocore: ${cancelError.message}`,
-          );
-          await this.httpCustomService.cancelarReservas(
-            reserva.reservaChatbotId,
-          );
-        }
+        await this.myToolBookingService.cancelBooking(
+          hotelSlug,
+          reserva.reservaChatbotId,
+          usuarioCancela,
+          canalVentaParaMyTool,
+          dto.maquinaId,
+        );
       } else {
         await this.httpCustomService.cancelarReservas(
           reserva.reservaChatbotId,

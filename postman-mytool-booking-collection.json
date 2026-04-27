@@ -147,9 +147,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reservaId\": \"{{reservaId}}\"\n}"
+              "raw": "{\n  \"localizador\": \"{{localizador}}\",\n  \"canalVentaId\": 41,\n  \"usuarioCancela\": \"Usuario API\",\n  \"maquinaId\": 1\n}"
             },
-            "description": "Cancela una reserva detectando automáticamente el provider (MyTool o Autocore)."
+            "description": "Solo cancela en MyTool (API cancelBookAvail). No hay respaldo a Autocore. localizador = reservaChatbotId en BD. canalVentaId, usuarioCancela y maquinaId son opcionales."
           }
         },
         {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -492,6 +493,19 @@ export class HttpCustomService {
           msg: `Reserva ${chatbotId} ya estaba cancelada en Autocore`,
           alreadyCanceled: true,
         };
+      }
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        this.logger.error(
+          `Autocore cancel 404: chatbotId=${chatbotId}`,
+          error.response?.data,
+        );
+        throw new BadRequestException(
+          `Autocore no devolvió ninguna reserva con localizador "${chatbotId}" (HTTP 404). ` +
+            `Compruebe que el cuerpo use exactamente el "reservaChatbotId" de la respuesta al crear la reserva, ` +
+            `y en Postman: si la reserva vino solo de MyTool (reservaProvider "mytool", usedFallback false), ` +
+            `es normal que falle un respaldo a Autocore si la cancelación en MyTool falló primero:` +
+            ` esa reserva no existe en el sistema de Autocore con ese id.`,
+        );
       }
       this.axiosError(error, this.cancelarReservas.name);
     }

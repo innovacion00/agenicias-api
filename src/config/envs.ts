@@ -75,6 +75,10 @@ interface EnvVars {
   MAARLAB_BASE_URL: string;
   /** @deprecated El Bearer por solicitud sale de Agencia.maarlabApiKey */
   MAARLAB_AUTH_TOKEN?: string;
+  /** Bearer de nivel partner para script `sync:maarlab-keys` (listar api_keys_by_partner). */
+  MAARLAB_PARTNER_SYNC_BEARER?: string;
+  /** UUID cadena MaarLab (`id_chain_search_engine`) para el script de sincronización. */
+  MAARLAB_CHAIN_SEARCH_ENGINE_ID?: string;
 }
 
 // API_1525: joi.string().required(),
@@ -150,6 +154,8 @@ const envSchema = joi
     //? MaarLab
     MAARLAB_BASE_URL: joi.string().required(),
     MAARLAB_AUTH_TOKEN: joi.string().allow('').optional().default(''),
+    MAARLAB_PARTNER_SYNC_BEARER: joi.string().allow('').optional().default(''),
+    MAARLAB_CHAIN_SEARCH_ENGINE_ID: joi.string().allow('').optional().default(''),
   })
   .unknown(true);
 
@@ -234,4 +240,8 @@ export const envs = {
   maarlabBaseUrl: envVars.MAARLAB_BASE_URL,
   /** Legado; no usar para Authorization hacia OceanFlights. */
   maarlabAuthToken: envVars.MAARLAB_AUTH_TOKEN ?? '',
+  /** Partner: listar API keys (script sync). */
+  maarlabPartnerSyncBearer: envVars.MAARLAB_PARTNER_SYNC_BEARER ?? '',
+  /** UUID cadena para `id_chain_search_engine`. */
+  maarlabChainSearchEngineId: envVars.MAARLAB_CHAIN_SEARCH_ENGINE_ID ?? '',
 };

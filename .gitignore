@@ -42,6 +42,9 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Datos de seed voluminosos (colocar airports.json localmente)
+/data/airports.json
+
 # temp directory
 .temp
 .tmp
