@@ -181,6 +181,12 @@ export class MyToolRoomDto {
   @IsNotEmpty()
   categoriaId: number;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  /** Nombre de la habitación (solo para persistencia en BD; no se envía a MyTool). */
+  nombreHabitacion?: string;
+
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
