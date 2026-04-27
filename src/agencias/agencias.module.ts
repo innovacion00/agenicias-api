@@ -6,6 +6,7 @@ import { Agencia, AgenciaSchema } from './entities';
 import { CommonModule } from 'src/common/common.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { ReservasModule } from 'src/reservas/reservas.module';
+import { MaarlabCredentialsModule } from 'src/maarlab-credentials/maarlab-credentials.module';
 
 @Module({
   controllers: [AgenciasController],
@@ -14,6 +15,7 @@ import { ReservasModule } from 'src/reservas/reservas.module';
     forwardRef(() => AuthModule),
     forwardRef(() => ReservasModule),
     CommonModule,
+    MaarlabCredentialsModule,
     MongooseModule.forFeature([{ name: Agencia.name, schema: AgenciaSchema }]),
   ],
   exports: [AgenciasService, MongooseModule],

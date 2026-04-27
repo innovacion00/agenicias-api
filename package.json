@@ -21,7 +21,8 @@
     "migrate:maarlab-api-key": "ts-node scripts/migrate-maarlab-api-key.ts",
     "script:register-agencias-maarlab": "ts-node scripts/register-agencias-maarlab.ts",
     "seed:airports": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts",
-    "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only"
+    "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only",
+    "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.2",

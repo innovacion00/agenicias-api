@@ -13,6 +13,7 @@ import { HttpCustomService } from 'src/common/services';
 import { agenciaRecargaLimit } from 'src/config';
 import { RechargeWalletDto } from './dto';
 import { Reserva } from 'src/reservas/entities';
+import { MaarlabCredentialsService } from 'src/maarlab-credentials/maarlab-credentials.service';
 
 @Injectable()
 export class AgenciasService {
@@ -26,6 +27,8 @@ export class AgenciasService {
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
 
     private readonly httpCustomService: HttpCustomService,
+
+    private readonly maarlabCredentialsService: MaarlabCredentialsService,
   ) {
     this.errorManager = new ErrorManager(AgenciasService.name);
   }
@@ -353,7 +356,7 @@ export class AgenciasService {
   async getMaarLabApiKeyOrThrow(agenciaId: Types.ObjectId): Promise<string> {
     const agencia = await this.agenciaModel
       .findById(agenciaId)
-      .select('maarlabApiKey')
+      .select('fullName maarlabApiKey')
       .lean()
       .exec();
 
@@ -361,14 +364,10 @@ export class AgenciasService {
       throw new NotFoundException('Agencia no encontrada');
     }
 
-    const key =
-      typeof agencia.maarlabApiKey === 'string' ? agencia.maarlabApiKey.trim() : '';
-    if (!key) {
-      throw new BadRequestException(
-        'Esta agencia no está registrada en el sistema de MaarLab',
-      );
-    }
-
-    return key;
+    return this.maarlabCredentialsService.resolveBearerForAgencia({
+      _id: agencia._id,
+      fullName: agencia.fullName,
+      maarlabApiKey: agencia.maarlabApiKey,
+    });
   }
 }
