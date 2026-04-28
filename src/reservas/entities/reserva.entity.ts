@@ -305,6 +305,7 @@ export class Reserva extends Document {
             quantity: { type: String, require: true },
             rateId: { type: String, require: true },
             unitaryPrice: { type: Number, require: true },
+            room_id: { type: String, default: '' },
           },
         },
       ],

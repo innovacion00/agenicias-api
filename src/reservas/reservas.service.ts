@@ -2072,7 +2072,7 @@ export class ReservasService {
       let usedFallback = false;
 
       const cleanRooms = dto.rooms.map((room) => {
-        const { nombreHabitacion: _nh, ...roomRest } = room;
+        const { nombreHabitacion: _nh, room_id: _rid, ...roomRest } = room;
         const cleanGuests = (room.guest || []).map((g) => {
           const cleanGuest: Record<string, any> = {};
           for (const [k, v] of Object.entries(g)) {
@@ -2164,6 +2164,10 @@ export class ReservasService {
                 nombreHabitacion:
                   (room.nombreHabitacion && String(room.nombreHabitacion).trim()) ||
                   'Habitacion',
+                room_id:
+                  room.room_id != null && String(room.room_id).trim() !== ''
+                    ? String(room.room_id).trim()
+                    : '',
                 adults: String(room.paxAdultos),
                 children: String(room.paxChilds),
                 children_ages: '',
@@ -2237,6 +2241,10 @@ export class ReservasService {
           nombreHabitacion:
             (room.nombreHabitacion && String(room.nombreHabitacion).trim()) ||
             'Habitacion',
+          room_id:
+            room.room_id != null && String(room.room_id).trim() !== ''
+              ? String(room.room_id).trim()
+              : '',
           adults: String(room.paxAdultos),
           children: String(room.paxChilds),
           children_ages: '',
