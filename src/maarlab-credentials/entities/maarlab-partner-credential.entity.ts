@@ -6,18 +6,15 @@ export type MaarlabPartnerCredentialDocument =
 
 /**
  * Credenciales por search engine devueltas por MaarLab (`api_keys_by_partner`).
- * El Bearer hacia OceanFlights por agencia se resuelve aquí o en `Agencia.maarlabApiKey`.
+ * `hotelName` debe coincidir exactamente con `Agencia.fullName` (sin normalización).
  */
 @Schema({ collection: 'maarlab_partner_credentials', timestamps: true })
 export class MaarlabPartnerCredential {
   @Prop({ required: true, unique: true })
   idSearchEngine: string;
 
-  @Prop({ required: true })
-  hotelName: string;
-
   @Prop({ required: true, index: true })
-  normHotelName: string;
+  hotelName: string;
 
   @Prop({ required: true })
   apiKey: string;
@@ -33,4 +30,4 @@ export const MaarlabPartnerCredentialSchema = SchemaFactory.createForClass(
   MaarlabPartnerCredential,
 );
 
-MaarlabPartnerCredentialSchema.index({ agenciaId: 1, normHotelName: 1 });
+MaarlabPartnerCredentialSchema.index({ agenciaId: 1, hotelName: 1 });

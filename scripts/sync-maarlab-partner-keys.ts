@@ -1,7 +1,7 @@
 /**
  * Descarga todas las páginas de `api_keys_by_partner` de MaarLab y guarda/actualiza
  * la colección `maarlab_partner_credentials` (upsert por `id_search_engine`).
- * Intenta vincular cada fila a una `Agencia` por nombre normalizado (`hotel_name` vs `fullName`).
+ * Vincula cada fila a una `Agencia` cuando `hotel_name` === `fullName` (mismo string).
  *
  * Variables en .env:
  *   MONGO_URL
@@ -21,7 +21,6 @@ import mongoose from 'mongoose';
 import { Types } from 'mongoose';
 import { AgenciaSchema } from '../src/agencias/entities/agencia.entity';
 import { MaarlabPartnerCredentialSchema } from '../src/maarlab-credentials/entities/maarlab-partner-credential.entity';
-import { normalizeMaarlabAgencyName } from '../src/maarlab-credentials/normalize-maarlab-agency-name';
 
 dotenv.config();
 
@@ -115,7 +114,8 @@ async function main(): Promise<void> {
     for (const row of items) {
       const idSe = row.id_search_engine?.trim();
       if (!idSe) continue;
-      const hotelName = (row.hotel_name ?? '').trim();
+      const hotelNameRaw = row.hotel_name ?? '';
+      const hotelName = hotelNameRaw.trim() || idSe;
       const apiKey = (row.api_key ?? '').trim();
       if (!apiKey) continue;
 
@@ -123,11 +123,11 @@ async function main(): Promise<void> {
         { idSearchEngine: idSe },
         {
           $set: {
-            hotelName: hotelName || idSe,
-            normHotelName: normalizeMaarlabAgencyName(hotelName || idSe),
+            hotelName,
             apiKey,
             lastSyncedAt: now,
           },
+          $unset: { normHotelName: '' },
         },
         { upsert: true },
       );
@@ -145,15 +145,15 @@ async function main(): Promise<void> {
     .lean()
     .exec();
 
-  const normToAgencia = new Map<string, Types.ObjectId>();
+  const fullNameToAgencia = new Map<string, Types.ObjectId>();
   for (const a of agencias) {
-    const n = normalizeMaarlabAgencyName(a.fullName);
-    if (!n) continue;
-    if (!normToAgencia.has(n)) {
-      normToAgencia.set(n, a._id as Types.ObjectId);
+    const fn = a.fullName;
+    if (fn == null || fn === '') continue;
+    if (!fullNameToAgencia.has(fn)) {
+      fullNameToAgencia.set(fn, a._id as Types.ObjectId);
     } else {
       console.warn(
-        `[maarlab-sync] Varias agencias con nombre normalizado "${n}": se mantiene la primera`,
+        `[maarlab-sync] Varias agencias con el mismo fullName "${fn}": se mantiene la primera`,
       );
     }
   }
@@ -161,7 +161,7 @@ async function main(): Promise<void> {
   let linked = 0;
   const allCreds = await Credential.find({}).lean().exec();
   for (const c of allCreds) {
-    const aid = normToAgencia.get(c.normHotelName);
+    const aid = fullNameToAgencia.get(c.hotelName);
     if (aid) {
       await Credential.updateOne(
         { _id: c._id },
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Listo. Upserts en esta corrida: ${totalUpserts}, vínculos agenciaId por nombre: ${linked}`,
+    `Listo. Upserts en esta corrida: ${totalUpserts}, vínculos agenciaId por nombre exacto: ${linked}`,
   );
 
   await mongoose.disconnect();
