@@ -43,4 +43,6 @@ export interface RoomsDatum {
   quantity: string;
   rateId: string;
   unitaryPrice: number;
+  /** Identificador de habitación (p. ej. MyTool). */
+  room_id?: string;
 }

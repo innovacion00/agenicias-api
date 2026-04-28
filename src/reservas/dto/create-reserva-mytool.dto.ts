@@ -17,7 +17,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { IAsistente, ITitularInfo } from '../interfaces';
 import { InfoTransporteDto, InfoTouresDto } from './create-reserva.dto';
 
@@ -186,6 +186,17 @@ export class MyToolRoomDto {
   @MaxLength(200)
   /** Nombre de la habitación (solo para persistencia en BD; no se envía a MyTool). */
   nombreHabitacion?: string;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === null || value === undefined || value === ''
+      ? undefined
+      : String(value).trim(),
+  )
+  @IsString()
+  @MaxLength(120)
+  /** Identificador de habitación (solo persistencia / respuestas API; no se envía a MyTool). */
+  room_id?: string;
 
   @IsNumber()
   @IsNotEmpty()
