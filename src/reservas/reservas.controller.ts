@@ -16,6 +16,9 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { ReservasService } from './reservas.service';
@@ -39,6 +42,11 @@ import { CreateReservaMyToolDto, CancelReservaMyToolDto, SearchReservaMyToolDto 
 import type { MyToolBookingResponse } from './services/my-tool-booking.service';
 
 @ApiTags('reservas')
+@ApiExtraModels(
+  CreateReservaMyToolDto,
+  CancelReservaMyToolDto,
+  SearchReservaMyToolDto,
+)
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
@@ -425,12 +433,14 @@ export class ReservasController {
   // #region MyTool Booking
 
   @Post('mytool/cancelar')
+  @ApiTags('reservas', 'my-tool')
   @Auth()
   @ApiOperation({
     summary:
       'Cancelar en MyTool (cancelBookAvail). Si reservaProvider es autocore, cancela en Autocore. Busca por localizador = reservaChatbotId',
   })
-  @ApiBearerAuth()
+  @ApiBody({ type: CancelReservaMyToolDto })
+  @ApiBearerAuth('JWT-auth')
   cancelReservaMyTool(
     @Body() dto: CancelReservaMyToolDto,
     @GetUser() user: User,
@@ -439,9 +449,14 @@ export class ReservasController {
   }
 
   @Get('mytool/:hotelSlug/mappings')
+  @ApiTags('reservas', 'my-tool')
   @Auth()
   @ApiOperation({ summary: 'Obtener mappings de un hotel desde MyTool' })
-  @ApiBearerAuth()
+  @ApiParam({
+    name: 'hotelSlug',
+    description: 'Identificador slug del hotel configurado para MyTool',
+  })
+  @ApiBearerAuth('JWT-auth')
   getMyToolMappings(
     @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
   ) {
@@ -449,9 +464,14 @@ export class ReservasController {
   }
 
   @Get('mytool/:hotelSlug/buscar')
+  @ApiTags('reservas', 'my-tool')
   @Auth()
   @ApiOperation({ summary: 'Buscar reserva en MyTool por localizador y nombre' })
-  @ApiBearerAuth()
+  @ApiParam({
+    name: 'hotelSlug',
+    description: 'Identificador slug del hotel configurado para MyTool',
+  })
+  @ApiBearerAuth('JWT-auth')
   searchReservaMyTool(
     @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
     @Query() dto: SearchReservaMyToolDto,
@@ -464,13 +484,22 @@ export class ReservasController {
   }
 
   @Post('mytool/:hotelSlug')
+  @ApiTags('reservas', 'my-tool')
   @Auth()
   @ApiOperation({
-    summary:
-      'Crear reserva via MyTool con fallback a Autocore. Body alineado con MyTool; bookData.localizador se genera en el servidor (formato reservaChatbotId, ej. CB88D9393D).',
+    summary: 'Crear reserva vía MyTool (fallback Autocore)',
+    description:
+      'Body alineado con MyTool. `bookData.localizador` lo genera el servidor (formato `reservaChatbotId`). ' +
+      'En cada elemento de `rooms[]`, los campos opcionales `nombreHabitacion` y `room_id` se guardan en `reservation.roomsData` ' +
+      'y no se reenvían al API externo de MyTool.',
   })
+  @ApiParam({
+    name: 'hotelSlug',
+    description: 'Identificador slug del hotel configurado para MyTool',
+  })
+  @ApiBody({ type: CreateReservaMyToolDto })
   @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   createReservaMyTool(
     @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
     @Body() dto: CreateReservaMyToolDto,
