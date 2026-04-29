@@ -42,7 +42,7 @@ async function bootstrap() {
         '**Rutas destacadas**',
         '- `GET /agencias/v1/referencia-aeropuertos/sugerencias` — Autocomplete de aeropuertos (JWT).',
         '- `GET /agencias/v1/referencia-aeropuertos/estado` — Conteo del catálogo cargado (JWT).',
-        '- `POST /agencias/v1/reservas/mytool/:hotelSlug` — Reserva MyTool; `bookData.acuerdos` va a My Tool; `notes` solo BD (`reservation.notes`); `rooms[].nombreHabitacion` / `room_id` en `roomsData`.',
+        '- `POST /agencias/v1/reservas/mytool/:hotelSlug` — `bookData.acuerdos` va a My Tool; `notes`, `infoTransporte`, `infoToures`, `mascotas`/`mascotasNumber` solo BD; `rooms[].nombreHabitacion` / `room_id` en `roomsData`.',
         '- Vuelos MaarLab: Bearer por agencia vía credenciales sincronizadas o `maarlabApiKey`.',
       ].join('\n'),
     )

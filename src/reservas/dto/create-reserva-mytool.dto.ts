@@ -372,10 +372,19 @@ export class CreateReservaMyToolDto {
   @IsOptional()
   adicionAlmuerzo?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      'Indica si viajan mascotas. Solo persistencia en MongoDB; no se envía al API My Tool.',
+  })
   @IsBoolean()
   @IsOptional()
   mascotas?: boolean;
 
+  @ApiPropertyOptional({
+    minimum: 1,
+    description:
+      'Cantidad de mascotas. Solo persistencia en MongoDB (`reserva.mascotasNumber`); no se envía al API My Tool.',
+  })
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -405,11 +414,21 @@ export class CreateReservaMyToolDto {
   @IsOptional()
   exentoIva?: boolean;
 
+  @ApiPropertyOptional({
+    type: () => InfoTransporteDto,
+    description:
+      'Traslados / transporte. Solo se guarda en MongoDB (`reserva.infoTransporte`); no se incluye en el body enviado a My Tool.',
+  })
   @ValidateNested()
   @Type(() => InfoTransporteDto)
   @IsOptional()
   infoTransporte?: InfoTransporteDto;
 
+  @ApiPropertyOptional({
+    type: () => InfoTouresDto,
+    description:
+      'Tours. Solo se guarda en MongoDB (`reserva.infoToures`); no se incluye en el body enviado a My Tool.',
+  })
   @ValidateNested()
   @Type(() => InfoTouresDto)
   @IsOptional()

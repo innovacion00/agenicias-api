@@ -2103,6 +2103,8 @@ export class ReservasService {
         return { ...roomRest, guest: cleanGuests };
       });
 
+      // My Tool solo recibe: hotel, fechas, usuario, maquina, bookData, rooms.
+      // Excluido a propósito: infoTransporte, infoToures, notes, titularInfo, total, retenciones, asistentes, mascotas, mascotasNumber, etc.
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,

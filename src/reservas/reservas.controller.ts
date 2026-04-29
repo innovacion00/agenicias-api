@@ -492,7 +492,8 @@ export class ReservasController {
       'Body alineado con MyTool. `bookData.localizador` lo genera el servidor (formato `reservaChatbotId`). ' +
       'En cada elemento de `rooms[]`, los campos opcionales `nombreHabitacion` y `room_id` se guardan en `reservation.roomsData` ' +
       'y no se reenvían al API externo de MyTool. ' +
-      '`bookData.acuerdos` se envía a My Tool; `notes` (opcional) es solo interno y se persiste en `reservation.notes` (no va al API My Tool).',
+      '`bookData.acuerdos` se envía a My Tool; `notes` (opcional) es solo interno y se persiste en `reservation.notes` (no va al API My Tool). ' +
+      '`infoTransporte` e `infoToures` opcionales: solo MongoDB, no My Tool. `mascotas` / `mascotasNumber` igual (solo BD).',
   })
   @ApiParam({
     name: 'hotelSlug',
