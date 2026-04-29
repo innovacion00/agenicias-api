@@ -350,6 +350,16 @@ export class CreateReservaMyToolDto {
   @IsPositive()
   total: number;
 
+  @ApiPropertyOptional({
+    description:
+      'Notas internas (solo persistencia en `reservation.notes` en MongoDB). No se envía al API My Tool; usar `bookData.acuerdos` para texto hacia My Tool.',
+    maxLength: 8000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  notes?: string;
+
   @IsString()
   @IsOptional()
   planAlimentario?: string;

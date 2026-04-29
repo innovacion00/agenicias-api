@@ -42,7 +42,7 @@ async function bootstrap() {
         '**Rutas destacadas**',
         '- `GET /agencias/v1/referencia-aeropuertos/sugerencias` — Autocomplete de aeropuertos (JWT).',
         '- `GET /agencias/v1/referencia-aeropuertos/estado` — Conteo del catálogo cargado (JWT).',
-        '- `POST /agencias/v1/reservas/mytool/:hotelSlug` — Reserva MyTool; body incluye `rooms[].nombreHabitacion` y `rooms[].room_id` (persisten en `reservation.roomsData`).',
+        '- `POST /agencias/v1/reservas/mytool/:hotelSlug` — Reserva MyTool; `bookData.acuerdos` va a My Tool; `notes` solo BD (`reservation.notes`); `rooms[].nombreHabitacion` / `room_id` en `roomsData`.',
         '- Vuelos MaarLab: Bearer por agencia vía credenciales sincronizadas o `maarlabApiKey`.',
       ].join('\n'),
     )
@@ -94,7 +94,7 @@ async function bootstrap() {
   });
 
   await app.listen(envs.port);
-  logger.log(`🚀 Aplicación iniciada en puerto ${envs.port}`);
-  logger.log(`📚 Documentación Swagger: http://localhost:${envs.port}/agencias/v1/api-docs`);
+  logger.log(` Aplicación iniciada en puerto ${envs.port}`);
+  logger.log(` Documentación Swagger: http://localhost:${envs.port}/agencias/v1/api-docs`);
 }
 bootstrap();

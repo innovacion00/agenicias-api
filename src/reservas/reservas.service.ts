@@ -2158,7 +2158,7 @@ export class ReservasService {
               firstName: dto.titularInfo.firstName,
               lastName: dto.titularInfo.lastName,
               nights: String(nights),
-              notes: '',
+              notes: dto.notes ?? '',
               rooms: String(dto.rooms.length),
               roomsData: dto.rooms.map((room) => ({
                 nombreHabitacion:
@@ -2235,7 +2235,7 @@ export class ReservasService {
         firstName: dto.titularInfo.firstName,
         lastName: dto.titularInfo.lastName,
         nights: String(nights),
-        notes: dto.bookData.acuerdos || '',
+        notes: dto.notes ?? '',
         rooms: String(dto.rooms.length),
         roomsData: dto.rooms.map((room) => ({
           nombreHabitacion:
