@@ -241,7 +241,7 @@ No sustituye el código fuente; resume campos relevantes para integradores.
    - **`bookData.localizador`:** lo **sobrescribe** el servidor al generar localizador estilo chatbot.  
    - **`bookData.acuerdos`:** se envía a My Tool (como hasta ahora). **`notes`** (opcional, raíz del body): solo interno → **`reservation.notes`** en MongoDB; **no** se envía a My Tool.  
    - **`rooms[].nombreHabitacion`** y **`rooms[].room_id`:** se persisten en `roomsData` / lógica interna y **no** se reenvían a My Tool.  
-   - **`mascotas`** y **`mascotasNumber`** (opcionales): solo MongoDB; **no** se envían a My Tool.  
+   - **`mascotasNumber`** (opcional, 0–50): solo MongoDB; **no** se envía a My Tool. `0` = sin mascotas; `> 0` guarda cantidad y deja `reserva.mascotas` en `true`.  
 3. Si My Tool falla y el hotel tiene `autocoreId` en `hotelMyToolConfig`, **fallback Autocore**.
 4. Cancelación: `POST /reservas/mytool/cancelar` (JWT); búsqueda externa: `GET .../buscar` con query.
 
