@@ -2104,7 +2104,7 @@ export class ReservasService {
       });
 
       // My Tool solo recibe: hotel, fechas, usuario, maquina, bookData, rooms.
-      // Excluido a propósito: infoTransporte, infoToures, notes, titularInfo, total, retenciones, asistentes, mascotas, mascotasNumber, etc.
+      // Excluido a propósito: infoTransporte, infoToures, notes, titularInfo, total, retenciones, asistentes, mascotasNumber, etc.
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,
@@ -2306,8 +2306,8 @@ export class ReservasService {
               adicionAlmuerzo: dto.adicionAlmuerzo || false,
               infoTransporte: dto.infoTransporte || null,
               infoToures: dto.infoToures || null,
-              mascotas: dto.mascotas,
-              mascotasNumber: dto.mascotasNumber,
+              mascotasNumber: dto.mascotasNumber ?? 0,
+              mascotas: (dto.mascotasNumber ?? 0) > 0,
               origenIata: dto.origenIata,
             },
           ],

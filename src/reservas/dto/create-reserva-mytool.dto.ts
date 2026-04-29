@@ -373,21 +373,16 @@ export class CreateReservaMyToolDto {
   adicionAlmuerzo?: boolean;
 
   @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 50,
     description:
-      'Indica si viajan mascotas. Solo persistencia en MongoDB; no se envía al API My Tool.',
+      'Cantidad de mascotas (solo MongoDB; no se envía a My Tool). `0` = sin mascotas; `> 0` implica `reserva.mascotas === true`. Si se omite, se trata como `0`.',
   })
-  @IsBoolean()
   @IsOptional()
-  mascotas?: boolean;
-
-  @ApiPropertyOptional({
-    minimum: 1,
-    description:
-      'Cantidad de mascotas. Solo persistencia en MongoDB (`reserva.mascotasNumber`); no se envía al API My Tool.',
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
   mascotasNumber?: number;
 
   @IsOptional()
