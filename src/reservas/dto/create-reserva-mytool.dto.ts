@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -181,12 +182,22 @@ export class MyToolRoomDto {
   @IsNotEmpty()
   categoriaId: number;
 
+  @ApiPropertyOptional({
+    maxLength: 200,
+    description:
+      'Nombre de la habitación. Solo persistencia en `roomsData`; no se envía al API MyTool.',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(200)
-  /** Nombre de la habitación (solo para persistencia en BD; no se envía a MyTool). */
   nombreHabitacion?: string;
 
+  @ApiPropertyOptional({
+    maxLength: 120,
+    description:
+      'Identificador de habitación. Solo persistencia en `roomsData`; no se envía al API MyTool.',
+    example: 'hab-101',
+  })
   @IsOptional()
   @Transform(({ value }) =>
     value === null || value === undefined || value === ''
@@ -195,7 +206,6 @@ export class MyToolRoomDto {
   )
   @IsString()
   @MaxLength(120)
-  /** Identificador de habitación (solo persistencia / respuestas API; no se envía a MyTool). */
   room_id?: string;
 
   @IsNumber()
@@ -340,6 +350,16 @@ export class CreateReservaMyToolDto {
   @IsPositive()
   total: number;
 
+  @ApiPropertyOptional({
+    description:
+      'Notas internas (solo persistencia en `reservation.notes` en MongoDB). No se envía al API My Tool; usar `bookData.acuerdos` para texto hacia My Tool.',
+    maxLength: 8000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  notes?: string;
+
   @IsString()
   @IsOptional()
   planAlimentario?: string;
@@ -406,22 +426,28 @@ export class CreateReservaMyToolDto {
 
 /** Body alineado con lo que envía el backend a MyTool `POST .../cancelBookAvail`. */
 export class CancelReservaMyToolDto {
-  /** Localizador de la reserva (mismo valor que `reservaChatbotId` en BD). */
+  @ApiProperty({
+    description: 'Localizador de la reserva (mismo valor que `reservaChatbotId` en BD).',
+    example: 'CB88D9393D',
+  })
   @IsString()
   @IsNotEmpty()
   localizador: string;
 
+  @ApiPropertyOptional({ minimum: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   canalVentaId?: number;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   usuarioCancela?: string;
 
+  @ApiPropertyOptional({ minimum: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -430,10 +456,12 @@ export class CancelReservaMyToolDto {
 }
 
 export class SearchReservaMyToolDto {
+  @ApiProperty({ description: 'Localizador MyTool / reservaChatbotId', example: 'CB88D9393D' })
   @IsString()
   @IsNotEmpty()
   localizador: string;
 
+  @ApiProperty({ description: 'Nombre del titular o huésped', example: 'María Pérez' })
   @IsString()
   @IsNotEmpty()
   nombre: string;

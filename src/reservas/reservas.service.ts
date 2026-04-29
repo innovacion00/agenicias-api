@@ -630,10 +630,28 @@ export class ReservasService {
         }
       }
 
-      const data = await this.httpCustomService.editarReservas(
-        reserva.reservaChatbotId,
-        updateReservaDto,
-      );
+      /** Reservas solo-MyTool: el chatbotId es localizador My Tool; no existe en Autocore → 404 si se hace PUT allí. */
+      let data: { msg: string };
+      if (reserva.reservaProvider === 'mytool') {
+        this.logger.warn(
+          `editarReserva: reserva ${reserva.reservaChatbotId} es mytool — sin PUT Autocore; actualización solo en BD.`,
+        );
+        data = {
+          msg:
+            'Datos actualizados en la base de datos. Esta reserva está en My Tool; los cambios no se replican en Autocore.',
+        };
+      } else {
+        const autocoreData = await this.httpCustomService.editarReservas(
+          reserva.reservaChatbotId,
+          updateReservaDto,
+        );
+        if (!autocoreData) {
+          throw new InternalServerErrorException(
+            'No se recibió respuesta de Autocore al editar la reserva.',
+          );
+        }
+        data = autocoreData;
+      }
 
       await reserva.updateOne({
         $set: {
@@ -2158,7 +2176,7 @@ export class ReservasService {
               firstName: dto.titularInfo.firstName,
               lastName: dto.titularInfo.lastName,
               nights: String(nights),
-              notes: '',
+              notes: dto.notes ?? '',
               rooms: String(dto.rooms.length),
               roomsData: dto.rooms.map((room) => ({
                 nombreHabitacion:
@@ -2235,7 +2253,7 @@ export class ReservasService {
         firstName: dto.titularInfo.firstName,
         lastName: dto.titularInfo.lastName,
         nights: String(nights),
-        notes: dto.bookData.acuerdos || '',
+        notes: dto.notes ?? '',
         rooms: String(dto.rooms.length),
         roomsData: dto.rooms.map((room) => ({
           nombreHabitacion:
