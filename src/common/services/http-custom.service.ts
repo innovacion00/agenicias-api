@@ -500,11 +500,10 @@ export class HttpCustomService {
           error.response?.data,
         );
         throw new BadRequestException(
-          `Autocore no devolvió ninguna reserva con localizador "${chatbotId}" (HTTP 404). ` +
-            `Compruebe que el cuerpo use exactamente el "reservaChatbotId" de la respuesta al crear la reserva, ` +
-            `y en Postman: si la reserva vino solo de MyTool (reservaProvider "mytool", usedFallback false), ` +
-            `es normal que falle un respaldo a Autocore si la cancelación en MyTool falló primero:` +
-            ` esa reserva no existe en el sistema de Autocore con ese id.`,
+          `No se encontró la reserva  "${chatbotId}" (HTTP 404). ` +
+            `Verifique si la reserva no fue cancelada previamente, ` +
+            `espere unos minutos a que se actualice el estado de la reserva` +
+            `en caso de que no se actualice el estado consultar con el equipo de reservas`
         );
       }
       this.axiosError(error, this.cancelarReservas.name);
