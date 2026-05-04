@@ -250,6 +250,16 @@ export class ReservasService {
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
+      const rootNotes =
+        typeof createReservaDto.notes === 'string'
+          ? createReservaDto.notes.trim()
+          : '';
+      if (rootNotes) {
+        const { reservation } = createReservaDto.reservaInfo;
+        const inner = reservation.notes?.trim() ?? '';
+        reservation.notes = inner ? `${inner}\n${rootNotes}` : rootNotes;
+      }
+
       const reservaAutocoreInfo =
         await this.httpCustomService.createReservaAutocore(
           hotelId,
@@ -2089,6 +2099,9 @@ export class ReservasService {
       let reservaProvider: 'mytool' | 'autocore' = 'mytool';
       let usedFallback = false;
 
+      const mascotasNum =
+        dto.mascotasNumber ?? dto.bookData.mascotasNumber ?? 0;
+
       const cleanRooms = dto.rooms.map((room) => {
         const { nombreHabitacion: _nh, room_id: _rid, ...roomRest } = room;
         const cleanGuests = (room.guest || []).map((g) => {
@@ -2104,14 +2117,21 @@ export class ReservasService {
       });
 
       // My Tool solo recibe: hotel, fechas, usuario, maquina, bookData, rooms.
-      // Excluido a propósito: infoTransporte, infoToures, notes, titularInfo, total, retenciones, asistentes, mascotasNumber, etc.
+      // Excluido a propósito: mascotasNumber en bookData / raíz y demás solo-MongoDB.
+      const {
+        mascotasNumber: _mascotasBd,
+        ...bookDataSinMascotas
+      } = dto.bookData;
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
         usuario: dto.usuario || userInfo.fullName || userInfo.email,
         maquinaId: dto.maquinaId ?? 1,
-        bookData: { ...dto.bookData, localizador: localizadorGenerado },
+        bookData: {
+          ...bookDataSinMascotas,
+          localizador: localizadorGenerado,
+        },
         rooms: cleanRooms,
       };
 
@@ -2306,8 +2326,8 @@ export class ReservasService {
               adicionAlmuerzo: dto.adicionAlmuerzo || false,
               infoTransporte: dto.infoTransporte || null,
               infoToures: dto.infoToures || null,
-              mascotasNumber: dto.mascotasNumber ?? 0,
-              mascotas: (dto.mascotasNumber ?? 0) > 0,
+              mascotasNumber: mascotasNum,
+              mascotas: mascotasNum > 0,
               origenIata: dto.origenIata,
             },
           ],
