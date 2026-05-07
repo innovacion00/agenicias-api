@@ -1041,7 +1041,7 @@ export class ReservasService {
         throw new BadRequestException('Formato de ID de usuario no válido');
       }
 
-      const filter = { userId: userIdObjectId };
+      const filter = this.buildIdFilter('userId', userIdObjectId);
 
       // OPTIMIZACIÓN: Usar caché para el total y optimizar query con índices
       const [reservas, total] = await Promise.all([
@@ -1073,6 +1073,27 @@ export class ReservasService {
 
   // #region Búsquedas de reservas
   /**
+   * Compatibilidad con datos legacy:
+   * algunas reservas antiguas pueden tener IDs persistidos como string.
+   * Construimos filtros que aceptan ObjectId y su representación string.
+   */
+  private buildIdFilter(
+    field: 'userId' | 'agenciaId',
+    id: Types.ObjectId | string,
+  ): Record<string, any> {
+    const idAsString = typeof id === 'string' ? id : id.toString();
+
+    if (!Types.ObjectId.isValid(idAsString)) {
+      return { [field]: idAsString };
+    }
+
+    const objectId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(idAsString);
+
+    return { [field]: { $in: [objectId, idAsString] } };
+  }
+
+  /**
    * Helper para construir filtro base según el rol del usuario
    */
   private construirFiltroPorRol(
@@ -1088,10 +1109,10 @@ export class ReservasService {
       return {};
     } else if (esAdmin) {
       // Admin: solo reservas de su agencia
-      return { agenciaId };
+      return this.buildIdFilter('agenciaId', agenciaId);
     } else {
       // User: solo sus propias reservas
-      return { userId };
+      return this.buildIdFilter('userId', userId);
     }
   }
 
@@ -1594,17 +1615,19 @@ export class ReservasService {
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
+      const filter = this.buildIdFilter('agenciaId', agenciaId);
+
       // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
       const [reservas, total] = await Promise.all([
         this.reservasModel
-          .find({ agenciaId })
+          .find(filter)
           .populate('userId', 'fullName email')
           .populate('agenciaId', 'fullName _id')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(PAGE_SIZE)
           .lean(), // Mejor rendimiento al retornar objetos planos
-        this.getCachedCount({ agenciaId }),
+        this.getCachedCount(filter),
       ]);
 
       return {
