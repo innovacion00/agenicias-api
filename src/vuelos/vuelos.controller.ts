@@ -18,7 +18,6 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { VuelosService } from './vuelos.service';
-import { ErrorHandlerService } from './services/error-handler.service';
 import { ErrorHandlerInterceptor } from './interceptors/error-handler.interceptor';
 import { ErrorHandlerFilter } from './filters/error-handler.filter';
 import { LogContext } from './interfaces/error-response.interface';

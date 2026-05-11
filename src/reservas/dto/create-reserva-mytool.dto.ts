@@ -295,6 +295,20 @@ export class MyToolBookDataDto {
 
   @IsOptional()
   agenteId?: number | string;
+
+  /** Solo BD / validación Nest; My Tool no espera esta clave → se omite antes del POST externo. */
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 50,
+    description:
+      'Misma semántica que `mascotasNumber` raíz (`0` = sin mascotas). Útil si el cliente agrupa datos bajo `bookData`. No se envía al API My Tool.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  mascotasNumber?: number;
 }
 
 // ────────────────── DTO principal (body exacto de MyTool + campos internos) ──────────────────
@@ -384,6 +398,14 @@ export class CreateReservaMyToolDto {
   @Min(0)
   @Max(50)
   mascotasNumber?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Opcional — solo BD. Si no hay `mascotasNumber` (raíz ni `bookData`) y viene `false`, equivale a 0 mascotas. No se envía al API My Tool.',
+  })
+  @IsBoolean()
+  @IsOptional()
+  mascotas?: boolean;
 
   @IsOptional()
   @IsString()

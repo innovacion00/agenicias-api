@@ -795,12 +795,6 @@ export class MaarLabService {
       ) {
         row.frequent_flyer_number = p.frequent_flyer_number;
       }
-      if (
-        p.frequent_flyer_type != null &&
-        String(p.frequent_flyer_type).trim() !== ''
-      ) {
-        row.frequent_flyer_type = p.frequent_flyer_type;
-      }
       return row;
     });
   }

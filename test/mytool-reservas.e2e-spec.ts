@@ -374,6 +374,52 @@ describe('MyTool Reservas (e2e)', () => {
       expect(savedReserva!.total).toBe(1500000);
     });
 
+    it('debe guardar unitaryPrice por habitación usando dayPrice', async () => {
+      const dto = buildValidCreateDto();
+      dto.rooms = [
+        {
+          categoriaId: 1,
+          nombreHabitacion: 'Habitacion Doble Standard con vista al mar',
+          room_id: '83422',
+          paxAdultos: 2,
+          paxChilds: 0,
+          dayPrice: [
+            { fecha: '2026-12-01', precioBase: 470400 },
+            { fecha: '2026-12-02', precioBase: 470400 },
+          ],
+          guest: [],
+        },
+        {
+          categoriaId: 4,
+          nombreHabitacion: 'Habitacion Cuadruple standard con vista a la ciudad',
+          room_id: '83421',
+          paxAdultos: 3,
+          paxChilds: 0,
+          dayPrice: [
+            { fecha: '2026-12-01', precioBase: 616000 },
+            { fecha: '2026-12-02', precioBase: 616000 },
+          ],
+          guest: [],
+        },
+      ] as any;
+      dto.total = 2172800;
+
+      const res = await request(app.getHttpServer())
+        .post('/agencias/v1/reservas/mytool/aixo')
+        .send(dto)
+        .expect(201);
+
+      const savedReserva = await reservaModel.findOne({
+        reservaChatbotId: res.body.reservaChatbotId,
+      });
+
+      expect(savedReserva).toBeTruthy();
+      const roomsData = savedReserva!.reservation.roomsData;
+      expect(roomsData).toHaveLength(2);
+      expect(roomsData[0].unitaryPrice).toBe(470400);
+      expect(roomsData[1].unitaryPrice).toBe(616000);
+    });
+
     it('debe usar fallback a Autocore cuando MyTool falla', async () => {
       mockMyToolBookingService.createBooking.mockRejectedValueOnce(
         Object.assign(new Error('MyTool unavailable'), {

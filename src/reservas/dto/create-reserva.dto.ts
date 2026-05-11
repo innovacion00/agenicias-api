@@ -1,8 +1,10 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsInt,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -334,10 +336,28 @@ export class CreateReservaDto {
   @IsOptional()
   mascotas?: boolean;
 
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 50,
+    description:
+      '`0` = sin mascotas. Derivado típico: `reserva.mascotas` según uso en servicio.',
+  })
   @IsOptional()
-  @IsNumber()
-  @Min(1)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
   mascotasNumber?: number;
+
+  @ApiPropertyOptional({
+    maxLength: 8000,
+    description:
+      'Notas opcionales a nivel raíz (alternativa coherente con MyTool); se fusionan en `reservaInfo.reservation.notes`.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  notes?: string;
 
   @IsOptional()
   @IsString()

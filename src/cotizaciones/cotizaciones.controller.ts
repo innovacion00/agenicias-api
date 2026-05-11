@@ -194,8 +194,8 @@ export class CotizacionesController {
     summary: 'Convertir cotización en reserva',
     description: 'Transforma una cotización aprobada en una reserva dentro del sistema.',
   })
-  convertirAReserva(@Param('id') id: string) {
-    return this.cotizacionesService.convertirAReserva(id);
+  convertirAReserva(@Param('id') id: string, @GetUser() user: User) {
+    return this.cotizacionesService.convertirAReserva(id, user);
   }
 
   @Patch(':id')

@@ -250,6 +250,16 @@ export class ReservasService {
       createReservaDto.reservaInfo.reservation.source_of_bussiness =
         'Booking Connect';
 
+      const rootNotes =
+        typeof createReservaDto.notes === 'string'
+          ? createReservaDto.notes.trim()
+          : '';
+      if (rootNotes) {
+        const { reservation } = createReservaDto.reservaInfo;
+        const inner = reservation.notes?.trim() ?? '';
+        reservation.notes = inner ? `${inner}\n${rootNotes}` : rootNotes;
+      }
+
       const reservaAutocoreInfo =
         await this.httpCustomService.createReservaAutocore(
           hotelId,
@@ -1031,7 +1041,7 @@ export class ReservasService {
         throw new BadRequestException('Formato de ID de usuario no válido');
       }
 
-      const filter = { userId: userIdObjectId };
+      const filter = this.buildIdFilter('userId', userIdObjectId);
 
       // OPTIMIZACIÓN: Usar caché para el total y optimizar query con índices
       const [reservas, total] = await Promise.all([
@@ -1063,6 +1073,27 @@ export class ReservasService {
 
   // #region Búsquedas de reservas
   /**
+   * Compatibilidad con datos legacy:
+   * algunas reservas antiguas pueden tener IDs persistidos como string.
+   * Construimos filtros que aceptan ObjectId y su representación string.
+   */
+  private buildIdFilter(
+    field: 'userId' | 'agenciaId',
+    id: Types.ObjectId | string,
+  ): Record<string, any> {
+    const idAsString = typeof id === 'string' ? id : id.toString();
+
+    if (!Types.ObjectId.isValid(idAsString)) {
+      return { [field]: idAsString };
+    }
+
+    const objectId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(idAsString);
+
+    return { [field]: { $in: [objectId, idAsString] } };
+  }
+
+  /**
    * Helper para construir filtro base según el rol del usuario
    */
   private construirFiltroPorRol(
@@ -1078,10 +1109,10 @@ export class ReservasService {
       return {};
     } else if (esAdmin) {
       // Admin: solo reservas de su agencia
-      return { agenciaId };
+      return this.buildIdFilter('agenciaId', agenciaId);
     } else {
       // User: solo sus propias reservas
-      return { userId };
+      return this.buildIdFilter('userId', userId);
     }
   }
 
@@ -1584,17 +1615,19 @@ export class ReservasService {
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
+      const filter = this.buildIdFilter('agenciaId', agenciaId);
+
       // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
       const [reservas, total] = await Promise.all([
         this.reservasModel
-          .find({ agenciaId })
+          .find(filter)
           .populate('userId', 'fullName email')
           .populate('agenciaId', 'fullName _id')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(PAGE_SIZE)
           .lean(), // Mejor rendimiento al retornar objetos planos
-        this.getCachedCount({ agenciaId }),
+        this.getCachedCount(filter),
       ]);
 
       return {
@@ -2075,6 +2108,20 @@ export class ReservasService {
       const checkin = dto.checkIn;
       const checkout = dto.checkOut;
       const nights = this.calculateNights(checkin, checkout);
+      const fallbackUnitaryPrice =
+        dto.rooms.length > 0 ? Math.round(dto.total / dto.rooms.length) : 0;
+      const getRoomUnitaryPrice = (room: (typeof dto.rooms)[number]) => {
+        const dayPrices = (room.dayPrice || [])
+          .map((day) => Number(day?.precioBase))
+          .filter((price) => Number.isFinite(price) && price >= 0);
+
+        if (dayPrices.length === 0) {
+          return fallbackUnitaryPrice;
+        }
+
+        const totalByRoom = dayPrices.reduce((sum, price) => sum + price, 0);
+        return Math.round(totalByRoom / dayPrices.length);
+      };
 
       const isReservaGrupo = dto.rooms.length >= 10;
       const fechasLimite = calcularFechaLimitePago(
@@ -2088,6 +2135,9 @@ export class ReservasService {
       let reservaChatbotId: string = localizadorGenerado;
       let reservaProvider: 'mytool' | 'autocore' = 'mytool';
       let usedFallback = false;
+
+      const mascotasNum =
+        dto.mascotasNumber ?? dto.bookData.mascotasNumber ?? 0;
 
       const cleanRooms = dto.rooms.map((room) => {
         const { nombreHabitacion: _nh, room_id: _rid, ...roomRest } = room;
@@ -2104,14 +2154,21 @@ export class ReservasService {
       });
 
       // My Tool solo recibe: hotel, fechas, usuario, maquina, bookData, rooms.
-      // Excluido a propósito: infoTransporte, infoToures, notes, titularInfo, total, retenciones, asistentes, mascotasNumber, etc.
+      // Excluido a propósito: mascotasNumber en bookData / raíz y demás solo-MongoDB.
+      const {
+        mascotasNumber: _mascotasBd,
+        ...bookDataSinMascotas
+      } = dto.bookData;
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
         usuario: dto.usuario || userInfo.fullName || userInfo.email,
         maquinaId: dto.maquinaId ?? 1,
-        bookData: { ...dto.bookData, localizador: localizadorGenerado },
+        bookData: {
+          ...bookDataSinMascotas,
+          localizador: localizadorGenerado,
+        },
         rooms: cleanRooms,
       };
 
@@ -2197,7 +2254,7 @@ export class ReservasService {
                 id: '0',
                 quantity: '1',
                 rateId: '0',
-                unitaryPrice: Math.round(dto.total / dto.rooms.length),
+                unitaryPrice: getRoomUnitaryPrice(room),
               })),
             },
           };
@@ -2274,7 +2331,7 @@ export class ReservasService {
           id: '0',
           quantity: '1',
           rateId: '0',
-          unitaryPrice: Math.round(dto.total / dto.rooms.length),
+          unitaryPrice: getRoomUnitaryPrice(room),
         })),
       };
 
@@ -2306,8 +2363,8 @@ export class ReservasService {
               adicionAlmuerzo: dto.adicionAlmuerzo || false,
               infoTransporte: dto.infoTransporte || null,
               infoToures: dto.infoToures || null,
-              mascotasNumber: dto.mascotasNumber ?? 0,
-              mascotas: (dto.mascotasNumber ?? 0) > 0,
+              mascotasNumber: mascotasNum,
+              mascotas: mascotasNum > 0,
               origenIata: dto.origenIata,
             },
           ],

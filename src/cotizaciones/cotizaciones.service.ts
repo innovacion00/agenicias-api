@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -487,7 +488,10 @@ export class CotizacionesService {
   }
 
   // #region Convertir a reserva automáticamente
-  async convertirAReservaAutomatica(cotizacionId: string): Promise<{
+  async convertirAReservaAutomatica(
+    cotizacionId: string,
+    actorUser?: User,
+  ): Promise<{
     message: string;
     reservaId: Types.ObjectId;
     reservaChatbotId: string;
@@ -602,8 +606,27 @@ export class CotizacionesService {
     // Por ahora se salta este paso y se procede directamente a crear la reserva
     // TODO: Reactivar verificación cuando Autocore solucione el problema
 
+    const actorIsSuperAdmin = actorUser?.role?.includes('super-admin') ?? false;
+    const cotizacionAgenciaId = cotizacion.agenciaId?.toString?.() || '';
+    const actorAgenciaId = actorUser?.agencia?.toString?.() || '';
+
+    // Si la conversión es manual (con actor autenticado), la reserva debe quedar
+    // asociada al agente que ejecuta la acción, y restringida a su agencia.
+    if (actorUser && !actorIsSuperAdmin && actorAgenciaId !== cotizacionAgenciaId) {
+      throw new ForbiddenException(
+        'No puedes convertir cotizaciones de otra agencia',
+      );
+    }
+
+    const ownerUserId = actorUser?._id?.toString() || cotizacion.userId?.toString();
+    if (!ownerUserId || !Types.ObjectId.isValid(ownerUserId)) {
+      throw new BadRequestException('ID de usuario inválido para crear reserva');
+    }
+
     // Paso 3: Si todo está bien, crear la reserva
-    const user = await this.userModel.findById(cotizacion.userId).populate('agencia', 'fullName autocoreInfo category');
+    const user = await this.userModel
+      .findById(ownerUserId)
+      .populate('agencia', 'fullName autocoreInfo category');
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
@@ -683,9 +706,7 @@ export class CotizacionesService {
     }
 
     // Asegurar que userId y agenciaId sean ObjectId válidos
-    const userIdObjectId = cotizacion.userId instanceof Types.ObjectId 
-      ? cotizacion.userId 
-      : new Types.ObjectId(cotizacion.userId);
+    const userIdObjectId = new Types.ObjectId(ownerUserId);
     const agenciaIdObjectId = cotizacion.agenciaId instanceof Types.ObjectId 
       ? cotizacion.agenciaId 
       : new Types.ObjectId(cotizacion.agenciaId);
@@ -749,8 +770,8 @@ export class CotizacionesService {
   }
 
   // #region Convertir a reserva (manual)
-  async convertirAReserva(cotizacionId: string): Promise<string> {
-    return (await this.convertirAReservaAutomatica(cotizacionId)).message;
+  async convertirAReserva(cotizacionId: string, actorUser?: User): Promise<string> {
+    return (await this.convertirAReservaAutomatica(cotizacionId, actorUser)).message;
   }
 
   // #region Encontrar hotel ID por nombre
