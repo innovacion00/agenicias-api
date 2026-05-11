@@ -2108,6 +2108,20 @@ export class ReservasService {
       const checkin = dto.checkIn;
       const checkout = dto.checkOut;
       const nights = this.calculateNights(checkin, checkout);
+      const fallbackUnitaryPrice =
+        dto.rooms.length > 0 ? Math.round(dto.total / dto.rooms.length) : 0;
+      const getRoomUnitaryPrice = (room: (typeof dto.rooms)[number]) => {
+        const dayPrices = (room.dayPrice || [])
+          .map((day) => Number(day?.precioBase))
+          .filter((price) => Number.isFinite(price) && price >= 0);
+
+        if (dayPrices.length === 0) {
+          return fallbackUnitaryPrice;
+        }
+
+        const totalByRoom = dayPrices.reduce((sum, price) => sum + price, 0);
+        return Math.round(totalByRoom / dayPrices.length);
+      };
 
       const isReservaGrupo = dto.rooms.length >= 10;
       const fechasLimite = calcularFechaLimitePago(
@@ -2240,7 +2254,7 @@ export class ReservasService {
                 id: '0',
                 quantity: '1',
                 rateId: '0',
-                unitaryPrice: Math.round(dto.total / dto.rooms.length),
+                unitaryPrice: getRoomUnitaryPrice(room),
               })),
             },
           };
@@ -2317,7 +2331,7 @@ export class ReservasService {
           id: '0',
           quantity: '1',
           rateId: '0',
-          unitaryPrice: Math.round(dto.total / dto.rooms.length),
+          unitaryPrice: getRoomUnitaryPrice(room),
         })),
       };
 
