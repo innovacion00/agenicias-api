@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migrate:maarlab-api-key": "ts-node scripts/migrate-maarlab-api-key.ts",
+    "script:clear-maarlab-api-keys": "ts-node scripts/clear-maarlab-api-keys.ts",
     "script:register-agencias-maarlab": "ts-node scripts/register-agencias-maarlab.ts",
     "seed:airports": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts",
     "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only",
