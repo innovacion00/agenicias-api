@@ -610,8 +610,8 @@ export class CotizacionesService {
     // TODO: Reactivar verificación cuando Autocore solucione el problema
 
     const actorIsSuperAdmin = actorUser?.role?.includes('super-admin') ?? false;
-    const cotizacionAgenciaId = cotizacion.agenciaId?.toString?.() || '';
-    const actorAgenciaId = actorUser?.agencia?.toString?.() || '';
+    const cotizacionAgenciaId = this.extractObjectIdString(cotizacion.agenciaId);
+    const actorAgenciaId = this.extractObjectIdString(actorUser?.agencia);
 
     // Si la conversión es manual (con actor autenticado), la reserva debe quedar
     // asociada al agente que ejecuta la acción, y restringida a su agencia.
@@ -621,7 +621,9 @@ export class CotizacionesService {
       );
     }
 
-    const ownerUserId = actorUser?._id?.toString() || cotizacion.userId?.toString();
+    const ownerUserId =
+      this.extractObjectIdString(actorUser?._id) ||
+      this.extractObjectIdString(cotizacion.userId);
     if (!ownerUserId || !Types.ObjectId.isValid(ownerUserId)) {
       throw new BadRequestException('ID de usuario inválido para crear reserva');
     }
@@ -688,10 +690,15 @@ export class CotizacionesService {
     const isReservaGrupo = cotizacion.cantidadHabitaciones >= 10;
 
     // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
+    if (!cotizacionAgenciaId || !Types.ObjectId.isValid(cotizacionAgenciaId)) {
+      throw new BadRequestException('ID de agencia inválido en la cotización');
+    }
+    const cotizacionAgenciaObjectId = new Types.ObjectId(cotizacionAgenciaId);
+
     const fechasLimite = calcularFechaLimitePago(
       cotizacion.reservation.checkin,
       isReservaGrupo,
-      cotizacion.agenciaId,
+      cotizacionAgenciaObjectId,
     );
 
     // Log para debugging - Mostrar TODOS los datos
@@ -729,9 +736,7 @@ export class CotizacionesService {
 
     // Asegurar que userId y agenciaId sean ObjectId válidos
     const userIdObjectId = new Types.ObjectId(ownerUserId);
-    const agenciaIdObjectId = cotizacion.agenciaId instanceof Types.ObjectId 
-      ? cotizacion.agenciaId 
-      : new Types.ObjectId(cotizacion.agenciaId);
+    const agenciaIdObjectId = cotizacionAgenciaObjectId;
 
     // Usar transacción para asegurar consistencia
     const session = await this.connection.startSession();
@@ -944,5 +949,37 @@ export class CotizacionesService {
     } catch {
       return String(error);
     }
+  }
+
+  private extractObjectIdString(value: unknown): string {
+    if (!value) return '';
+
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (value instanceof Types.ObjectId) {
+      return value.toString();
+    }
+
+    if (typeof value === 'object') {
+      const maybeDoc = value as {
+        _id?: unknown;
+        toString?: () => string;
+      };
+
+      if (maybeDoc._id) {
+        return this.extractObjectIdString(maybeDoc._id);
+      }
+
+      if (typeof maybeDoc.toString === 'function') {
+        const asString = maybeDoc.toString();
+        if (Types.ObjectId.isValid(asString)) {
+          return asString;
+        }
+      }
+    }
+
+    return '';
   }
 }
