@@ -373,9 +373,10 @@ export class CotizacionesService {
       } catch (error) {
         // Si hay error al crear la reserva, devolver mensaje específico
         const detalleError = this.getErrorMessage(error);
+        const stack = error instanceof Error ? error.stack : undefined;
         this.logger.error(
-          'Error al crear reserva automáticamente:',
-          detalleError,
+          `Error al crear reserva automáticamente: ${detalleError}`,
+          stack,
         );
 
         return {
@@ -634,7 +635,14 @@ export class CotizacionesService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const externalRefId =
+    // Priorizar el bolsillo de Cobre de la agencia de la cotización.
+    // En algunos casos el populate de user.agencia puede venir incompleto.
+    const externalRefIdFromAgencia =
+      agenciaInfo.cobreInfo?.bolcilloId != null
+        ? String(agenciaInfo.cobreInfo.bolcilloId).trim()
+        : '';
+
+    const externalRefIdFromUser =
       user.agencia &&
       typeof user.agencia === 'object' &&
       'cobreInfo' in user.agencia &&
@@ -644,9 +652,12 @@ export class CotizacionesService {
         ? String(user.agencia.cobreInfo.bolcilloId || '').trim()
         : '';
 
+    const externalRefId =
+      externalRefIdFromAgencia || externalRefIdFromUser || '';
+
     if (!externalRefId) {
-      throw new BadRequestException(
-        'La agencia no tiene cobreInfo.bolcilloId configurado para crear la reserva en Autocore',
+      this.logger.warn(
+        `No se encontró cobreInfo.bolcilloId para agencia ${agenciaInfo._id}; usando fallback con autocoreInfo.id`,
       );
     }
 
@@ -665,7 +676,7 @@ export class CotizacionesService {
         is_agency: true,
         agency_type: agencyTypeString, // 'wholesale' o 'retailer'
         // En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
-        external_ref_id: externalRefId,
+        external_ref_id: externalRefId || String(agenciaInfo.autocoreInfo?.id || ''),
       },
       reservation: {
         ...reservationData,
