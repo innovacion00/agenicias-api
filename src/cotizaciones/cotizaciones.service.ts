@@ -372,15 +372,16 @@ export class CotizacionesService {
         };
       } catch (error) {
         // Si hay error al crear la reserva, devolver mensaje específico
+        const detalleError = this.getErrorMessage(error);
         this.logger.error(
           'Error al crear reserva automáticamente:',
-          error.message,
+          detalleError,
         );
 
         return {
           message: 'Cotización aceptada pero hubo problemas al crear la reserva',
           cotizacion,
-          error: error.message,
+          error: detalleError,
           detalles:
             'Por favor, contacte con la agencia para procesar la reserva manualmente.',
         };
@@ -627,10 +628,26 @@ export class CotizacionesService {
     // Paso 3: Si todo está bien, crear la reserva
     const user = await this.userModel
       .findById(ownerUserId)
-      .populate('agencia', 'fullName autocoreInfo category');
+      .populate('agencia', 'fullName autocoreInfo category cobreInfo');
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const externalRefId =
+      user.agencia &&
+      typeof user.agencia === 'object' &&
+      'cobreInfo' in user.agencia &&
+      user.agencia.cobreInfo &&
+      typeof user.agencia.cobreInfo === 'object' &&
+      'bolcilloId' in user.agencia.cobreInfo
+        ? String(user.agencia.cobreInfo.bolcilloId || '').trim()
+        : '';
+
+    if (!externalRefId) {
+      throw new BadRequestException(
+        'La agencia no tiene cobreInfo.bolcilloId configurado para crear la reserva en Autocore',
+      );
     }
 
     // Transformar agency_type de número a string como lo espera Autocore
@@ -647,15 +664,8 @@ export class CotizacionesService {
       agency: {
         is_agency: true,
         agency_type: agencyTypeString, // 'wholesale' o 'retailer'
-        external_ref_id: 
-          user.agencia && 
-          typeof user.agencia === 'object' && 
-          'autocoreInfo' in user.agencia &&
-          user.agencia.autocoreInfo &&
-          typeof user.agencia.autocoreInfo === 'object' &&
-          'id' in user.agencia.autocoreInfo
-            ? (user.agencia.autocoreInfo.id as number).toString()
-            : '',
+        // En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
+        external_ref_id: externalRefId,
       },
       reservation: {
         ...reservationData,
@@ -895,6 +905,33 @@ export class CotizacionesService {
     } catch (error) {
       this.logger.error('❌ TEST FALLIDO:', error.message);
       throw error;
+    }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    if (error && typeof error === 'object') {
+      const e = error as {
+        response?: { status?: number; data?: { message?: string; msg?: string; error?: string } };
+      };
+
+      const detail =
+        e.response?.data?.message ||
+        e.response?.data?.msg ||
+        e.response?.data?.error;
+
+      if (detail) {
+        return e.response?.status ? `HTTP ${e.response.status}: ${detail}` : detail;
+      }
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
     }
   }
 }
