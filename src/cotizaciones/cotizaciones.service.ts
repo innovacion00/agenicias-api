@@ -912,14 +912,14 @@ export class CotizacionesService {
         disponibilidadDto as any,
       );
 
-      this.logger.log('✅ TEST EXITOSO - Disponibilidad obtenida');
+      this.logger.log(' TEST EXITOSO - Disponibilidad obtenida');
       return {
         success: true,
         hoteles: resultado?.length || 0,
         preview: resultado?.[0]?.hotel || null,
       };
     } catch (error) {
-      this.logger.error('❌ TEST FALLIDO:', error.message);
+      this.logger.error('TEST FALLIDO:', error.message);
       throw error;
     }
   }
