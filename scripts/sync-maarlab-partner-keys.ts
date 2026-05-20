@@ -1,7 +1,8 @@
 /**
  * Descarga todas las páginas de `api_keys_by_partner` de MaarLab y guarda/actualiza
  * la colección `maarlab_partner_credentials` (upsert por `id_search_engine`).
- * Vincula cada fila a una `Agencia` cuando `hotel_name` === `fullName` (mismo string).
+ * Vincula cada fila a una `Agencia` comparando nombres **normalizados**:
+ *   `normHotelName` (MaarLab) ↔ `normalizeMaarlabName(agencia.fullName)` (y alias por `slug`).
  *
  * Variables en .env:
  *   MONGO_URL
@@ -21,6 +22,7 @@ import mongoose from 'mongoose';
 import { Types } from 'mongoose';
 import { AgenciaSchema } from '../src/agencias/entities/agencia.entity';
 import { MaarlabPartnerCredentialSchema } from '../src/maarlab-credentials/entities/maarlab-partner-credential.entity';
+import { normalizeMaarlabName } from '../src/maarlab-credentials/utils/normalize-maarlab-name';
 
 dotenv.config();
 
@@ -38,6 +40,11 @@ type ApiKeysResponse = {
 
 const CRED_MODEL = 'SyncMaarlabCredential';
 const AGENCIA_MODEL = 'SyncAgenciaForMaarlab';
+/** Colecciones reales en Mongo (el nombre del modelo del script NO debe inferirse solo). */
+const AGENCIAS_COLLECTION = 'agencias';
+const MAARLAB_CREDS_COLLECTION = 'maarlab_partner_credentials';
+
+const MAX_UNLINKED_SAMPLES = 15;
 
 function baseUrl(): string {
   const raw = process.env.MAARLAB_BASE_URL?.trim();
@@ -45,6 +52,18 @@ function baseUrl(): string {
   let b = raw;
   if (!b.startsWith('http://') && !b.startsWith('https://')) b = `https://${b}`;
   return b.replace(/\/$/, '');
+}
+
+/** Claves normalizadas con las que una agencia puede emparejarse. */
+function agencyMatchKeys(fullName: string, slug?: string): string[] {
+  const keys = new Set<string>();
+  const fromName = normalizeMaarlabName(fullName);
+  if (fromName) keys.add(fromName);
+  if (slug?.trim()) {
+    const fromSlug = normalizeMaarlabName(slug.replace(/-/g, ' '));
+    if (fromSlug) keys.add(fromSlug);
+  }
+  return [...keys];
 }
 
 async function main(): Promise<void> {
@@ -83,9 +102,24 @@ async function main(): Promise<void> {
 
   const Credential =
     mongoose.models[CRED_MODEL] ??
-    mongoose.model(CRED_MODEL, MaarlabPartnerCredentialSchema);
+    mongoose.model(
+      CRED_MODEL,
+      MaarlabPartnerCredentialSchema,
+      MAARLAB_CREDS_COLLECTION,
+    );
   const AgenciaModel =
-    mongoose.models[AGENCIA_MODEL] ?? mongoose.model(AGENCIA_MODEL, AgenciaSchema);
+    mongoose.models[AGENCIA_MODEL] ??
+    mongoose.model(AGENCIA_MODEL, AgenciaSchema, AGENCIAS_COLLECTION);
+
+  const agenciaCount = await AgenciaModel.countDocuments().exec();
+  console.log(
+    `MongoDB: db="${mongoose.connection.name}" | ${AGENCIAS_COLLECTION}: ${agenciaCount} documentos`,
+  );
+  if (agenciaCount === 0) {
+    console.warn(
+      `[maarlab-sync] No hay agencias en "${AGENCIAS_COLLECTION}". Revisa MONGO_URL (antes el script leía otra colección vacía por el nombre del modelo).`,
+    );
+  }
 
   const root = baseUrl();
   const path = 'search_engine/api_keys_by_partner/';
@@ -116,6 +150,7 @@ async function main(): Promise<void> {
       if (!idSe) continue;
       const hotelNameRaw = row.hotel_name ?? '';
       const hotelName = hotelNameRaw.trim() || idSe;
+      const normHotelName = normalizeMaarlabName(hotelName);
       const apiKey = (row.api_key ?? '').trim();
       if (!apiKey) continue;
 
@@ -124,10 +159,10 @@ async function main(): Promise<void> {
         {
           $set: {
             hotelName,
+            normHotelName: normHotelName || hotelName.toLowerCase().trim(),
             apiKey,
             lastSyncedAt: now,
           },
-          $unset: { normHotelName: '' },
         },
         { upsert: true },
       );
@@ -141,27 +176,47 @@ async function main(): Promise<void> {
   } while (page <= pages);
 
   const agencias = await AgenciaModel.find({})
-    .select('_id fullName')
+    .select('_id fullName slug')
     .lean()
     .exec();
 
-  const fullNameToAgencia = new Map<string, Types.ObjectId>();
+  /** normKey → agenciaId (primera agencia que registre esa clave) */
+  const normKeyToAgencia = new Map<string, Types.ObjectId>();
+  let agenciesWithKeys = 0;
+
   for (const a of agencias) {
     const fn = a.fullName;
     if (fn == null || fn === '') continue;
-    if (!fullNameToAgencia.has(fn)) {
-      fullNameToAgencia.set(fn, a._id as Types.ObjectId);
-    } else {
-      console.warn(
-        `[maarlab-sync] Varias agencias con el mismo fullName "${fn}": se mantiene la primera`,
-      );
+
+    const keys = agencyMatchKeys(fn, a.slug as string | undefined);
+    if (keys.length === 0) continue;
+    agenciesWithKeys++;
+
+    for (const key of keys) {
+      if (!normKeyToAgencia.has(key)) {
+        normKeyToAgencia.set(key, a._id as Types.ObjectId);
+      } else if (
+        normKeyToAgencia.get(key)!.toString() !== (a._id as Types.ObjectId).toString()
+      ) {
+        console.warn(
+          `[maarlab-sync] Colisión de clave normalizada "${key}": agencias ${normKeyToAgencia.get(key)} y ${a._id} (se mantiene la primera)`,
+        );
+      }
     }
   }
 
   let linked = 0;
+  let unlinked = 0;
+  const unlinkedSamples: string[] = [];
+
   const allCreds = await Credential.find({}).lean().exec();
   for (const c of allCreds) {
-    const aid = fullNameToAgencia.get(c.hotelName);
+    const norm =
+      (c.normHotelName && String(c.normHotelName).trim()) ||
+      normalizeMaarlabName(c.hotelName as string);
+
+    const aid = norm ? normKeyToAgencia.get(norm) : undefined;
+
     if (aid) {
       await Credential.updateOne(
         { _id: c._id },
@@ -173,12 +228,27 @@ async function main(): Promise<void> {
         { _id: c._id },
         { $unset: { agenciaId: '' } },
       );
+      unlinked++;
+      if (unlinkedSamples.length < MAX_UNLINKED_SAMPLES) {
+        unlinkedSamples.push(
+          `hotelName="${c.hotelName}" normHotelName="${norm || '(vacío)'}"`,
+        );
+      }
     }
   }
 
   console.log(
-    `Listo. Upserts en esta corrida: ${totalUpserts}, vínculos agenciaId por nombre exacto: ${linked}`,
+    `Listo. Upserts: ${totalUpserts} | agencias indexadas: ${agenciesWithKeys}/${agencias.length} | vínculos por nombre normalizado: ${linked}/${allCreds.length} | sin match: ${unlinked}`,
   );
+  console.log(
+    `Comparación: MaarLab.normHotelName ↔ normalizeMaarlabName(Agencia.fullName) [+ alias desde slug]`,
+  );
+  if (unlinkedSamples.length > 0) {
+    console.log('Ejemplos sin vínculo (revisar nombres en MaarLab vs fullName en Mongo):');
+    for (const line of unlinkedSamples) {
+      console.log(`  - ${line}`);
+    }
+  }
 
   await mongoose.disconnect();
 }

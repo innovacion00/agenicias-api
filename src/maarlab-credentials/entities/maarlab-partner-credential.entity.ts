@@ -6,7 +6,7 @@ export type MaarlabPartnerCredentialDocument =
 
 /**
  * Credenciales por search engine devueltas por MaarLab (`api_keys_by_partner`).
- * `hotelName` debe coincidir exactamente con `Agencia.fullName` (sin normalización).
+ * Vínculo con `Agencia` por `agenciaId` (sync) o por `normHotelName` ≈ nombre normalizado de la agencia.
  */
 @Schema({ collection: 'maarlab_partner_credentials', timestamps: true })
 export class MaarlabPartnerCredential {
@@ -15,6 +15,10 @@ export class MaarlabPartnerCredential {
 
   @Prop({ required: true, index: true })
   hotelName: string;
+
+  /** Nombre MaarLab normalizado para emparejar con `Agencia.fullName` / `slug`. */
+  @Prop({ required: true, index: true })
+  normHotelName: string;
 
   @Prop({ required: true })
   apiKey: string;
@@ -31,3 +35,4 @@ export const MaarlabPartnerCredentialSchema = SchemaFactory.createForClass(
 );
 
 MaarlabPartnerCredentialSchema.index({ agenciaId: 1, hotelName: 1 });
+MaarlabPartnerCredentialSchema.index({ normHotelName: 1 });
