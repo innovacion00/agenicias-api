@@ -177,12 +177,14 @@ async function main(): Promise<void> {
 
   const agencias = await AgenciaModel.find({})
     .select('_id fullName slug')
+    .sort({ _id: 1 })
     .lean()
     .exec();
 
-  /** normKey → agenciaId (primera agencia que registre esa clave) */
+  /** normKey → agenciaId (si hay colisión, gana la agencia más reciente por _id) */
   const normKeyToAgencia = new Map<string, Types.ObjectId>();
   let agenciesWithKeys = 0;
+  let collisionReplacements = 0;
 
   for (const a of agencias) {
     const fn = a.fullName;
@@ -192,17 +194,23 @@ async function main(): Promise<void> {
     if (keys.length === 0) continue;
     agenciesWithKeys++;
 
+    const agenciaId = a._id as Types.ObjectId;
     for (const key of keys) {
-      if (!normKeyToAgencia.has(key)) {
-        normKeyToAgencia.set(key, a._id as Types.ObjectId);
-      } else if (
-        normKeyToAgencia.get(key)!.toString() !== (a._id as Types.ObjectId).toString()
-      ) {
+      const prev = normKeyToAgencia.get(key);
+      if (prev && prev.toString() !== agenciaId.toString()) {
+        collisionReplacements++;
         console.warn(
-          `[maarlab-sync] Colisión de clave normalizada "${key}": agencias ${normKeyToAgencia.get(key)} y ${a._id} (se mantiene la primera)`,
+          `[maarlab-sync] Colisión "${key}": ${prev} → ${agenciaId} (se mantiene la más reciente)`,
         );
       }
+      normKeyToAgencia.set(key, agenciaId);
     }
+  }
+
+  if (collisionReplacements > 0) {
+    console.log(
+      `[maarlab-sync] Colisiones resueltas a favor de agencia más reciente: ${collisionReplacements}`,
+    );
   }
 
   let linked = 0;
