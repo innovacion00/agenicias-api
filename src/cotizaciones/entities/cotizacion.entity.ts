@@ -314,7 +314,6 @@ export class Cotizacion extends Document {
 
   @Prop({
     type: String,
-    index: true,
     required: true,
   })
   tokenAcceso: string;

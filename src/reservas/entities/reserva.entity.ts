@@ -316,7 +316,6 @@ export class Reserva extends Document {
 
   @Prop({
     type: String,
-    index: true,
     required: true,
   })
   reservaChatbotId: string;
