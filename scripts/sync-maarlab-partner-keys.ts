@@ -141,9 +141,19 @@ async function main(): Promise<void> {
       },
     });
 
-    pages = data.pages || 1;
+    pages = Math.max(1, data.pages || 1);
     const items = data.items || [];
     const now = new Date();
+
+    if (page === 1 && items.length === 0) {
+      console.warn(
+        `[maarlab-sync] MaarLab devolvió 0 items (total=${data.total ?? 'n/a'}, pages=${data.pages ?? 'n/a'}). ` +
+          `Revisa MAARLAB_BASE_URL, MAARLAB_CHAIN_SEARCH_ENGINE_ID y que el Bearer sea de partner con keys en esa cadena.`,
+      );
+      console.warn(
+        `[maarlab-sync] GET ${url} | id_chain_search_engine=${chainId}`,
+      );
+    }
 
     for (const row of items) {
       const idSe = row.id_search_engine?.trim();

@@ -24,6 +24,8 @@ import { User } from 'src/auth/entities';
 import { Agencia } from 'src/agencias/entities';
 import { calcularFechaLimitePago } from 'src/reservas/utils';
 import { ReservasService } from 'src/reservas/reservas.service';
+import { VueloMaarLabEntry } from 'src/common/interface';
+import { CotizacionVueloItemDto } from './dto/create-cotizacion.dto';
 
 @Injectable()
 export class CotizacionesService {
@@ -57,7 +59,7 @@ export class CotizacionesService {
     userId: string,
     agenciaId: string,
   ): Promise<Cotizacion> {
-    const { reservaInfo, ...restDto } = createCotizacionDto;
+    const { reservaInfo, vuelo, ...restDto } = createCotizacionDto;
 
     this.logger.log('Creando cotización (POST /cotizaciones)', {
       userId,
@@ -100,6 +102,7 @@ export class CotizacionesService {
       fechaLimiteRespuesta: fechaLimite,
       status: CotizacionStatus.EN_ESPERA,
       reservation: reservaInfo.reservation,
+      vuelo: this.normalizeVueloEntries(vuelo),
     });
 
     return await cotizacion.save();
@@ -115,6 +118,7 @@ export class CotizacionesService {
       const tokenAcceso = uuid();
       const {
         reservaInfo,
+        vuelo,
         landingHtml,
         landingUrl: providedLandingUrl,
         huespedInfo,
@@ -181,6 +185,7 @@ export class CotizacionesService {
         cantidadHabitaciones,
         reservation: reservationData,
         status: CotizacionStatus.EN_ESPERA,
+        vuelo: this.normalizeVueloEntries(vuelo),
       });
 
       const savedCotizacion = await cotizacion.save();
@@ -765,6 +770,7 @@ export class CotizacionesService {
         mascotas: cotizacion.mascotas,
         mascotasNumber: cotizacion.mascotasNumber,
         origenIata: cotizacion.origenIata,
+        vuelo: this.normalizeVueloEntries(cotizacion.vuelo),
       }], { session });
 
       // Actualizar usuario con la nueva reserva
@@ -801,6 +807,26 @@ export class CotizacionesService {
     return (await this.convertirAReservaAutomatica(cotizacionId, actorUser)).message;
   }
 
+  /** Normaliza entradas de vuelo MaarLab (mismo shape que `Reserva.vuelo`). */
+  private normalizeVueloEntries(
+    vuelo?: CotizacionVueloItemDto[] | VueloMaarLabEntry[],
+  ): VueloMaarLabEntry[] {
+    if (!vuelo?.length) {
+      return [];
+    }
+
+    return vuelo.map((entry) => ({
+      packageId: String(entry.packageId ?? '').trim(),
+      respuestaMaarLab:
+        entry.respuestaMaarLab && typeof entry.respuestaMaarLab === 'object'
+          ? entry.respuestaMaarLab
+          : {},
+      createdAt: entry.createdAt
+        ? new Date(entry.createdAt as string | Date)
+        : new Date(),
+    }));
+  }
+
   // #region Encontrar hotel ID por nombre
   private encontrarHotelIdPorNombre(nombreHotel: string): string | null {
     const hoteles = Object.entries(hotelesAutocore);
@@ -812,9 +838,15 @@ export class CotizacionesService {
 
   // #region Actualizar
   async update(id: string, updateCotizacionDto: UpdateCotizacionDto): Promise<Cotizacion> {
+    const { vuelo, ...rest } = updateCotizacionDto;
+    const payload: Partial<Cotizacion> = { ...rest };
+    if (vuelo !== undefined) {
+      payload.vuelo = this.normalizeVueloEntries(vuelo);
+    }
+
     const cotizacion = await this.cotizacionModel.findByIdAndUpdate(
       id,
-      updateCotizacionDto,
+      payload,
       { new: true },
     );
 
