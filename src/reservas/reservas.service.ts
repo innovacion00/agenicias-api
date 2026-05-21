@@ -927,7 +927,7 @@ export class ReservasService {
       return true;
     }
 
-    const autocoreId = payload.transaction_id;
+    const autocoreId = payload.transaction_id?.trim();
     this.logger.log(payload);
 
     const id = firstValue;
@@ -954,13 +954,16 @@ export class ReservasService {
       return true;
     }
 
-    if (autocoreId && reserva.paymenIds.includes(autocoreId)) {
+    const status = String(payload.payment_status || '').trim().toLowerCase();
+    if (!status) {
       return true;
-    } else if (autocoreId) {
-      reserva.paymenIds.push(autocoreId);
     }
-
-    const status = payload.payment_status as string;
+    const paymentEventKey = autocoreId ? `${autocoreId}:${status}` : null;
+    if (paymentEventKey && reserva.paymenIds.includes(paymentEventKey)) {
+      return true;
+    } else if (paymentEventKey) {
+      reserva.paymenIds.push(paymentEventKey);
+    }
     const linkDetails: LinksHistory = {
       id: payload.details.id,
       typeOfPayment: payload.details.pay_platform
@@ -969,7 +972,7 @@ export class ReservasService {
       state: undefined,
       fecha: new Date(),
     };
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'en proceso':
         reserva.status = ValidPaymentStatus.espera;
         await reserva.save();

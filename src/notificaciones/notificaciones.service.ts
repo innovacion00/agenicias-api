@@ -75,6 +75,9 @@ export class NotificacionesService {
           status: ValidPaymentStatus.espera,
           pagadoPrimeraMitad: false,
           fechaLimitePago: { $lte: today, $exists: true, $ne: null },
+          linksHistory: {
+            $not: { $elemMatch: { state: ValidPaymentStatus.total } },
+          },
         })
         .select('_id reservaChatbotId')
         .lean();
@@ -87,6 +90,9 @@ export class NotificacionesService {
           },
           pagadoPrimeraMitad: true,
           fechaLimitePago2: { $lte: today, $exists: true, $ne: null },
+          linksHistory: {
+            $not: { $elemMatch: { state: ValidPaymentStatus.total } },
+          },
         })
         .select('_id reservaChatbotId')
         .lean();
@@ -126,7 +132,24 @@ export class NotificacionesService {
       // Optimización: Usar lean() para mejor rendimiento
       const allActiveReservas = await this.reservaModel
         .find({
-          status: { $nin: [3, 4] },
+          $or: [
+            {
+              status: ValidPaymentStatus.espera,
+              pagadoPrimeraMitad: false,
+              fechaLimitePago: { $exists: true, $ne: null },
+              linksHistory: {
+                $not: { $elemMatch: { state: ValidPaymentStatus.total } },
+              },
+            },
+            {
+              status: ValidPaymentStatus.mitad,
+              pagadoPrimeraMitad: true,
+              fechaLimitePago2: { $exists: true, $ne: null },
+              linksHistory: {
+                $not: { $elemMatch: { state: ValidPaymentStatus.total } },
+              },
+            },
+          ],
         })
         .lean();
 

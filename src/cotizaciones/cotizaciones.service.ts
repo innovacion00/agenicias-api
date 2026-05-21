@@ -24,6 +24,8 @@ import { User } from 'src/auth/entities';
 import { Agencia } from 'src/agencias/entities';
 import { calcularFechaLimitePago } from 'src/reservas/utils';
 import { ReservasService } from 'src/reservas/reservas.service';
+import { VueloMaarLabEntry } from 'src/common/interface';
+import { CotizacionVueloItemDto } from './dto/create-cotizacion.dto';
 
 @Injectable()
 export class CotizacionesService {
@@ -57,7 +59,7 @@ export class CotizacionesService {
     userId: string,
     agenciaId: string,
   ): Promise<Cotizacion> {
-    const { reservaInfo, ...restDto } = createCotizacionDto;
+    const { reservaInfo, vuelo, ...restDto } = createCotizacionDto;
 
     this.logger.log('Creando cotización (POST /cotizaciones)', {
       userId,
@@ -100,6 +102,7 @@ export class CotizacionesService {
       fechaLimiteRespuesta: fechaLimite,
       status: CotizacionStatus.EN_ESPERA,
       reservation: reservaInfo.reservation,
+      vuelo: this.normalizeVueloEntries(vuelo),
     });
 
     return await cotizacion.save();
@@ -115,6 +118,7 @@ export class CotizacionesService {
       const tokenAcceso = uuid();
       const {
         reservaInfo,
+        vuelo,
         landingHtml,
         landingUrl: providedLandingUrl,
         huespedInfo,
@@ -181,6 +185,7 @@ export class CotizacionesService {
         cantidadHabitaciones,
         reservation: reservationData,
         status: CotizacionStatus.EN_ESPERA,
+        vuelo: this.normalizeVueloEntries(vuelo),
       });
 
       const savedCotizacion = await cotizacion.save();
@@ -372,15 +377,17 @@ export class CotizacionesService {
         };
       } catch (error) {
         // Si hay error al crear la reserva, devolver mensaje específico
+        const detalleError = this.getErrorMessage(error);
+        const stack = error instanceof Error ? error.stack : undefined;
         this.logger.error(
-          'Error al crear reserva automáticamente:',
-          error.message,
+          `Error al crear reserva automáticamente: ${detalleError}`,
+          stack,
         );
 
         return {
           message: 'Cotización aceptada pero hubo problemas al crear la reserva',
           cotizacion,
-          error: error.message,
+          error: detalleError,
           detalles:
             'Por favor, contacte con la agencia para procesar la reserva manualmente.',
         };
@@ -607,8 +614,8 @@ export class CotizacionesService {
     // TODO: Reactivar verificación cuando Autocore solucione el problema
 
     const actorIsSuperAdmin = actorUser?.role?.includes('super-admin') ?? false;
-    const cotizacionAgenciaId = cotizacion.agenciaId?.toString?.() || '';
-    const actorAgenciaId = actorUser?.agencia?.toString?.() || '';
+    const cotizacionAgenciaId = this.extractObjectIdString(cotizacion.agenciaId);
+    const actorAgenciaId = this.extractObjectIdString(actorUser?.agencia);
 
     // Si la conversión es manual (con actor autenticado), la reserva debe quedar
     // asociada al agente que ejecuta la acción, y restringida a su agencia.
@@ -618,7 +625,9 @@ export class CotizacionesService {
       );
     }
 
-    const ownerUserId = actorUser?._id?.toString() || cotizacion.userId?.toString();
+    const ownerUserId =
+      this.extractObjectIdString(actorUser?._id) ||
+      this.extractObjectIdString(cotizacion.userId);
     if (!ownerUserId || !Types.ObjectId.isValid(ownerUserId)) {
       throw new BadRequestException('ID de usuario inválido para crear reserva');
     }
@@ -626,10 +635,36 @@ export class CotizacionesService {
     // Paso 3: Si todo está bien, crear la reserva
     const user = await this.userModel
       .findById(ownerUserId)
-      .populate('agencia', 'fullName autocoreInfo category');
+      .populate('agencia', 'fullName autocoreInfo category cobreInfo');
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Priorizar el bolsillo de Cobre de la agencia de la cotización.
+    // En algunos casos el populate de user.agencia puede venir incompleto.
+    const externalRefIdFromAgencia =
+      agenciaInfo.cobreInfo?.bolcilloId != null
+        ? String(agenciaInfo.cobreInfo.bolcilloId).trim()
+        : '';
+
+    const externalRefIdFromUser =
+      user.agencia &&
+      typeof user.agencia === 'object' &&
+      'cobreInfo' in user.agencia &&
+      user.agencia.cobreInfo &&
+      typeof user.agencia.cobreInfo === 'object' &&
+      'bolcilloId' in user.agencia.cobreInfo
+        ? String(user.agencia.cobreInfo.bolcilloId || '').trim()
+        : '';
+
+    const externalRefId =
+      externalRefIdFromAgencia || externalRefIdFromUser || '';
+
+    if (!externalRefId) {
+      this.logger.warn(
+        `No se encontró cobreInfo.bolcilloId para agencia ${agenciaInfo._id}; usando fallback con autocoreInfo.id`,
+      );
     }
 
     // Transformar agency_type de número a string como lo espera Autocore
@@ -646,15 +681,8 @@ export class CotizacionesService {
       agency: {
         is_agency: true,
         agency_type: agencyTypeString, // 'wholesale' o 'retailer'
-        external_ref_id: 
-          user.agencia && 
-          typeof user.agencia === 'object' && 
-          'autocoreInfo' in user.agencia &&
-          user.agencia.autocoreInfo &&
-          typeof user.agencia.autocoreInfo === 'object' &&
-          'id' in user.agencia.autocoreInfo
-            ? (user.agencia.autocoreInfo.id as number).toString()
-            : '',
+        // En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
+        external_ref_id: externalRefId || String(agenciaInfo.autocoreInfo?.id || ''),
       },
       reservation: {
         ...reservationData,
@@ -666,10 +694,15 @@ export class CotizacionesService {
     const isReservaGrupo = cotizacion.cantidadHabitaciones >= 10;
 
     // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
+    if (!cotizacionAgenciaId || !Types.ObjectId.isValid(cotizacionAgenciaId)) {
+      throw new BadRequestException('ID de agencia inválido en la cotización');
+    }
+    const cotizacionAgenciaObjectId = new Types.ObjectId(cotizacionAgenciaId);
+
     const fechasLimite = calcularFechaLimitePago(
       cotizacion.reservation.checkin,
       isReservaGrupo,
-      cotizacion.agenciaId,
+      cotizacionAgenciaObjectId,
     );
 
     // Log para debugging - Mostrar TODOS los datos
@@ -707,9 +740,7 @@ export class CotizacionesService {
 
     // Asegurar que userId y agenciaId sean ObjectId válidos
     const userIdObjectId = new Types.ObjectId(ownerUserId);
-    const agenciaIdObjectId = cotizacion.agenciaId instanceof Types.ObjectId 
-      ? cotizacion.agenciaId 
-      : new Types.ObjectId(cotizacion.agenciaId);
+    const agenciaIdObjectId = cotizacionAgenciaObjectId;
 
     // Usar transacción para asegurar consistencia
     const session = await this.connection.startSession();
@@ -738,6 +769,7 @@ export class CotizacionesService {
         mascotas: cotizacion.mascotas,
         mascotasNumber: cotizacion.mascotasNumber,
         origenIata: cotizacion.origenIata,
+        vuelo: this.normalizeVueloEntries(cotizacion.vuelo),
       }], { session });
 
       // Actualizar usuario con la nueva reserva
@@ -774,6 +806,26 @@ export class CotizacionesService {
     return (await this.convertirAReservaAutomatica(cotizacionId, actorUser)).message;
   }
 
+  /** Normaliza entradas de vuelo MaarLab (mismo shape que `Reserva.vuelo`). */
+  private normalizeVueloEntries(
+    vuelo?: CotizacionVueloItemDto[] | VueloMaarLabEntry[],
+  ): VueloMaarLabEntry[] {
+    if (!vuelo?.length) {
+      return [];
+    }
+
+    return vuelo.map((entry) => ({
+      packageId: String(entry.packageId ?? '').trim(),
+      respuestaMaarLab:
+        entry.respuestaMaarLab && typeof entry.respuestaMaarLab === 'object'
+          ? entry.respuestaMaarLab
+          : {},
+      createdAt: entry.createdAt
+        ? new Date(entry.createdAt as string | Date)
+        : new Date(),
+    }));
+  }
+
   // #region Encontrar hotel ID por nombre
   private encontrarHotelIdPorNombre(nombreHotel: string): string | null {
     const hoteles = Object.entries(hotelesAutocore);
@@ -785,9 +837,15 @@ export class CotizacionesService {
 
   // #region Actualizar
   async update(id: string, updateCotizacionDto: UpdateCotizacionDto): Promise<Cotizacion> {
+    const { vuelo, ...rest } = updateCotizacionDto;
+    const payload: Partial<Cotizacion> = { ...rest };
+    if (vuelo !== undefined) {
+      payload.vuelo = this.normalizeVueloEntries(vuelo);
+    }
+
     const cotizacion = await this.cotizacionModel.findByIdAndUpdate(
       id,
-      updateCotizacionDto,
+      payload,
       { new: true },
     );
 
@@ -885,15 +943,74 @@ export class CotizacionesService {
         disponibilidadDto as any,
       );
 
-      this.logger.log('✅ TEST EXITOSO - Disponibilidad obtenida');
+      this.logger.log(' TEST EXITOSO - Disponibilidad obtenida');
       return {
         success: true,
         hoteles: resultado?.length || 0,
         preview: resultado?.[0]?.hotel || null,
       };
     } catch (error) {
-      this.logger.error('❌ TEST FALLIDO:', error.message);
+      this.logger.error('TEST FALLIDO:', error.message);
       throw error;
     }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    if (error && typeof error === 'object') {
+      const e = error as {
+        response?: { status?: number; data?: { message?: string; msg?: string; error?: string } };
+      };
+
+      const detail =
+        e.response?.data?.message ||
+        e.response?.data?.msg ||
+        e.response?.data?.error;
+
+      if (detail) {
+        return e.response?.status ? `HTTP ${e.response.status}: ${detail}` : detail;
+      }
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+
+  private extractObjectIdString(value: unknown): string {
+    if (!value) return '';
+
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (value instanceof Types.ObjectId) {
+      return value.toString();
+    }
+
+    if (typeof value === 'object') {
+      const maybeDoc = value as {
+        _id?: unknown;
+        toString?: () => string;
+      };
+
+      if (maybeDoc._id) {
+        return this.extractObjectIdString(maybeDoc._id);
+      }
+
+      if (typeof maybeDoc.toString === 'function') {
+        const asString = maybeDoc.toString();
+        if (Types.ObjectId.isValid(asString)) {
+          return asString;
+        }
+      }
+    }
+
+    return '';
   }
 }

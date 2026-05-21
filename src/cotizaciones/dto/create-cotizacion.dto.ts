@@ -20,6 +20,7 @@ import {
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Agency,
   IreservaInfo,
@@ -281,6 +282,27 @@ export class InfoTransporteDto {
   cantidadPersonas: number;
 }
 
+/** Mismo objeto que `Reserva.vuelo[]` (datos de paquete / book MaarLab). */
+export class CotizacionVueloItemDto {
+  @ApiPropertyOptional({ example: 'MAH-C7GQ0G' })
+  @IsString()
+  @IsNotEmpty()
+  packageId: string;
+
+  @ApiPropertyOptional({
+    description: 'Respuesta de MaarLab (bookPackage, búsqueda, etc.) sin nodo hotel',
+  })
+  @IsObject()
+  respuestaMaarLab: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/, {
+    message: 'createdAt debe ser fecha ISO o YYYY-MM-DD',
+  })
+  createdAt?: string;
+}
+
 export class InfoTouresDto {
   @IsArray()
   @IsString({ each: true })
@@ -377,6 +399,17 @@ export class CreateCotizacionDto {
   @Type(() => ReservaInfoDto)
   @IsNotEmpty()
   reservaInfo: IreservaInfo;
+
+  @ApiPropertyOptional({
+    type: [CotizacionVueloItemDto],
+    description:
+      'Vuelos MaarLab asociados (packageId + respuestaMaarLab). Opcional; se copia a la reserva al convertir la cotización.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CotizacionVueloItemDto)
+  vuelo?: CotizacionVueloItemDto[];
 
   // Campo eliminado previamente
   @IsString()

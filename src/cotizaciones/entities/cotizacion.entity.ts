@@ -7,6 +7,7 @@ import {
   ValidTipoRecogida,
 } from 'src/reservas/interfaces';
 import { InfoTouresDto, InfoTransporteDto } from 'src/reservas/dto';
+import { VueloMaarLabEntry } from 'src/common/interface';
 
 export enum CotizacionStatus {
   EN_ESPERA = 0,
@@ -342,6 +343,19 @@ export class Cotizacion extends Document {
     default: null,
   })
   reservaId: Types.ObjectId;
+
+  /** Paquetes de vuelo MaarLab (misma estructura que `Reserva.vuelo`). */
+  @Prop({
+    type: [
+      {
+        packageId: { type: String, default: '' },
+        respuestaMaarLab: { type: Object, default: {} },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  })
+  vuelo: VueloMaarLabEntry[];
 }
 
 export const CotizacionSchema = SchemaFactory.createForClass(Cotizacion);

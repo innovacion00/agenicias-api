@@ -9,6 +9,7 @@ import {
   Query,
   Put,
   BadRequestException,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
 import {
@@ -40,6 +41,7 @@ import { ValidRoles } from 'src/auth/interfaces';
 import { ValidPaymentStatus } from './interfaces';
 import { CreateReservaMyToolDto, CancelReservaMyToolDto, SearchReservaMyToolDto } from './dto/create-reserva-mytool.dto';
 import type { MyToolBookingResponse } from './services/my-tool-booking.service';
+import { RoomsDataResponseInterceptor } from './interceptors/rooms-data-response.interceptor';
 
 @ApiTags('reservas')
 @ApiExtraModels(
@@ -47,6 +49,7 @@ import type { MyToolBookingResponse } from './services/my-tool-booking.service';
   CancelReservaMyToolDto,
   SearchReservaMyToolDto,
 )
+@UseInterceptors(RoomsDataResponseInterceptor)
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}

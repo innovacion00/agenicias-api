@@ -5,6 +5,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MaarlabPartnerCredential } from './entities/maarlab-partner-credential.entity';
+import { normalizeMaarlabName } from './utils/normalize-maarlab-name';
 
 @Injectable()
 export class MaarlabCredentialsService {
@@ -14,7 +15,7 @@ export class MaarlabCredentialsService {
   ) {}
 
   /**
-   * Orden: credencial vinculada por `agenciaId` → misma `hotelName` que `agencia.fullName` (exacto) → campo legado `maarlabApiKey`.
+   * Orden: credencial por `agenciaId` → `hotelName` exacto → `normHotelName` → legado `maarlabApiKey`.
    */
   async resolveBearerForAgencia(agencia: {
     _id: Types.ObjectId;
@@ -43,6 +44,20 @@ export class MaarlabCredentialsService {
 
       if (byName?.apiKey?.trim()) {
         return byName.apiKey.trim();
+      }
+
+      const norm = normalizeMaarlabName(name);
+      if (norm) {
+        const byNorm = await this.model
+          .findOne({ normHotelName: norm })
+          .sort({ lastSyncedAt: -1 })
+          .select('apiKey')
+          .lean()
+          .exec();
+
+        if (byNorm?.apiKey?.trim()) {
+          return byNorm.apiKey.trim();
+        }
       }
     }
 
