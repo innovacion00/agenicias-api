@@ -565,7 +565,7 @@ export class CotizacionesService {
     }
 
     // Log detallado de la agencia
-    this.logger.log('🏢 INFO AGENCIA:', {
+    this.logger.log(' INFO AGENCIA:', {
       agenciaId: agenciaInfo._id,
       fullName: agenciaInfo['fullName'],
       category: agenciaInfo.category,
@@ -575,7 +575,7 @@ export class CotizacionesService {
     });
 
     // Log detallado para debugging
-    this.logger.log('🔍 DEBUG - Datos de cotización:', {
+    this.logger.log(' DEBUG - Datos de cotización:', {
       hotel: cotizacion.hotel,
       roomsData: cotizacion.reservation.roomsData.map(r => ({
         adults: r.adults,
@@ -586,7 +586,7 @@ export class CotizacionesService {
       })),
     });
 
-    this.logger.log('📤 Consultando disponibilidad en Autocore:', {
+    this.logger.log(' Consultando disponibilidad en Autocore:', {
       layout: JSON.stringify(layout),
       layoutLength: layout.length,
       layoutFirstItem: layout[0],
@@ -608,7 +608,7 @@ export class CotizacionesService {
       throw new BadRequestException(`El número de noches es inválido: ${cotizacion.reservation.nights}`);
     }
 
-    this.logger.warn('⚠️ Saltando verificación de disponibilidad - Creando reserva directamente');
+    this.logger.warn(' Saltando verificación de disponibilidad - Creando reserva directamente');
     
     // NOTA: La verificación de disponibilidad de Autocore está presentando errores 500
     // Por ahora se salta este paso y se procede directamente a crear la reserva
@@ -707,7 +707,7 @@ export class CotizacionesService {
     );
 
     // Log para debugging - Mostrar TODOS los datos
-    this.logger.log('📤 Datos COMPLETOS que se enviarán a Autocore:');
+    this.logger.log(' Datos COMPLETOS que se enviarán a Autocore:');
     this.logger.log('hotelId:', hotelId);
     this.logger.log('reservaInfo:', JSON.stringify(reservaInfo, null, 2));
 
@@ -914,7 +914,7 @@ export class CotizacionesService {
 
   // #region Método de prueba
   async testDisponibilidadDirecta(agenciaId: string) {
-    this.logger.log('🧪 TEST: Llamada a disponibilidad usando ReservasService');
+    this.logger.log(' TEST: Llamada a disponibilidad usando ReservasService');
 
     const agenciaInfo = await this.agenciaModel.findById(agenciaId);
     if (!agenciaInfo) {
@@ -936,7 +936,7 @@ export class CotizacionesService {
       category: agenciaInfo.category,
     };
 
-    this.logger.log('🧪 DTO para prueba:', disponibilidadDto);
+    this.logger.log(' DTO para prueba:', disponibilidadDto);
 
     try {
       const resultado = await this.reservasService.getDisponibilidad(

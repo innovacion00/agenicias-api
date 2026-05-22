@@ -25,6 +25,7 @@ import { EnrichedFlightOffersResponse } from './interfaces/enriched-flight-offer
 import { Reserva } from 'src/reservas/entities';
 import { Types } from 'mongoose';
 import { AgenciasService } from 'src/agencias/agencias.service';
+import { applyMaarLabAvailabilityMarkupAsString } from './utils/flight-availability-markup.util';
 
 @Injectable()
 export class VuelosService {
@@ -208,9 +209,9 @@ export class VuelosService {
       this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(searchDto)}`);
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.searchFlights(bearer, searchDto);
-      
+
       this.logger.log('Búsqueda completada exitosamente en VuelosService');
-      return result;
+      return applyMaarLabAvailabilityMarkupAsString(result);
     } catch (error) {
       this.logger.error('Error en VuelosService.searchFlightsMaarLab:', error);
       throw error;
