@@ -399,6 +399,10 @@ export class Reserva extends Document {
         // Guardamos toda la respuesta de MaarLab de bookPackage, excepto el objeto "hotel"
         respuestaMaarLab: { type: Object, default: {} },
         createdAt: { type: Date, default: Date.now },
+        paymentStatus: { type: String, default: 'pending' },
+        paymentUpdatedAt: { type: Date, default: null },
+        bookingStatus: { type: String, default: '' },
+        lastWebhookType: { type: String, default: '' },
       },
     ],
     default: [],
@@ -407,6 +411,10 @@ export class Reserva extends Document {
     packageId: string;
     respuestaMaarLab: Record<string, any>;
     createdAt: Date;
+    paymentStatus?: string;
+    paymentUpdatedAt?: Date;
+    bookingStatus?: string;
+    lastWebhookType?: string;
   }>;
   // #endregion MaarLab flights (interno)
 }

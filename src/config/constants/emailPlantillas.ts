@@ -1383,3 +1383,75 @@ export const notificacionToures = (
 
 `;
 };
+
+export const notificacionPagoVueloMaarlab = (data: {
+  agenciaNombre: string;
+  reservaChatbotId: string;
+  packageId: string;
+  hotel: string;
+  titularNombre: string;
+  checkin: string;
+  checkout: string;
+  origenIata: string;
+  transactionId: string;
+  bookingId: string;
+}) => {
+  const {
+    agenciaNombre,
+    reservaChatbotId,
+    packageId,
+    hotel,
+    titularNombre,
+    checkin,
+    checkout,
+    origenIata,
+    transactionId,
+    bookingId,
+  } = data;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago de vuelo confirmado</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .email-container { max-width: 600px; margin: 20px auto; background: #fff; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden; }
+    .email-header { background: #0d6efd; color: #fff; text-align: center; padding: 20px; }
+    .email-header h1 { margin: 0; font-size: 22px; }
+    .email-body { padding: 20px; line-height: 1.6; color: #333; }
+    .email-body ul { padding-left: 20px; }
+    .email-footer { background: #f4f4f4; text-align: center; padding: 10px; font-size: 12px; color: #777; }
+    .badge { display: inline-block; background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>Pago de vuelo confirmado</h1>
+    </div>
+    <div class="email-body">
+      <p>Estimado equipo de <strong>${agenciaNombre}</strong>,</p>
+      <p>El pago del vuelo MaarLab/OceanFlights fue procesado correctamente. <span class="badge">Pagado</span></p>
+      <ul>
+        <li><strong>Localizador hotel (reserva):</strong> ${reservaChatbotId}</li>
+        <li><strong>Paquete vuelo (packageId):</strong> ${packageId}</li>
+        ${bookingId ? `<li><strong>Booking vuelo:</strong> ${bookingId}</li>` : ''}
+        ${transactionId ? `<li><strong>Transacción:</strong> ${transactionId}</li>` : ''}
+        <li><strong>Hotel:</strong> ${hotel}</li>
+        <li><strong>Titular:</strong> ${titularNombre || '—'}</li>
+        <li><strong>Check-in:</strong> ${checkin}</li>
+        <li><strong>Check-out:</strong> ${checkout}</li>
+        ${origenIata ? `<li><strong>Origen IATA:</strong> ${origenIata}</li>` : ''}
+      </ul>
+      <p>Puede consultar el detalle completo del paquete en Booking Connect.</p>
+      <p>Saludos,<br>Equipo Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+};

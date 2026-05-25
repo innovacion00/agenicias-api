@@ -3,6 +3,7 @@ import axios, { AxiosResponse, AxiosError } from 'axios';
 import { envs } from '../config';
 import { MaarLabFlightSearchDto } from './dto/maarlab-flight-search.dto';
 import { BookPackageDto, PassengerDto } from './dto/book-package.dto';
+import { buildMaarlabWebhookUrls } from './config/maarlab-webhook.config';
 
 /** Cuando MaarLab devuelve 400 pero sin texto útil (p. ej. {"errors":{"message":""}}). */
 const MAARLAB_BOOKPACKAGE_400_SIN_TEXTO =
@@ -257,19 +258,10 @@ export class MaarLabService {
       this.logger.debug(`URL completa de creación de paquete: ${url}`);
       this.logger.debug(`URL esperada: https://test-api.oceanflights.io/api/v1/createPackage/?info=${info}`);
 
-      // Consolidator: hotel vacío salvo webhook (doc OceanFlights).
-      const hotelPayload: Record<string, unknown> = {};
-      const wh = createPackageDto.hotel?.webhook;
-      if (wh) {
-        const webhook: Record<string, string> = {};
-        if (wh.booking_url) webhook.booking_url = wh.booking_url;
-        if (wh.payment_url) webhook.payment_url = wh.payment_url;
-        if (wh.canceled_url) webhook.canceled_url = wh.canceled_url;
-        if (wh.contracting_url) webhook.contracting_url = wh.contracting_url;
-        if (Object.keys(webhook).length > 0) {
-          hotelPayload.webhook = webhook;
-        }
-      }
+      // Consolidator: webhooks siempre apuntan a gehsuitesapps (MaarLab hace GET con package_id).
+      const hotelPayload: Record<string, unknown> = {
+        webhook: buildMaarlabWebhookUrls(),
+      };
 
       const requestBody: Record<string, unknown> = {
         flightId: createPackageDto.flightId,

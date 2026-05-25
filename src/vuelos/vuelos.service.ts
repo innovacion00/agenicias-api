@@ -388,6 +388,9 @@ export class VuelosService {
           packageId: bookPackageDto?.packageId || '',
           respuestaMaarLab: resto,
           createdAt: new Date(),
+          paymentStatus: 'pending',
+          paymentUpdatedAt: new Date(),
+          bookingStatus: 'booked',
         });
 
         await reservaDoc.save();
