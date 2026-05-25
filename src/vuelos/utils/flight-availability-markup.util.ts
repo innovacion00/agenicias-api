@@ -1,5 +1,5 @@
 /** Markup aplicado al total mostrado en disponibilidad MaarLab (porcentaje). */
-export const MAARLAB_FLIGHT_AVAILABILITY_MARKUP_PERCENT = 25;
+export const MAARLAB_FLIGHT_AVAILABILITY_MARKUP_PERCENT = 15;
 
 /** Campos de total en ofertas MaarLab (camelCase y PascalCase). */
 const OFFER_TOTAL_KEYS = [

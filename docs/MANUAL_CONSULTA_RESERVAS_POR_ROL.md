@@ -1,11 +1,33 @@
 # Manual de consulta de reservas por rol
 
-**Versión:** 1.0  
-**Base URL API Agencias:** `{HOST}/agencias/v1/`  
+**Versión:** 1.1  
+**Base URL API Agencias:** `https://gehsuitesapps.com/agencias/v1/` (o `{HOST}/agencias/v1/` en otros entornos)  
 **Módulo:** `reservas`  
 **Autenticación:** JWT en todos los endpoints descritos (`Authorization: Bearer <accessToken>`)
 
 Este documento explica **qué reservas puede ver cada rol**, **qué endpoint usar** y **cómo el backend aplica los filtros** al listar o buscar reservas.
+
+**Documentos relacionados:**
+
+- [MANUAL_INTEGRACION_VUELO_HOTEL.md](./MANUAL_INTEGRACION_VUELO_HOTEL.md) — flujo vuelo + hotel y `reservaChatbotId`
+- [MANUAL_INTEGRACION_PAGOS_AUTOCORE.md](./MANUAL_INTEGRACION_PAGOS_AUTOCORE.md) — pagos del hotel y webhooks Autocore
+
+---
+
+## Índice
+
+1. [Roles y alcance de datos](#1-roles-y-alcance-de-datos)
+2. [¿Qué endpoint usar según el rol?](#2-qué-endpoint-usar-según-el-rol)
+3. [Autenticación](#3-autenticación)
+4. [Endpoints de listado](#4-endpoints-de-listado)
+5. [Endpoints de búsqueda (`buscar/*`)](#5-endpoints-de-búsqueda-buscar)
+6. [Matriz de decisión (frontend)](#6-matriz-de-decisión-para-integradores-frontend)
+7. [Formato de respuesta](#7-formato-de-respuesta-y-campos-poblados)
+8. [Errores frecuentes](#8-errores-frecuentes)
+9. [Ejemplos por rol](#9-ejemplos-por-rol-flujo-completo)
+10. [Referencia de código](#10-referencia-de-implementación)
+11. [Swagger](#11-swagger)
+12. [Reservas con vuelo MaarLab](#12-reservas-con-vuelo-maarlab-en-consultas)
 
 ---
 
@@ -427,6 +449,61 @@ GET /agencias/v1/reservas/buscar/estado?status=4&all=true
 
 Documentación interactiva:
 
-`{HOST}/agencias/v1/api-docs` → tag **reservas**
+`https://gehsuitesapps.com/agencias/v1/api-docs` → tag **reservas**
 
 Ahí se pueden probar los endpoints con JWT desde el botón **Authorize**.
+
+---
+
+## 12. Reservas con vuelo MaarLab en consultas
+
+Las reservas que incluyen paquete de vuelo guardan un array **`vuelo[]`** en el documento MongoDB. Ese campo **se devuelve** en los listados y búsquedas (mismas reglas de rol que el resto de la reserva).
+
+### Estructura relevante en respuesta
+
+```json
+{
+  "reservaChatbotId": "CB88D9393D",
+  "hotel": "Hotel Ejemplo",
+  "status": 3,
+  "vuelo": [
+    {
+      "packageId": "MAH-C7GQ0G",
+      "paymentStatus": "paid",
+      "paymentUpdatedAt": "2026-05-20T14:00:00.000Z",
+      "bookingStatus": "booked",
+      "lastWebhookType": "payment",
+      "respuestaMaarLab": { },
+      "createdAt": "2026-05-19T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Dos estados de pago distintos
+
+| Concepto | Campo | Significado |
+|----------|--------|-------------|
+| Pago del **hotel** (Autocore / link / billetera) | `status` (0–6) | Estados documentados en la sección [5.5](#55-por-estado-de-pago) |
+| Pago del **vuelo** (MaarLab) | `vuelo[].paymentStatus` | `pending`, `paid`, `failed`, `canceled` (actualizado vía webhook de pago) |
+
+Una reserva puede tener `status: 3` (hotel pagado) y a la vez `vuelo[].paymentStatus: "pending"` si el vuelo aún no se cobró en MaarLab.
+
+### Consultar por localizador (recomendado)
+
+Para ver hotel + vuelo de un paquete combinado, use el localizador del hotel:
+
+```http
+GET /agencias/v1/reservas/buscar/chatbot-id?reservaChatbotId=CB88D9393D
+Authorization: Bearer <token>
+```
+
+| Rol | ¿Ve la reserva? |
+|-----|-----------------|
+| `user` | Solo si la creó |
+| `admin` | Si pertenece a su agencia |
+| `super-admin` | Siempre |
+
+### Filtrar listados por estado de pago del hotel
+
+`GET /reservas/buscar/estado?status=N` filtra por **`status` de la reserva (hotel)**, no por `vuelo[].paymentStatus`. Para filtrar vuelos pendientes de pago hoy hay que evaluar `vuelo` en el cliente o ampliar la API en el futuro.
