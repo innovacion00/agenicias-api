@@ -17,7 +17,7 @@ export class MaarlabPartnerCredential {
   hotelName: string;
 
   /** Nombre MaarLab normalizado para emparejar con `Agencia.fullName` / `slug`. */
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   normHotelName: string;
 
   @Prop({ required: true })

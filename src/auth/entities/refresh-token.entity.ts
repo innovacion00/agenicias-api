@@ -39,9 +39,8 @@ export class RefreshToken extends Document {
 
 export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);
 
-// Índice para mejorar performance en consultas
+// Índices (token ya tiene índice único vía unique: true en @Prop)
 RefreshTokenSchema.index({ userId: 1 });
-RefreshTokenSchema.index({ token: 1 });
 RefreshTokenSchema.index({ expiresAt: 1 });
 
 // Middleware para actualizar updatedAt
