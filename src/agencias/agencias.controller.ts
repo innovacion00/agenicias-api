@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -19,6 +20,7 @@ import { AgenciasService } from './agencias.service';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { Types } from 'mongoose';
 import { Auth, GetUser } from 'src/auth/decorators';
+import { User } from 'src/auth/entities';
 import { ValidRoles } from 'src/auth/interfaces';
 import { CreateAgenciaDto, RechargeWalletDto, UpdateAgenciaDto } from './dto';
 
@@ -122,6 +124,31 @@ export class AgenciasController {
   @Auth()
   obtenerPoliticasAgencia(@Param('id', ParseMongoIdPipe) id: Types.ObjectId) {
     return this.agenciasService.obtenerPoliticasAgencia(id);
+  }
+
+  //? Obtener información completa de agencia por ID (misma agencia o superAdmin)
+  @ApiOperation({ summary: 'Obtener información completa de una agencia por ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'id', description: 'ID de la agencia (MongoId)' })
+  @ApiResponse({ status: 200, description: 'Información de la agencia' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'No tiene permisos para consultar esta agencia' })
+  @ApiResponse({ status: 404, description: 'Agencia no encontrada' })
+  @Get(':id')
+  @Auth()
+  obtenerAgenciaPorId(
+    @Param('id', ParseMongoIdPipe) id: Types.ObjectId,
+    @GetUser() user: User,
+  ) {
+    const isSuperAdmin = user.role?.includes(ValidRoles.superAdmin);
+
+    if (!isSuperAdmin && user.agencia?.toString() !== id.toString()) {
+      throw new ForbiddenException(
+        'No tienes permisos para consultar información de otra agencia',
+      );
+    }
+
+    return this.agenciasService.obtenerAgenciaPorId(id);
   }
 
   //? Obtener nombre de agencia por ID

@@ -306,6 +306,25 @@ export class AgenciasService {
   }
 
   // #region Obtener políticas de agencia
+  async obtenerAgenciaPorId(agenciaId: Types.ObjectId) {
+    try {
+      const agencia = await this.agenciaModel.findById(agenciaId).lean().exec();
+
+      if (!agencia) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
+      return agencia;
+    } catch (error) {
+      this.logger.error(error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.errorManager.handle(error);
+    }
+  }
+
+  // #region Obtener políticas de agencia
   async obtenerPoliticasAgencia(agenciaId: Types.ObjectId) {
     try {
       const agencia = await this.agenciaModel.findById(agenciaId).select('politicasAgencia').exec();
