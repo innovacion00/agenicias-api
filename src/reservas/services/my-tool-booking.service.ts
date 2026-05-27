@@ -123,7 +123,10 @@ export class MyToolBookingService {
         { timeout: 15000 },
       );
 
-      this.tokenCache.set(cacheKey, { data: data.token, timestamp: Date.now() });
+      this.tokenCache.set(cacheKey, {
+        data: data.token,
+        timestamp: Date.now(),
+      });
       this.logger.log(`Token MyTool obtenido para ${normalizedIp}`);
       return data.token;
     } catch (error) {
@@ -208,7 +211,10 @@ export class MyToolBookingService {
     myToolBody: Record<string, any>,
   ): Promise<MyToolBookingResponse> {
     const config = this.getHotelConfig(hotelSlug);
-    const targetUrl = this.buildUrl(config.ip, 'BookingAvailability/GetBookAvail');
+    const targetUrl = this.buildUrl(
+      config.ip,
+      'BookingAvailability/GetBookAvail',
+    );
 
     this.logger.debug(
       `[createBooking] POST ${targetUrl} | hotelSlug=${hotelSlug}`,

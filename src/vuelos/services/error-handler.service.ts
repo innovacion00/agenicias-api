@@ -1,12 +1,12 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { 
-  ErrorResponse, 
-  AmadeusErrorDetails, 
+import {
+  ErrorResponse,
+  AmadeusErrorDetails,
   InternalErrorDetails,
   ValidationErrorDetails,
   NetworkErrorDetails,
-  LogContext 
+  LogContext,
 } from '../interfaces/error-response.interface';
 
 /**
@@ -31,11 +31,11 @@ export class ErrorHandlerService {
     context: LogContext,
     endpoint: string,
     method: string,
-    requestData?: any
+    requestData?: any,
   ): HttpException {
     const requestId = context.requestId || this.generateRequestId();
     const timestamp = new Date().toISOString();
-    
+
     const amadeusError: AmadeusErrorDetails = {
       source: 'amadeus',
       endpoint,
@@ -43,7 +43,7 @@ export class ErrorHandlerService {
       statusCode: error.response?.status || 500,
       amadeusErrors: (error.response?.data as any)?.errors || [],
       requestData,
-      responseData: error.response?.data
+      responseData: error.response?.data,
     };
 
     // Log detallado del error de Amadeus
@@ -55,26 +55,34 @@ export class ErrorHandlerService {
       method,
       amadeusErrors: amadeusError.amadeusErrors,
       requestData: requestData ? JSON.stringify(requestData, null, 2) : 'N/A',
-      responseData: amadeusError.responseData ? JSON.stringify(amadeusError.responseData, null, 2) : 'N/A',
-      context
+      responseData: amadeusError.responseData
+        ? JSON.stringify(amadeusError.responseData, null, 2)
+        : 'N/A',
+      context,
     });
 
     const errorResponse: ErrorResponse = {
       success: false,
       error: {
-        code: this.getAmadeusErrorCode(amadeusError.statusCode, amadeusError.amadeusErrors),
-        message: this.getAmadeusErrorMessage(amadeusError.statusCode, amadeusError.amadeusErrors),
+        code: this.getAmadeusErrorCode(
+          amadeusError.statusCode,
+          amadeusError.amadeusErrors,
+        ),
+        message: this.getAmadeusErrorMessage(
+          amadeusError.statusCode,
+          amadeusError.amadeusErrors,
+        ),
         details: this.getAmadeusErrorDetails(amadeusError.amadeusErrors),
         timestamp,
         requestId,
         source: 'amadeus',
-        statusCode: amadeusError.statusCode
+        statusCode: amadeusError.statusCode,
       },
       data: {
         amadeusErrors: amadeusError.amadeusErrors,
         endpoint,
-        method
-      }
+        method,
+      },
     };
 
     return new HttpException(errorResponse, amadeusError.statusCode);
@@ -88,11 +96,11 @@ export class ErrorHandlerService {
     context: LogContext,
     service: string,
     method: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, any>,
   ): HttpException {
     const requestId = context.requestId || this.generateRequestId();
     const timestamp = new Date().toISOString();
-    
+
     const internalError: InternalErrorDetails = {
       source: 'internal',
       service,
@@ -100,9 +108,9 @@ export class ErrorHandlerService {
       originalError: {
         name: error.name,
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       },
-      context: additionalContext
+      context: additionalContext,
     };
 
     // Log detallado del error interno
@@ -115,7 +123,7 @@ export class ErrorHandlerService {
       errorMessage: internalError.originalError.message,
       stack: internalError.originalError.stack,
       additionalContext,
-      context
+      context,
     });
 
     const errorResponse: ErrorResponse = {
@@ -127,16 +135,16 @@ export class ErrorHandlerService {
         timestamp,
         requestId,
         source: 'internal',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       },
       data: {
         service,
         method,
         originalError: {
           name: internalError.originalError.name,
-          message: internalError.originalError.message
-        }
-      }
+          message: internalError.originalError.message,
+        },
+      },
     };
 
     return new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -150,17 +158,17 @@ export class ErrorHandlerService {
     value: any,
     constraint: string,
     message: string,
-    context: LogContext
+    context: LogContext,
   ): HttpException {
     const requestId = context.requestId || this.generateRequestId();
     const timestamp = new Date().toISOString();
-    
+
     const _validationError: ValidationErrorDetails = {
       source: 'validation',
       field,
       value,
       constraint,
-      message
+      message,
     };
 
     // Log del error de validación
@@ -171,7 +179,7 @@ export class ErrorHandlerService {
       value,
       constraint,
       message,
-      context
+      context,
     });
 
     const errorResponse: ErrorResponse = {
@@ -183,14 +191,14 @@ export class ErrorHandlerService {
         timestamp,
         requestId,
         source: 'validation',
-        statusCode: HttpStatus.BAD_REQUEST
+        statusCode: HttpStatus.BAD_REQUEST,
       },
       data: {
         field,
         value,
         constraint,
-        message
-      }
+        message,
+      },
     };
 
     return new HttpException(errorResponse, HttpStatus.BAD_REQUEST);
@@ -204,17 +212,17 @@ export class ErrorHandlerService {
     context: LogContext,
     url: string,
     method: string,
-    timeout?: boolean
+    timeout?: boolean,
   ): HttpException {
     const requestId = context.requestId || this.generateRequestId();
     const timestamp = new Date().toISOString();
-    
+
     const networkError: NetworkErrorDetails = {
       source: 'network',
       url,
       method,
       timeout: timeout || false,
-      connectionError: !timeout
+      connectionError: !timeout,
     };
 
     // Log del error de red
@@ -226,7 +234,7 @@ export class ErrorHandlerService {
       timeout,
       connectionError: networkError.connectionError,
       errorMessage: error.message,
-      context
+      context,
     });
 
     const errorResponse: ErrorResponse = {
@@ -238,23 +246,31 @@ export class ErrorHandlerService {
         timestamp,
         requestId,
         source: 'network',
-        statusCode: timeout ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.BAD_GATEWAY
+        statusCode: timeout
+          ? HttpStatus.REQUEST_TIMEOUT
+          : HttpStatus.BAD_GATEWAY,
       },
       data: {
         url,
         method,
         timeout,
-        connectionError: networkError.connectionError
-      }
+        connectionError: networkError.connectionError,
+      },
     };
 
-    return new HttpException(errorResponse, timeout ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.BAD_GATEWAY);
+    return new HttpException(
+      errorResponse,
+      timeout ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.BAD_GATEWAY,
+    );
   }
 
   /**
    * Obtiene el código de error específico para errores de Amadeus
    */
-  private getAmadeusErrorCode(statusCode: number, amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
+  private getAmadeusErrorCode(
+    statusCode: number,
+    amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>,
+  ): string {
     if (statusCode === 401) return 'AMADEUS_AUTHENTICATION_FAILED';
     if (statusCode === 403) return 'AMADEUS_FORBIDDEN';
     if (statusCode === 404) return 'AMADEUS_NOT_FOUND';
@@ -262,19 +278,22 @@ export class ErrorHandlerService {
     if (statusCode === 422) return 'AMADEUS_VALIDATION_ERROR';
     if (statusCode === 429) return 'AMADEUS_RATE_LIMIT_EXCEEDED';
     if (statusCode >= 500) return 'AMADEUS_SERVER_ERROR';
-    
+
     // Si hay errores específicos de Amadeus, usar el primer código
     if (amadeusErrors && amadeusErrors.length > 0) {
       return `AMADEUS_${amadeusErrors[0].code || 'UNKNOWN_ERROR'}`;
     }
-    
+
     return 'AMADEUS_UNKNOWN_ERROR';
   }
 
   /**
    * Obtiene el mensaje de error para errores de Amadeus
    */
-  private getAmadeusErrorMessage(statusCode: number, amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
+  private getAmadeusErrorMessage(
+    statusCode: number,
+    amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>,
+  ): string {
     if (statusCode === 401) return 'Error de autenticación con Amadeus';
     if (statusCode === 403) return 'Acceso denegado por Amadeus';
     if (statusCode === 404) return 'Recurso no encontrado en Amadeus';
@@ -282,24 +301,26 @@ export class ErrorHandlerService {
     if (statusCode === 422) return 'Error de validación en Amadeus';
     if (statusCode === 429) return 'Límite de solicitudes excedido en Amadeus';
     if (statusCode >= 500) return 'Error interno del servidor de Amadeus';
-    
+
     // Si hay errores específicos de Amadeus, usar el primer mensaje
     if (amadeusErrors && amadeusErrors.length > 0) {
       return amadeusErrors[0].title || 'Error desconocido de Amadeus';
     }
-    
+
     return 'Error desconocido de Amadeus';
   }
 
   /**
    * Obtiene los detalles del error de Amadeus
    */
-  private getAmadeusErrorDetails(amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>): string {
+  private getAmadeusErrorDetails(
+    amadeusErrors: Array<{ code?: string; title?: string; detail?: string }>,
+  ): string {
     if (!amadeusErrors || amadeusErrors.length === 0) {
       return 'No se proporcionaron detalles del error';
     }
-    
-    return amadeusErrors.map(error => error.detail).join('; ');
+
+    return amadeusErrors.map((error) => error.detail).join('; ');
   }
 
   /**
@@ -312,7 +333,7 @@ export class ErrorHandlerService {
     if (error.name === 'SyntaxError') return 'SYNTAX_ERROR';
     if (error.message.includes('timeout')) return 'TIMEOUT_ERROR';
     if (error.message.includes('connection')) return 'CONNECTION_ERROR';
-    
+
     return 'INTERNAL_SERVER_ERROR';
   }
 
@@ -326,7 +347,7 @@ export class ErrorHandlerService {
     if (error.name === 'SyntaxError') return 'Error de sintaxis';
     if (error.message.includes('timeout')) return 'Timeout en la operación';
     if (error.message.includes('connection')) return 'Error de conexión';
-    
+
     return 'Error interno del servidor';
   }
 
@@ -347,7 +368,7 @@ export class ErrorHandlerService {
       endpoint: context.endpoint,
       method: context.method,
       duration: context.duration,
-      data
+      data,
     });
   }
 
@@ -360,7 +381,7 @@ export class ErrorHandlerService {
       timestamp: context.timestamp,
       endpoint: context.endpoint,
       method: context.method,
-      data
+      data,
     });
   }
 }

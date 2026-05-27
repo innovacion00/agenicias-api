@@ -1,10 +1,10 @@
-import { 
+import {
   IsNotEmpty,
   IsArray,
   ArrayMinSize,
   IsString,
   IsOptional,
-  ValidateNested
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -60,10 +60,11 @@ export class AddExtrasDto {
     type: [ExtraItemDto],
     example: [
       {
-        extraId: '9977753d0dd96c2a41bb5e2949308208fba42893a6e79807e047ef8a027f92ea',
+        extraId:
+          '9977753d0dd96c2a41bb5e2949308208fba42893a6e79807e047ef8a027f92ea',
         typeExtraId: '1',
-        passengerId: '0'
-      }
+        passengerId: '0',
+      },
     ],
   })
   @IsNotEmpty()

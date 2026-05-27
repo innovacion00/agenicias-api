@@ -22,7 +22,7 @@ export class ErrorHandlerInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const _response = context.switchToHttp().getResponse();
-    
+
     // Crear contexto de logging
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
@@ -31,7 +31,7 @@ export class ErrorHandlerInterceptor implements NestInterceptor {
       method: request.method,
       timestamp: new Date().toISOString(),
       userAgent: request.headers['user-agent'],
-      ipAddress: request.ip || request.connection.remoteAddress
+      ipAddress: request.ip || request.connection.remoteAddress,
     };
 
     // Agregar el requestId al request para uso posterior
@@ -45,17 +45,20 @@ export class ErrorHandlerInterceptor implements NestInterceptor {
         logContext.duration = duration;
 
         // Log del error capturado
-        this.logger.error(`[INTERCEPTOR_ERROR] ${logContext.method} ${logContext.endpoint}`, {
-          requestId: logContext.requestId,
-          error: error.message,
-          stack: error.stack,
-          duration,
-          context: logContext
-        });
+        this.logger.error(
+          `[INTERCEPTOR_ERROR] ${logContext.method} ${logContext.endpoint}`,
+          {
+            requestId: logContext.requestId,
+            error: error.message,
+            stack: error.stack,
+            duration,
+            context: logContext,
+          },
+        );
 
         // Re-lanzar el error para que sea manejado por el filtro de excepciones global
         return throwError(() => error);
-      })
+      }),
     );
   }
 

@@ -5,8 +5,14 @@ import { BookingPersonasController } from './booking-personas.controller';
 import { BookingPersonasService } from './booking-personas.service';
 import { CommonModule } from 'src/common/common.module';
 import { StaticTokenGuard } from 'src/auth/guards';
-import { BookingPersona, BookingPersonaSchema } from './entities/booking-persona.entity';
-import { PaymentPending, PaymentPendingSchema } from './entities/payment-pending.entity';
+import {
+  BookingPersona,
+  BookingPersonaSchema,
+} from './entities/booking-persona.entity';
+import {
+  PaymentPending,
+  PaymentPendingSchema,
+} from './entities/payment-pending.entity';
 
 @Module({
   controllers: [BookingPersonasController],
@@ -27,4 +33,3 @@ import { PaymentPending, PaymentPendingSchema } from './entities/payment-pending
   exports: [BookingPersonasService, MongooseModule],
 })
 export class BookingPersonasModule {}
-

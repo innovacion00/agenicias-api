@@ -36,7 +36,7 @@ import {
 } from './dto';
 import {
   AmadeusLocationResponse,
-  AmadeusFlightOrderResponse
+  AmadeusFlightOrderResponse,
 } from './interfaces';
 
 @ApiTags('vuelos')
@@ -46,9 +46,7 @@ import {
 export class VuelosController {
   private readonly logger = new Logger(VuelosController.name);
 
-  constructor(
-    private readonly vuelosService: VuelosService,
-  ) {}
+  constructor(private readonly vuelosService: VuelosService) {}
 
   /**
    * Genera un ID único para la solicitud
@@ -61,13 +59,14 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verificar módulo de vuelos',
-    description: 'Endpoint de salud del módulo de vuelos para validar que el servicio está activo.',
+    description:
+      'Endpoint de salud del módulo de vuelos para validar que el servicio está activo.',
   })
   async test(): Promise<{ message: string; status: string }> {
     this.logger.log('Endpoint de prueba llamado');
     return {
       message: 'El módulo de vuelos está funcionando correctamente',
-      status: 'OK'
+      status: 'OK',
     };
   }
 
@@ -75,15 +74,20 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Probar autenticación con Amadeus',
-    description: 'Valida credenciales y conectividad de autenticación con Amadeus.',
+    description:
+      'Valida credenciales y conectividad de autenticación con Amadeus.',
   })
-  async testAuthentication(): Promise<{ message: string; status: string; tokenInfo?: any }> {
+  async testAuthentication(): Promise<{
+    message: string;
+    status: string;
+    tokenInfo?: any;
+  }> {
     this.logger.log('Probando autenticación con Amadeus...');
-    
+
     try {
       // Intentar obtener un token para verificar que las credenciales funcionan
       const token = await this.vuelosService.testAuthentication();
-      
+
       return {
         message: 'Autenticación con Amadeus exitosa',
         status: 'OK',
@@ -91,7 +95,7 @@ export class VuelosController {
           tokenLength: token.length,
           tokenPreview: token.substring(0, 10) + '...',
           timestamp: new Date().toISOString(),
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Error en autenticación con Amadeus:', error);
@@ -103,16 +107,22 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Buscar ubicaciones',
-    description: 'Busca aeropuertos o ciudades por palabra clave usando Amadeus.',
+    description:
+      'Busca aeropuertos o ciudades por palabra clave usando Amadeus.',
   })
   async searchLocations(
-    @Query(new ValidationPipe({ transform: true })) searchDto: SearchLocationsDto,
+    @Query(new ValidationPipe({ transform: true }))
+    searchDto: SearchLocationsDto,
   ): Promise<AmadeusLocationResponse> {
-    this.logger.log(`Búsqueda de ubicaciones solicitada: ${JSON.stringify(searchDto)}`);
-    
+    this.logger.log(
+      `Búsqueda de ubicaciones solicitada: ${JSON.stringify(searchDto)}`,
+    );
+
     try {
       const result = await this.vuelosService.searchLocations(searchDto);
-      this.logger.log(`Búsqueda exitosa: ${result.meta.count} resultados encontrados`);
+      this.logger.log(
+        `Búsqueda exitosa: ${result.meta.count} resultados encontrados`,
+      );
       return result;
     } catch (error) {
       this.logger.error('Error en búsqueda de ubicaciones:', error);
@@ -124,17 +134,23 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Buscar aeropuerto por IATA',
-    description: 'Consulta información de un aeropuerto específico por su código IATA.',
+    description:
+      'Consulta información de un aeropuerto específico por su código IATA.',
   })
-  async searchAirportByIata(@Param('iataCode') iataCode: string): Promise<AmadeusLocationResponse> {
+  async searchAirportByIata(
+    @Param('iataCode') iataCode: string,
+  ): Promise<AmadeusLocationResponse> {
     this.logger.log(`Búsqueda de aeropuerto por IATA: ${iataCode}`);
-    
+
     try {
       const result = await this.vuelosService.searchAirportsByIata(iataCode);
       this.logger.log(`Aeropuerto encontrado: ${result.meta.count} resultados`);
       return result;
     } catch (error) {
-      this.logger.error(`Error al buscar aeropuerto por IATA ${iataCode}:`, error);
+      this.logger.error(
+        `Error al buscar aeropuerto por IATA ${iataCode}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -143,20 +159,29 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Buscar ciudades por nombre',
-    description: 'Obtiene ciudades de Amadeus por nombre y opcionalmente por país.',
+    description:
+      'Obtiene ciudades de Amadeus por nombre y opcionalmente por país.',
   })
   async searchCitiesByName(
     @Query('nombre') cityName: string,
     @Query('countryCode') countryCode?: string,
   ): Promise<AmadeusLocationResponse> {
-    this.logger.log(`Búsqueda de ciudades: ${cityName}${countryCode ? ` en ${countryCode}` : ''}`);
-    
+    this.logger.log(
+      `Búsqueda de ciudades: ${cityName}${countryCode ? ` en ${countryCode}` : ''}`,
+    );
+
     try {
-      const result = await this.vuelosService.searchCitiesByName(cityName, countryCode);
+      const result = await this.vuelosService.searchCitiesByName(
+        cityName,
+        countryCode,
+      );
       this.logger.log(`Ciudades encontradas: ${result.meta.count} resultados`);
       return result;
     } catch (error) {
-      this.logger.error(`Error al buscar ciudades por nombre ${cityName}:`, error);
+      this.logger.error(
+        `Error al buscar ciudades por nombre ${cityName}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -165,23 +190,27 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Buscar ciudades con filtros',
-    description: 'Búsqueda avanzada de ciudades con parámetros de paginación y filtros.',
+    description:
+      'Búsqueda avanzada de ciudades con parámetros de paginación y filtros.',
   })
   async searchCities(
     @Query(new ValidationPipe({ transform: true })) searchDto: SearchCitiesDto,
   ): Promise<any> {
-    this.logger.log(`Búsqueda de ciudades con parámetros: ${JSON.stringify(searchDto)}`);
-    
+    this.logger.log(
+      `Búsqueda de ciudades con parámetros: ${JSON.stringify(searchDto)}`,
+    );
+
     try {
       const result = await this.vuelosService.searchCities(searchDto);
-      this.logger.log(`Búsqueda exitosa: ${result.meta?.count || 'N/A'} resultados encontrados`);
+      this.logger.log(
+        `Búsqueda exitosa: ${result.meta?.count || 'N/A'} resultados encontrados`,
+      );
       return result;
     } catch (error) {
       this.logger.error('Error en búsqueda de ciudades:', error);
       throw error;
     }
   }
-
 
   /**
    * Endpoint de prueba para depurar problemas de disponibilidad
@@ -190,40 +219,45 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Probar disponibilidad de vuelos',
-    description: 'Endpoint de diagnóstico para depurar payloads de disponibilidad antes del flujo principal.',
+    description:
+      'Endpoint de diagnóstico para depurar payloads de disponibilidad antes del flujo principal.',
   })
   async searchFlightOffersTest(@Body() rawBody: any): Promise<any> {
     this.logger.log(' Endpoint de prueba llamado');
     this.logger.log(`Raw body: ${JSON.stringify(rawBody)}`);
-    
+
     try {
       // Crear un request con la estructura exacta que espera Amadeus
       const basicRequest = {
         currencyCode: rawBody.currencyCode || 'USD',
-        originDestinations: rawBody.originDestinations.map((od: {
-          id: string;
-          originLocationCode: string;
-          destinationLocationCode: string;
-          departureDateTimeRange: { date: string; time?: string };
-        }) => ({
-          id: od.id,
-          originLocationCode: od.originLocationCode,
-          destinationLocationCode: od.destinationLocationCode,
-          departureDateTimeRange: {
-            date: od.departureDateTimeRange.date,
-            time: od.departureDateTimeRange.time || '08:00:00'
-          }
-        })),
+        originDestinations: rawBody.originDestinations.map(
+          (od: {
+            id: string;
+            originLocationCode: string;
+            destinationLocationCode: string;
+            departureDateTimeRange: { date: string; time?: string };
+          }) => ({
+            id: od.id,
+            originLocationCode: od.originLocationCode,
+            destinationLocationCode: od.destinationLocationCode,
+            departureDateTimeRange: {
+              date: od.departureDateTimeRange.date,
+              time: od.departureDateTimeRange.time || '08:00:00',
+            },
+          }),
+        ),
         travelers: rawBody.travelers,
         sources: rawBody.sources || ['GDS'],
         searchCriteria: rawBody.searchCriteria || {
-          maxFlightOffers: 5
-        }
+          maxFlightOffers: 5,
+        },
       };
-      
+
       this.logger.log(`Request para Amadeus: ${JSON.stringify(basicRequest)}`);
-      
-      const result = await this.vuelosService.searchFlightOffers(basicRequest as any);
+
+      const result = await this.vuelosService.searchFlightOffers(
+        basicRequest as any,
+      );
       return result;
     } catch (error) {
       this.logger.error('Error en endpoint de prueba:', error);
@@ -240,16 +274,17 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Buscar ofertas de vuelos',
-    description: 'Consulta ofertas de vuelos disponibles y retorna datos enriquecidos para consumo del cliente.',
+    description:
+      'Consulta ofertas de vuelos disponibles y retorna datos enriquecidos para consumo del cliente.',
   })
   async searchFlightOffers(
-    @Body(new ValidationPipe({ transform: true })) searchDto: FlightSearchDto
+    @Body(new ValidationPipe({ transform: true })) searchDto: FlightSearchDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'searchFlightOffers',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Búsqueda de vuelos solicitada`, {
@@ -258,17 +293,17 @@ export class VuelosController {
       destination: searchDto.originDestinations[0]?.destinationLocationCode,
       date: searchDto.originDestinations[0]?.departureDate,
       travelers: searchDto.travelers.length,
-      currencyCode: searchDto.currencyCode
+      currencyCode: searchDto.currencyCode,
     });
 
     try {
       const offers = await this.vuelosService.searchFlightOffers(searchDto);
-      
+
       this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos completada`, {
         requestId: logContext.requestId,
         offersFound: offers.meta.count,
         currency: (offers.meta as any)?.currency || 'N/A',
-        searchDuration: (offers.meta as any)?.searchDuration || 'N/A'
+        searchDuration: (offers.meta as any)?.searchDuration || 'N/A',
       });
 
       return offers;
@@ -280,10 +315,10 @@ export class VuelosController {
           origin: searchDto.originDestinations[0]?.originLocationCode,
           destination: searchDto.originDestinations[0]?.destinationLocationCode,
           date: searchDto.originDestinations[0]?.departureDate,
-          travelers: searchDto.travelers.length
-        }
+          travelers: searchDto.travelers.length,
+        },
       });
-      
+
       throw error;
     }
   }
@@ -296,16 +331,17 @@ export class VuelosController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear reserva de vuelo',
-    description: 'Crea una orden de vuelo en Amadeus con ofertas y pasajeros seleccionados.',
+    description:
+      'Crea una orden de vuelo en Amadeus con ofertas y pasajeros seleccionados.',
   })
   async createFlightOrder(
-    @Body(new ValidationPipe({ transform: true })) orderDto: FlightOrderDto
+    @Body(new ValidationPipe({ transform: true })) orderDto: FlightOrderDto,
   ): Promise<AmadeusFlightOrderResponse> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'createFlightOrder',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Reserva de vuelo solicitada`, {
@@ -313,19 +349,22 @@ export class VuelosController {
       flightOffers: orderDto.flightOffers.length,
       travelers: orderDto.travelers.length,
       hasRemarks: !!orderDto.remarks,
-      hasContacts: !!orderDto.contacts
+      hasContacts: !!orderDto.contacts,
     });
 
     try {
       const order = await this.vuelosService.createFlightOrder(orderDto);
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Reserva de vuelo creada exitosamente`, {
-        requestId: logContext.requestId,
-        orderId: order.data.id,
-        travelers: order.data.travelers?.length || 0,
-        flightOffers: order.data.flightOffers?.length || 0,
-        status: order.data.type
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Reserva de vuelo creada exitosamente`,
+        {
+          requestId: logContext.requestId,
+          orderId: order.data.id,
+          travelers: order.data.travelers?.length || 0,
+          flightOffers: order.data.flightOffers?.length || 0,
+          status: order.data.type,
+        },
+      );
 
       return order;
     } catch (error) {
@@ -336,10 +375,10 @@ export class VuelosController {
           flightOffers: orderDto.flightOffers.length,
           travelers: orderDto.travelers.length,
           hasRemarks: !!orderDto.remarks,
-          hasContacts: !!orderDto.contacts
-        }
+          hasContacts: !!orderDto.contacts,
+        },
       });
-      
+
       throw error;
     }
   }
@@ -353,16 +392,17 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Consultar reserva de vuelo',
-    description: 'Obtiene el detalle de una reserva de vuelo por su identificador.',
+    description:
+      'Obtiene el detalle de una reserva de vuelo por su identificador.',
   })
   async getFlightOrder(
-    @Param('flightOrderId') flightOrderId: string
+    @Param('flightOrderId') flightOrderId: string,
   ): Promise<AmadeusFlightOrderResponse> {
     this.logger.log(`Consulta de reserva solicitada: ${flightOrderId}`);
 
     try {
       const order = await this.vuelosService.getFlightOrder(flightOrderId);
-      
+
       this.logger.log(`Reserva consultada exitosamente: ${order.data.id}`);
       return order;
     } catch (error) {
@@ -383,13 +423,13 @@ export class VuelosController {
     description: 'Cancela una orden de vuelo existente en Amadeus.',
   })
   async cancelFlightOrder(
-    @Param('flightOrderId') flightOrderId: string
+    @Param('flightOrderId') flightOrderId: string,
   ): Promise<void> {
     this.logger.log(`Cancelación de reserva solicitada: ${flightOrderId}`);
 
     try {
       await this.vuelosService.cancelFlightOrder(flightOrderId);
-      
+
       this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
     } catch (error) {
       this.logger.error(`Error cancelando reserva ${flightOrderId}:`, error);
@@ -408,17 +448,19 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: buscar disponibilidad de vuelos',
-    description: 'Consulta vuelos disponibles en MaarLab Oceanflights según origen, destino, fecha y pasajeros.',
+    description:
+      'Consulta vuelos disponibles en MaarLab Oceanflights según origen, destino, fecha y pasajeros.',
   })
   async searchFlightsMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) searchDto: MaarLabFlightSearchDto,
+    @Body(new ValidationPipe({ transform: true }))
+    searchDto: MaarLabFlightSearchDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'searchFlightsMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Búsqueda de vuelos MaarLab solicitada`, {
@@ -429,7 +471,7 @@ export class VuelosController {
       returnDate: searchDto.returnDate,
       adults: searchDto.adults,
       ages: searchDto.ages,
-      currency: searchDto.currency
+      currency: searchDto.currency,
     });
 
     try {
@@ -437,25 +479,31 @@ export class VuelosController {
         agenciaId,
         searchDto,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Búsqueda de vuelos MaarLab completada`, {
-        requestId: logContext.requestId,
-        hasResults: !!offers
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Búsqueda de vuelos MaarLab completada`,
+        {
+          requestId: logContext.requestId,
+          hasResults: !!offers,
+        },
+      );
 
       return offers;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en búsqueda de vuelos MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        searchParams: {
-          origin: searchDto.origin,
-          destination: searchDto.destination,
-          departureDate: searchDto.departureDate,
-          adults: searchDto.adults
-        }
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en búsqueda de vuelos MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          searchParams: {
+            origin: searchDto.origin,
+            destination: searchDto.destination,
+            departureDate: searchDto.departureDate,
+            adults: searchDto.adults,
+          },
+        },
+      );
+
       throw error;
     }
   }
@@ -476,14 +524,15 @@ export class VuelosController {
   })
   async createPackageMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) createPackageDto: CreatePackageDto,
-    @Query('info') info: string = 'all',
+    @Body(new ValidationPipe({ transform: true }))
+    createPackageDto: CreatePackageDto,
+    @Query('info') info = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'createPackageMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Creación de paquete MaarLab solicitada`, {
@@ -491,7 +540,7 @@ export class VuelosController {
       flightId: createPackageDto.flightId,
       currency: createPackageDto.currency,
       language: createPackageDto.language,
-      info
+      info,
     });
 
     try {
@@ -500,23 +549,29 @@ export class VuelosController {
         createPackageDto,
         info,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Paquete MaarLab creado exitosamente`, {
-        requestId: logContext.requestId,
-        hasResult: !!packageResult
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Paquete MaarLab creado exitosamente`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!packageResult,
+        },
+      );
 
       return packageResult;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en creación de paquete MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageParams: {
-          flightId: createPackageDto.flightId,
-          currency: createPackageDto.currency
-        }
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en creación de paquete MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageParams: {
+            flightId: createPackageDto.flightId,
+            currency: createPackageDto.currency,
+          },
+        },
+      );
+
       throw error;
     }
   }
@@ -541,12 +596,12 @@ export class VuelosController {
       requestId: this.generateRequestId(),
       endpoint: 'getLuggageMaarLab',
       method: 'GET',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Consulta de equipaje MaarLab solicitada`, {
       requestId: logContext.requestId,
-      packageId
+      packageId,
     });
 
     if (!packageId || packageId.trim() === '') {
@@ -561,20 +616,26 @@ export class VuelosController {
         agenciaId,
         packageId.trim(),
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Consulta de equipaje MaarLab completada exitosamente`, {
-        requestId: logContext.requestId,
-        hasResult: !!luggageResult
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Consulta de equipaje MaarLab completada exitosamente`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!luggageResult,
+        },
+      );
 
       return luggageResult;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en consulta de equipaje MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en consulta de equipaje MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -591,28 +652,30 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: agregar extras',
-    description: 'Agrega extras a un paquete existente y retorna el paquete actualizado.',
+    description:
+      'Agrega extras a un paquete existente y retorna el paquete actualizado.',
   })
   async addExtrasMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
     @Body(new ValidationPipe({ transform: true })) addExtrasDto: AddExtrasDto,
     @Query('packageId') packageIdQuery?: string,
-    @Query('info') info: string = 'all',
+    @Query('info') info = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'addExtrasMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Priorizar packageId del query parameter, si no está usar el del body
-    const packageId = (packageIdQuery?.trim() || addExtrasDto.packageId?.trim() || '');
+    const packageId =
+      packageIdQuery?.trim() || addExtrasDto.packageId?.trim() || '';
 
     this.logger.log(`[CONTROLLER] Agregado de extras MaarLab solicitado`, {
       requestId: logContext.requestId,
       packageId,
-      info
+      info,
     });
 
     if (!packageId) {
@@ -629,20 +692,26 @@ export class VuelosController {
         addExtrasDto.extras,
         info,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Extras agregados exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Extras agregados exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en agregado de extras MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en agregado de extras MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -667,13 +736,13 @@ export class VuelosController {
     @Query('packageId') packageId: string,
     @Query('itemId') itemId: string,
     @Query('typeExtraId') typeExtraId: string,
-    @Query('info') info: string = 'all',
+    @Query('info') info = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'deleteExtrasMaarLab',
       method: 'DELETE',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Eliminación de extra MaarLab solicitada`, {
@@ -681,7 +750,7 @@ export class VuelosController {
       packageId,
       itemId,
       typeExtraId,
-      info
+      info,
     });
 
     // Validar parámetros requeridos
@@ -732,22 +801,28 @@ export class VuelosController {
         typeExtraIdNum,
         info,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Extra eliminado exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Extra eliminado exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en eliminación de extra MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId,
-        itemId,
-        typeExtraId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en eliminación de extra MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+          itemId,
+          typeExtraId,
+        },
+      );
+
       throw error;
     }
   }
@@ -764,18 +839,20 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: reservar paquete',
-    description: 'Envía datos de pasajeros y pago para confirmar la reserva de un paquete.',
+    description:
+      'Envía datos de pasajeros y pago para confirmar la reserva de un paquete.',
   })
   async bookPackageMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) bookPackageDto: BookPackageDto,
-    @Query('info') info: string = 'all',
+    @Body(new ValidationPipe({ transform: true }))
+    bookPackageDto: BookPackageDto,
+    @Query('info') info = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'bookPackageMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Reserva de paquete MaarLab solicitada`, {
@@ -783,7 +860,7 @@ export class VuelosController {
       packageId: bookPackageDto.packageId,
       passengersCount: bookPackageDto.passengers?.length || 0,
       hasPayment: !!bookPackageDto.payment,
-      info
+      info,
     });
 
     try {
@@ -792,20 +869,26 @@ export class VuelosController {
         bookPackageDto,
         info,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Paquete reservado exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Paquete reservado exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en reserva de paquete MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId: bookPackageDto.packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en reserva de paquete MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId: bookPackageDto.packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -835,15 +918,18 @@ export class VuelosController {
       requestId: this.generateRequestId(),
       endpoint: 'getTokenPaymentMaarLab',
       method: 'GET',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Obtención de token de pago MaarLab solicitada`, {
-      requestId: logContext.requestId,
-      packageId,
-      paymentType,
-      deferredPaymentDate
-    });
+    this.logger.log(
+      `[CONTROLLER] Obtención de token de pago MaarLab solicitada`,
+      {
+        requestId: logContext.requestId,
+        packageId,
+        paymentType,
+        deferredPaymentDate,
+      },
+    );
 
     if (!packageId || packageId.trim() === '') {
       throw new HttpException(
@@ -854,7 +940,11 @@ export class VuelosController {
 
     // Validar paymentType si se proporciona
     if (paymentType) {
-      const validPaymentTypes = ['FLIGHT_ONLY', 'ALL_NOW', 'FLIGHT_NOW_HOTEL_LATER'];
+      const validPaymentTypes = [
+        'FLIGHT_ONLY',
+        'ALL_NOW',
+        'FLIGHT_NOW_HOTEL_LATER',
+      ];
       if (!validPaymentTypes.includes(paymentType)) {
         throw new HttpException(
           `paymentType debe ser uno de: ${validPaymentTypes.join(', ')}`,
@@ -889,20 +979,26 @@ export class VuelosController {
         paymentType,
         deferredPaymentDate,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Token de pago obtenido exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Token de pago obtenido exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en obtención de token de pago MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en obtención de token de pago MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -924,20 +1020,23 @@ export class VuelosController {
   async getPackageMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
     @Query('packageId') packageId: string,
-    @Query('info') info: string = 'all',
+    @Query('info') info = 'all',
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'getPackageMaarLab',
       method: 'GET',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Obtención de detalles de paquete MaarLab solicitada`, {
-      requestId: logContext.requestId,
-      packageId,
-      info
-    });
+    this.logger.log(
+      `[CONTROLLER] Obtención de detalles de paquete MaarLab solicitada`,
+      {
+        requestId: logContext.requestId,
+        packageId,
+        info,
+      },
+    );
 
     if (!packageId || packageId.trim() === '') {
       throw new HttpException(
@@ -952,20 +1051,26 @@ export class VuelosController {
         packageId.trim(),
         info,
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Detalles de paquete obtenidos exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Detalles de paquete obtenidos exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en obtención de detalles de paquete MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en obtención de detalles de paquete MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -991,13 +1096,16 @@ export class VuelosController {
       requestId: this.generateRequestId(),
       endpoint: 'getInvoiceATOLContractMaarLab',
       method: 'GET',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Obtención de contrato ATOL MaarLab solicitada`, {
-      requestId: logContext.requestId,
-      packageId
-    });
+    this.logger.log(
+      `[CONTROLLER] Obtención de contrato ATOL MaarLab solicitada`,
+      {
+        requestId: logContext.requestId,
+        packageId,
+      },
+    );
 
     if (!packageId || packageId.trim() === '') {
       throw new HttpException(
@@ -1011,20 +1119,26 @@ export class VuelosController {
         agenciaId,
         packageId.trim(),
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Contrato ATOL obtenido exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Contrato ATOL obtenido exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en obtención de contrato ATOL MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        packageId
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en obtención de contrato ATOL MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          packageId,
+        },
+      );
+
       throw error;
     }
   }
@@ -1044,42 +1158,50 @@ export class VuelosController {
   })
   async searchEngineCompleteProcessMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: SearchEngineCompleteProcessDto,
+    @Body(new ValidationPipe({ transform: true }))
+    completeProcessDto: SearchEngineCompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'searchEngineCompleteProcessMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.log(`[CONTROLLER] Creación de hotel MaarLab solicitada`, {
       requestId: logContext.requestId,
       hotelName: completeProcessDto.name,
       externalId: completeProcessDto.external_id,
-      hasPrefixLocator: !!completeProcessDto.prefix_locator
+      hasPrefixLocator: !!completeProcessDto.prefix_locator,
     });
 
     try {
-      const result = await this.vuelosService.searchEngineCompleteProcessMaarLab(
-        agenciaId,
-        completeProcessDto,
+      const result =
+        await this.vuelosService.searchEngineCompleteProcessMaarLab(
+          agenciaId,
+          completeProcessDto,
+        );
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Hotel creado/actualizado exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Hotel creado/actualizado exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en creación de hotel MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        hotelName: completeProcessDto.name,
-        externalId: completeProcessDto.external_id
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en creación de hotel MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          hotelName: completeProcessDto.name,
+          externalId: completeProcessDto.external_id,
+        },
+      );
+
       throw error;
     }
   }
@@ -1095,46 +1217,58 @@ export class VuelosController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab: crear/actualizar agencia de viajes',
-    description: 'Crea o actualiza una agencia de viajes en MaarLab (ruta estándar).',
+    description:
+      'Crea o actualiza una agencia de viajes en MaarLab (ruta estándar).',
   })
   async travelAgencyCompleteProcessMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyCompleteProcessDto,
+    @Body(new ValidationPipe({ transform: true }))
+    completeProcessDto: TravelAgencyCompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'travelAgencyCompleteProcessMaarLab',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Creación de agencia de viajes MaarLab solicitada`, {
-      requestId: logContext.requestId,
-      agencyName: completeProcessDto.name,
-      externalId: completeProcessDto.external_id,
-      hasPrefixLocator: !!completeProcessDto.prefix_locator
-    });
+    this.logger.log(
+      `[CONTROLLER] Creación de agencia de viajes MaarLab solicitada`,
+      {
+        requestId: logContext.requestId,
+        agencyName: completeProcessDto.name,
+        externalId: completeProcessDto.external_id,
+        hasPrefixLocator: !!completeProcessDto.prefix_locator,
+      },
+    );
 
     try {
-      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLab(
-        agenciaId,
-        completeProcessDto,
+      const result =
+        await this.vuelosService.travelAgencyCompleteProcessMaarLab(
+          agenciaId,
+          completeProcessDto,
+        );
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en creación de agencia de viajes MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        agencyName: completeProcessDto.name,
-        externalId: completeProcessDto.external_id
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en creación de agencia de viajes MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          agencyName: completeProcessDto.name,
+          externalId: completeProcessDto.external_id,
+        },
+      );
+
       throw error;
     }
   }
@@ -1149,46 +1283,58 @@ export class VuelosController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'MaarLab V1: crear/actualizar agencia de viajes',
-    description: 'Crea o actualiza una agencia de viajes usando la ruta V1 de MaarLab.',
+    description:
+      'Crea o actualiza una agencia de viajes usando la ruta V1 de MaarLab.',
   })
   async travelAgencyCompleteProcessMaarLabV1(
     @GetUser('agencia') agenciaId: Types.ObjectId,
-    @Body(new ValidationPipe({ transform: true })) completeProcessDto: TravelAgencyV1CompleteProcessDto,
+    @Body(new ValidationPipe({ transform: true }))
+    completeProcessDto: TravelAgencyV1CompleteProcessDto,
   ): Promise<any> {
     const logContext: LogContext = {
       requestId: this.generateRequestId(),
       endpoint: 'travelAgencyCompleteProcessMaarLabV1',
       method: 'POST',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Creación de agencia de viajes MaarLab V1 solicitada`, {
-      requestId: logContext.requestId,
-      agencyName: completeProcessDto.name,
-      externalId: completeProcessDto.external_id,
-      hasPrefixLocator: !!completeProcessDto.prefix_locator
-    });
+    this.logger.log(
+      `[CONTROLLER] Creación de agencia de viajes MaarLab V1 solicitada`,
+      {
+        requestId: logContext.requestId,
+        agencyName: completeProcessDto.name,
+        externalId: completeProcessDto.external_id,
+        hasPrefixLocator: !!completeProcessDto.prefix_locator,
+      },
+    );
 
     try {
-      const result = await this.vuelosService.travelAgencyCompleteProcessMaarLabV1(
-        agenciaId,
-        completeProcessDto,
+      const result =
+        await this.vuelosService.travelAgencyCompleteProcessMaarLabV1(
+          agenciaId,
+          completeProcessDto,
+        );
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab V1`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] Agencia de viajes creada/actualizada exitosamente en MaarLab V1`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en creación de agencia de viajes MaarLab V1`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        agencyName: completeProcessDto.name,
-        externalId: completeProcessDto.external_id
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en creación de agencia de viajes MaarLab V1`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          agencyName: completeProcessDto.name,
+          externalId: completeProcessDto.external_id,
+        },
+      );
+
       throw error;
     }
   }
@@ -1204,7 +1350,8 @@ export class VuelosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MaarLab: mapear external ID de search engine',
-    description: 'Obtiene el external ID asociado a un ID interno de search engine en MaarLab.',
+    description:
+      'Obtiene el external ID asociado a un ID interno de search engine en MaarLab.',
   })
   async mappingExternalIdSearchEngineMaarLab(
     @GetUser('agencia') agenciaId: Types.ObjectId,
@@ -1214,13 +1361,16 @@ export class VuelosController {
       requestId: this.generateRequestId(),
       endpoint: 'mappingExternalIdSearchEngineMaarLab',
       method: 'GET',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    this.logger.log(`[CONTROLLER] Obtención de external ID MaarLab solicitada`, {
-      requestId: logContext.requestId,
-      idSearchEngine
-    });
+    this.logger.log(
+      `[CONTROLLER] Obtención de external ID MaarLab solicitada`,
+      {
+        requestId: logContext.requestId,
+        idSearchEngine,
+      },
+    );
 
     if (!idSearchEngine || idSearchEngine.trim() === '') {
       throw new HttpException(
@@ -1230,24 +1380,31 @@ export class VuelosController {
     }
 
     try {
-      const result = await this.vuelosService.mappingExternalIdSearchEngineMaarLab(
-        agenciaId,
-        idSearchEngine.trim(),
+      const result =
+        await this.vuelosService.mappingExternalIdSearchEngineMaarLab(
+          agenciaId,
+          idSearchEngine.trim(),
+        );
+
+      this.logger.log(
+        `[CONTROLLER_SUCCESS] External ID obtenido exitosamente en MaarLab`,
+        {
+          requestId: logContext.requestId,
+          hasResult: !!result,
+        },
       );
-      
-      this.logger.log(`[CONTROLLER_SUCCESS] External ID obtenido exitosamente en MaarLab`, {
-        requestId: logContext.requestId,
-        hasResult: !!result
-      });
 
       return result;
     } catch (error) {
-      this.logger.error(`[CONTROLLER_ERROR] Error en obtención de external ID MaarLab`, {
-        requestId: logContext.requestId,
-        error: error.message,
-        idSearchEngine
-      });
-      
+      this.logger.error(
+        `[CONTROLLER_ERROR] Error en obtención de external ID MaarLab`,
+        {
+          requestId: logContext.requestId,
+          error: error.message,
+          idSearchEngine,
+        },
+      );
+
       throw error;
     }
   }

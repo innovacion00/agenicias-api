@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type AeropuertoReferenciaDocument = HydratedDocument<AeropuertoReferencia>;
+export type AeropuertoReferenciaDocument =
+  HydratedDocument<AeropuertoReferencia>;
 
 @Schema({
   collection: 'aeropuertos_referencia',

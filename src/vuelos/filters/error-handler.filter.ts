@@ -43,8 +43,11 @@ export class ErrorHandlerFilter implements ExceptionFilter {
       // Error ya manejado por el sistema
       statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
-      if (typeof exceptionResponse === 'object' && 'success' in exceptionResponse) {
+
+      if (
+        typeof exceptionResponse === 'object' &&
+        'success' in exceptionResponse
+      ) {
         // Ya es un ErrorResponse personalizado
         errorResponse = exceptionResponse as ErrorResponse;
       } else {
@@ -58,8 +61,8 @@ export class ErrorHandlerFilter implements ExceptionFilter {
             timestamp,
             requestId,
             source: 'internal',
-            statusCode
-          }
+            statusCode,
+          },
         };
       }
     } else {
@@ -70,12 +73,15 @@ export class ErrorHandlerFilter implements ExceptionFilter {
         error: {
           code: 'UNHANDLED_ERROR',
           message: 'Error interno del servidor',
-          details: exception instanceof Error ? exception.message : 'Error desconocido',
+          details:
+            exception instanceof Error
+              ? exception.message
+              : 'Error desconocido',
           timestamp,
           requestId,
           source: 'internal',
-          statusCode
-        }
+          statusCode,
+        },
       };
     }
 
@@ -90,7 +96,7 @@ export class ErrorHandlerFilter implements ExceptionFilter {
       userAgent: request.headers['user-agent'],
       ipAddress: request.ip || request.connection.remoteAddress,
       url: request.url,
-      method: request.method
+      method: request.method,
     });
 
     // Enviar respuesta al cliente
@@ -102,7 +108,7 @@ export class ErrorHandlerFilter implements ExceptionFilter {
    */
   private getHttpExceptionCode(exception: HttpException): string {
     const status = exception.getStatus();
-    
+
     switch (status) {
       case HttpStatus.BAD_REQUEST:
         return 'BAD_REQUEST';
@@ -138,28 +144,30 @@ export class ErrorHandlerFilter implements ExceptionFilter {
    */
   private getHttpExceptionMessage(exception: HttpException): string {
     const response = exception.getResponse();
-    
+
     if (typeof response === 'string') {
       return response;
     }
-    
+
     if (typeof response === 'object' && response !== null) {
       if ('message' in response) {
-        return Array.isArray(response.message) 
-          ? response.message.join(', ') 
+        return Array.isArray(response.message)
+          ? response.message.join(', ')
           : String(response.message);
       }
     }
-    
+
     return 'Error en la solicitud';
   }
 
   /**
    * Obtiene los detalles del error para HttpException
    */
-  private getHttpExceptionDetails(exception: HttpException): string | undefined {
+  private getHttpExceptionDetails(
+    exception: HttpException,
+  ): string | undefined {
     const response = exception.getResponse();
-    
+
     if (typeof response === 'object' && response !== null) {
       if ('details' in response) {
         return String(response.details);
@@ -168,7 +176,7 @@ export class ErrorHandlerFilter implements ExceptionFilter {
         return String(response.error);
       }
     }
-    
+
     return undefined;
   }
 

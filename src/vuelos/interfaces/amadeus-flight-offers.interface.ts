@@ -23,7 +23,16 @@ export interface AmadeusDepartureDateTimeRange {
 
 export interface AmadeusTraveler {
   id: string;
-  travelerType: 'ADULT' | 'CHILD' | 'SENIOR' | 'YOUNG' | 'DISABLED' | 'DISABLED_CHILD' | 'ESCORT' | 'LARGE_FAMILY' | 'STUDENT';
+  travelerType:
+    | 'ADULT'
+    | 'CHILD'
+    | 'SENIOR'
+    | 'YOUNG'
+    | 'DISABLED'
+    | 'DISABLED_CHILD'
+    | 'ESCORT'
+    | 'LARGE_FAMILY'
+    | 'STUDENT';
 }
 
 export interface AmadeusSearchCriteria {

@@ -1,5 +1,5 @@
 export interface IrespuestaAuthCobre {
-    access_token:    string;
-    type:            string;
-    expiration_time: number;
+  access_token: string;
+  type: string;
+  expiration_time: number;
 }

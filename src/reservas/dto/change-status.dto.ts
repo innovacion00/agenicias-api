@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, ValidateNested, IsArray, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  ValidateNested,
+  IsArray,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class StatusDto {

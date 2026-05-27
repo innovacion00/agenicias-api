@@ -67,25 +67,30 @@ export class BotReservasPendientesService {
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async ejecutarBotReservasPendientes() {
     this.logger.log(' Iniciando bot de reservas pendientes de pago...');
-    
+
     try {
       const reservasPendientes = await this.obtenerReservasPendientes();
-      
+
       if (reservasPendientes.length === 0) {
         this.logger.log(' No hay reservas pendientes de pago para reportar');
         return;
       }
 
-      this.logger.log(` Se encontraron ${reservasPendientes.length} reservas pendientes de pago`);
-      
+      this.logger.log(
+        ` Se encontraron ${reservasPendientes.length} reservas pendientes de pago`,
+      );
+
       // Generar archivo Excel
-      const excelBuffer = await this.generarExcelReservasPendientes(reservasPendientes);
-      
+      const excelBuffer =
+        await this.generarExcelReservasPendientes(reservasPendientes);
+
       // Enviar correo con el Excel adjunto
-      await this.enviarCorreoReservasPendientes(excelBuffer, reservasPendientes.length);
-      
+      await this.enviarCorreoReservasPendientes(
+        excelBuffer,
+        reservasPendientes.length,
+      );
+
       this.logger.log(' Bot de reservas pendientes ejecutado exitosamente');
-      
     } catch (error) {
       this.logger.error(' Error en el bot de reservas pendientes:', error);
     }
@@ -99,15 +104,18 @@ export class BotReservasPendientesService {
    */
   private async obtenerReservasPendientes(): Promise<ReservaPendiente[]> {
     const fechaActual = new Date();
-    
+
     // Buscar reservas con status 0 (espera) - NO han pagado primera mitad
     const reservasStatus0 = await this.reservaModel
       .find({
         status: 0,
         pagadoPrimeraMitad: false,
-        fechaLimitePago: { $exists: true, $ne: null }
+        fechaLimitePago: { $exists: true, $ne: null },
       })
-      .populate('agenciaId', 'fullName category empresa emailContacto telefonoContacto')
+      .populate(
+        'agenciaId',
+        'fullName category empresa emailContacto telefonoContacto',
+      )
       .populate('userId', 'fullName email telefono')
       .lean();
 
@@ -116,9 +124,12 @@ export class BotReservasPendientesService {
       .find({
         status: 5,
         pagadoPrimeraMitad: true,
-        fechaLimitePago2: { $exists: true, $ne: null }
+        fechaLimitePago2: { $exists: true, $ne: null },
       })
-      .populate('agenciaId', 'fullName category empresa emailContacto telefonoContacto')
+      .populate(
+        'agenciaId',
+        'fullName category empresa emailContacto telefonoContacto',
+      )
       .populate('userId', 'fullName email telefono')
       .lean();
 
@@ -134,7 +145,7 @@ export class BotReservasPendientesService {
         if (this.validarCamposPopulados(reserva)) {
           const agencia = reserva.agenciaId as any;
           const user = reserva.userId as any;
-          
+
           reservasPendientes.push({
             _id: reserva._id.toString(),
             hotel: reserva.hotel,
@@ -175,7 +186,7 @@ export class BotReservasPendientesService {
         if (this.validarCamposPopulados(reserva)) {
           const agencia = reserva.agenciaId as any;
           const user = reserva.userId as any;
-          
+
           reservasPendientes.push({
             _id: reserva._id.toString(),
             hotel: reserva.hotel,
@@ -214,18 +225,22 @@ export class BotReservasPendientesService {
    * Valida que los campos populados existan y tengan la estructura correcta
    */
   private validarCamposPopulados(reserva: any): boolean {
-    return reserva.agenciaId && 
-           typeof reserva.agenciaId === 'object' && 
-           'fullName' in reserva.agenciaId &&
-           reserva.userId && 
-           typeof reserva.userId === 'object' && 
-           'fullName' in reserva.userId;
+    return (
+      reserva.agenciaId &&
+      typeof reserva.agenciaId === 'object' &&
+      'fullName' in reserva.agenciaId &&
+      reserva.userId &&
+      typeof reserva.userId === 'object' &&
+      'fullName' in reserva.userId
+    );
   }
 
   /**
    * Genera un archivo Excel con las reservas pendientes
    */
-  private async generarExcelReservasPendientes(reservas: ReservaPendiente[]): Promise<Buffer> {
+  private async generarExcelReservasPendientes(
+    reservas: ReservaPendiente[],
+  ): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reservas Pendientes de Pago');
 
@@ -298,10 +313,18 @@ export class BotReservasPendientesService {
         total: reserva.total,
         totalMitad: reserva.totalMitad,
         pagadoPrimeraMitad: reserva.pagadoPrimeraMitad ? 'Sí' : 'No',
-        fechaLimitePago: format(new Date(reserva.fechaLimitePago), 'dd/MM/yyyy', { locale: es }),
+        fechaLimitePago: format(
+          new Date(reserva.fechaLimitePago),
+          'dd/MM/yyyy',
+          { locale: es },
+        ),
         diasRestantes: reserva.diasRestantes,
-        checkin: format(new Date(reserva.reservation.checkin), 'dd/MM/yyyy', { locale: es }),
-        checkout: format(new Date(reserva.reservation.checkout), 'dd/MM/yyyy', { locale: es }),
+        checkin: format(new Date(reserva.reservation.checkin), 'dd/MM/yyyy', {
+          locale: es,
+        }),
+        checkout: format(new Date(reserva.reservation.checkout), 'dd/MM/yyyy', {
+          locale: es,
+        }),
         huesped: `${reserva.reservation.firstName} ${reserva.reservation.lastName}`,
         email: reserva.reservation.email,
         telefono: reserva.reservation.telephone,
@@ -311,7 +334,8 @@ export class BotReservasPendientesService {
         ciudad: reserva.reservation.city,
         pais: reserva.reservation.country,
         moneda: reserva.reservation.currency,
-        categoriaAgencia: reserva.agencia.category === 1 ? 'Mayorista' : 'Minorista',
+        categoriaAgencia:
+          reserva.agencia.category === 1 ? 'Mayorista' : 'Minorista',
         tipoAgencia: reserva.agencia.empresa ? 'Empresa' : 'Persona Natural',
         emailAgencia: reserva.agencia.emailContacto,
         telefonoAgencia: reserva.agencia.telefonoContacto,
@@ -354,9 +378,12 @@ export class BotReservasPendientesService {
   /**
    * Envía el correo con el archivo Excel adjunto
    */
-  private async enviarCorreoReservasPendientes(excelBuffer: Buffer, cantidadReservas: number): Promise<void> {
+  private async enviarCorreoReservasPendientes(
+    excelBuffer: Buffer,
+    cantidadReservas: number,
+  ): Promise<void> {
     const fechaActual = format(new Date(), 'dd/MM/yyyy', { locale: es });
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -477,12 +504,15 @@ export class BotReservasPendientesService {
         {
           filename: `reservas-pendientes-${fechaActual.replace(/\//g, '-')}.xlsx`,
           content: excelBuffer,
-          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          contentType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         },
       ],
     );
 
-    this.logger.log(` Correo enviado exitosamente a reservas@gehsuites.com con ${cantidadReservas} reservas`);
+    this.logger.log(
+      ` Correo enviado exitosamente a reservas@gehsuites.com con ${cantidadReservas} reservas`,
+    );
   }
 
   /**
@@ -498,115 +528,127 @@ export class BotReservasPendientesService {
    */
   async diagnosticoReservas() {
     this.logger.log(' Ejecutando diagnóstico de reservas...');
-    
+
     const fechaActual = new Date();
-    
+
     // 1. Contar total de reservas
     const totalReservas = await this.reservaModel.countDocuments();
-    
+
     // 2. Contar reservas por status
     const reservasPorStatus = await this.reservaModel.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
-    
+
     // 3. Contar reservas con pagadoPrimeraMitad = true
     const reservasConPrimeraMitad = await this.reservaModel.countDocuments({
-      pagadoPrimeraMitad: true
+      pagadoPrimeraMitad: true,
     });
-    
+
     // 4. Contar reservas con pagadoPrimeraMitad = false
     const reservasSinPrimeraMitad = await this.reservaModel.countDocuments({
-      pagadoPrimeraMitad: false
+      pagadoPrimeraMitad: false,
     });
-    
+
     // 5. Contar reservas status 0 (espera) - NO han pagado primera mitad
     const reservasStatus0 = await this.reservaModel.countDocuments({
       status: 0,
       pagadoPrimeraMitad: false,
-      fechaLimitePago: { $exists: true, $ne: null }
+      fechaLimitePago: { $exists: true, $ne: null },
     });
-    
+
     // 6. Contar reservas status 5 (mitad) - SÍ han pagado primera mitad
     const reservasStatus5 = await this.reservaModel.countDocuments({
       status: 5,
       pagadoPrimeraMitad: true,
-      fechaLimitePago2: { $exists: true, $ne: null }
+      fechaLimitePago2: { $exists: true, $ne: null },
     });
-    
+
     // 7. Obtener reservas status 0 de ejemplo
     const reservasStatus0Ejemplo = await this.reservaModel
       .find({
         status: 0,
         pagadoPrimeraMitad: false,
-        fechaLimitePago: { $exists: true, $ne: null }
+        fechaLimitePago: { $exists: true, $ne: null },
       })
       .limit(3)
-      .select('_id status pagadoPrimeraMitad fechaLimitePago agenciaId userId hotel total')
+      .select(
+        '_id status pagadoPrimeraMitad fechaLimitePago agenciaId userId hotel total',
+      )
       .lean();
-    
+
     // 8. Obtener reservas status 5 de ejemplo
     const reservasStatus5Ejemplo = await this.reservaModel
       .find({
         status: 5,
         pagadoPrimeraMitad: true,
-        fechaLimitePago2: { $exists: true, $ne: null }
+        fechaLimitePago2: { $exists: true, $ne: null },
       })
       .limit(3)
-      .select('_id status pagadoPrimeraMitad fechaLimitePago2 agenciaId userId hotel total')
+      .select(
+        '_id status pagadoPrimeraMitad fechaLimitePago2 agenciaId userId hotel total',
+      )
       .lean();
-    
+
     // 9. Verificar reservas status 0 con fechas límite próximas
     const reservasStatus0ConFechaLimite = await this.reservaModel
       .find({
         status: 0,
         pagadoPrimeraMitad: false,
-        fechaLimitePago: { $exists: true, $ne: null }
+        fechaLimitePago: { $exists: true, $ne: null },
       })
       .select('_id status pagadoPrimeraMitad fechaLimitePago')
       .lean();
-    
+
     // 10. Verificar reservas status 5 con fechas límite próximas
     const reservasStatus5ConFechaLimite = await this.reservaModel
       .find({
         status: 5,
         pagadoPrimeraMitad: true,
-        fechaLimitePago2: { $exists: true, $ne: null }
+        fechaLimitePago2: { $exists: true, $ne: null },
       })
       .select('_id status pagadoPrimeraMitad fechaLimitePago2')
       .lean();
-    
+
     // 11. Calcular días restantes para reservas status 0
-    const reservasStatus0ConDiasRestantes = reservasStatus0ConFechaLimite.map(reserva => {
-      const fechaLimite = new Date(reserva.fechaLimitePago);
-      const diasRestantes = differenceInDays(fechaLimite, fechaActual);
-      return {
-        _id: reserva._id,
-        status: reserva.status,
-        fechaLimitePago: reserva.fechaLimitePago,
-        diasRestantes,
-        cumpleCriterio: diasRestantes >= 0 && diasRestantes <= 2
-      };
-    });
-    
+    const reservasStatus0ConDiasRestantes = reservasStatus0ConFechaLimite.map(
+      (reserva) => {
+        const fechaLimite = new Date(reserva.fechaLimitePago);
+        const diasRestantes = differenceInDays(fechaLimite, fechaActual);
+        return {
+          _id: reserva._id,
+          status: reserva.status,
+          fechaLimitePago: reserva.fechaLimitePago,
+          diasRestantes,
+          cumpleCriterio: diasRestantes >= 0 && diasRestantes <= 2,
+        };
+      },
+    );
+
     // 12. Calcular días restantes para reservas status 5
-    const reservasStatus5ConDiasRestantes = reservasStatus5ConFechaLimite.map(reserva => {
-      const fechaLimite = new Date(reserva.fechaLimitePago2);
-      const diasRestantes = differenceInDays(fechaLimite, fechaActual);
-      return {
-        _id: reserva._id,
-        status: reserva.status,
-        fechaLimitePago2: reserva.fechaLimitePago2,
-        diasRestantes,
-        cumpleCriterio: diasRestantes >= 0 && diasRestantes <= 2
-      };
-    });
-    
+    const reservasStatus5ConDiasRestantes = reservasStatus5ConFechaLimite.map(
+      (reserva) => {
+        const fechaLimite = new Date(reserva.fechaLimitePago2);
+        const diasRestantes = differenceInDays(fechaLimite, fechaActual);
+        return {
+          _id: reserva._id,
+          status: reserva.status,
+          fechaLimitePago2: reserva.fechaLimitePago2,
+          diasRestantes,
+          cumpleCriterio: diasRestantes >= 0 && diasRestantes <= 2,
+        };
+      },
+    );
+
     // 13. Contar reservas que cumplen el criterio final
-    const reservasStatus0Finales = reservasStatus0ConDiasRestantes.filter(r => r.cumpleCriterio).length;
-    const reservasStatus5Finales = reservasStatus5ConDiasRestantes.filter(r => r.cumpleCriterio).length;
+    const reservasStatus0Finales = reservasStatus0ConDiasRestantes.filter(
+      (r) => r.cumpleCriterio,
+    ).length;
+    const reservasStatus5Finales = reservasStatus5ConDiasRestantes.filter(
+      (r) => r.cumpleCriterio,
+    ).length;
     const reservasFinales = reservasStatus0Finales + reservasStatus5Finales;
-    
+
     return {
       fechaActual: fechaActual.toISOString(),
       totalReservas,
@@ -625,9 +667,19 @@ export class BotReservasPendientesService {
       reservasStatus5Finales,
       reservasFinales,
       criterios: {
-        status0: { status: 0, pagadoPrimeraMitad: false, fechaLimite: 'fechaLimitePago', diasRestantes: '0-2' },
-        status5: { status: 5, pagadoPrimeraMitad: true, fechaLimite: 'fechaLimitePago2', diasRestantes: '0-2' }
-      }
+        status0: {
+          status: 0,
+          pagadoPrimeraMitad: false,
+          fechaLimite: 'fechaLimitePago',
+          diasRestantes: '0-2',
+        },
+        status5: {
+          status: 5,
+          pagadoPrimeraMitad: true,
+          fechaLimite: 'fechaLimitePago2',
+          diasRestantes: '0-2',
+        },
+      },
     };
   }
 }

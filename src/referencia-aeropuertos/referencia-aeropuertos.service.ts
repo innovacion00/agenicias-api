@@ -8,7 +8,9 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function toDto(doc: AeropuertoReferencia | Record<string, unknown>): AeropuertoSugerenciaDto {
+function toDto(
+  doc: AeropuertoReferencia | Record<string, unknown>,
+): AeropuertoSugerenciaDto {
   const d = doc as AeropuertoReferencia;
   return {
     icao: d.icao,
@@ -134,15 +136,11 @@ export class ReferenciaAeropuertosService {
     ];
 
     const filter: Record<string, unknown> =
-      country !== undefined
-        ? { country, $or: or }
-        : { $or: or };
+      country !== undefined ? { country, $or: or } : { $or: or };
 
-    return this.model
-      .find(filter)
-      .limit(limit)
-      .lean()
-      .exec() as Promise<AeropuertoReferencia[]>;
+    return this.model.find(filter).limit(limit).lean().exec() as Promise<
+      AeropuertoReferencia[]
+    >;
   }
 
   async contar(): Promise<number> {

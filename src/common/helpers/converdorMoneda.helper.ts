@@ -4,5 +4,5 @@ export const convertidorMoneda = (monto: number) => {
     currency: 'COP',
     minimumFractionDigits: 0,
   });
-  return format.format(monto)
+  return format.format(monto);
 };

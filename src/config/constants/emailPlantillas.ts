@@ -1455,3 +1455,100 @@ export const notificacionPagoVueloMaarlab = (data: {
 </body>
 </html>`;
 };
+
+export const notificacionReactivacionPagoFallido = (data: {
+  hotel: string;
+  checkin: string;
+  checkout: string;
+  reservaChatbotId: string;
+  monto: number;
+  expiraEn: Date;
+}) => {
+  const montoFormateado = convertidorMoneda(data.monto);
+  const plazoLimite = format(data.expiraEn, 'DD/MM/YYYY [a las] h:mm a', 'es');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago de reactivación rechazado</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #d9534f;
+      color: #ffffff;
+      text-align: center;
+      padding: 20px;
+    }
+    .email-header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .email-body {
+      padding: 20px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    .highlight {
+      background-color: #fff3cd;
+      border-left: 4px solid #cc8831;
+      padding: 12px 16px;
+      margin: 16px 0;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>Pago de reactivación no procesado</h1>
+    </div>
+    <div class="email-body">
+      <p>Hola,</p>
+      <p>
+        El pago para reactivar su reserva en <strong>${data.hotel}</strong>
+        (${data.checkin} – ${data.checkout}) no pudo completarse.
+      </p>
+      <p>
+        <strong>Referencia de reserva:</strong> ${data.reservaChatbotId}<br />
+        <strong>Monto pendiente:</strong> ${montoFormateado}
+      </p>
+      <div class="highlight">
+        <p style="margin: 0;">
+          Tiene hasta el <strong>${plazoLimite}</strong> para reintentar el pago total.
+          Pasado ese plazo, la reserva reactivada será cancelada automáticamente.
+        </p>
+      </div>
+      <p>
+        Solicite a su agencia un nuevo enlace de pago o utilice el portal de reservas
+        para completar el pago dentro del plazo indicado.
+      </p>
+      <p>Gracias por su comprensión.</p>
+    </div>
+    <div class="email-footer">
+      <p>© ${new Date().getFullYear()} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+};

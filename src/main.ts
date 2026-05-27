@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
-  
+
   // Usar logger estructurado de Pino
   app.useLogger(app.get(Logger));
   const logger = app.get(Logger);
@@ -52,7 +52,8 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Ingrese el token JWT. Swagger agregará automáticamente "Bearer " al inicio. Solo pegue el token sin incluir "Bearer".',
+        description:
+          'Ingrese el token JWT. Swagger agregará automáticamente "Bearer " al inicio. Solo pegue el token sin incluir "Bearer".',
         name: 'Authorization',
         in: 'header',
       },
@@ -68,11 +69,17 @@ async function bootstrap() {
     .addTag('eventos', 'Endpoints de eventos')
     .addTag('files', 'Endpoints de carga de archivos')
     .addTag('notificaciones', 'Endpoints de notificaciones')
-    .addTag('bot-reservas-pendientes', 'Endpoints del bot de reservas pendientes')
+    .addTag(
+      'bot-reservas-pendientes',
+      'Endpoints del bot de reservas pendientes',
+    )
     .addTag('my-tool', 'Endpoints de herramientas internas')
     .addTag('cloudinary', 'Endpoints de Cloudinary')
     .addTag('integrations', 'Endpoints de integraciones')
-    .addTag('referencia-aeropuertos', 'Catálogo local de aeropuertos (búsqueda predictiva)')
+    .addTag(
+      'referencia-aeropuertos',
+      'Catálogo local de aeropuertos (búsqueda predictiva)',
+    )
     .addServer('http://localhost:3000', 'Servidor de desarrollo')
     .build();
 
@@ -95,6 +102,8 @@ async function bootstrap() {
 
   await app.listen(envs.port);
   logger.log(` Aplicación iniciada en puerto ${envs.port}`);
-  logger.log(` Documentación Swagger: http://localhost:${envs.port}/agencias/v1/api-docs`);
+  logger.log(
+    ` Documentación Swagger: http://localhost:${envs.port}/agencias/v1/api-docs`,
+  );
 }
 bootstrap();

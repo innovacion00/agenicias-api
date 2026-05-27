@@ -98,7 +98,14 @@ export class NotificacionesService {
         .lean();
 
       // Evitar duplicados en caso de datos inconsistentes
-      const unique = new Map<string, { _id: Types.ObjectId; reservaChatbotId: string; motivo: 'primer-pago-vencido' | 'segundo-pago-vencido' }>();
+      const unique = new Map<
+        string,
+        {
+          _id: Types.ObjectId;
+          reservaChatbotId: string;
+          motivo: 'primer-pago-vencido' | 'segundo-pago-vencido';
+        }
+      >();
       primerPagoVencido.forEach((r) =>
         unique.set(r._id.toString(), {
           _id: r._id as Types.ObjectId,
@@ -122,7 +129,10 @@ export class NotificacionesService {
         await this.cancelarReservaVencida(reserva, reserva.motivo);
       }
     } catch (error) {
-      this.logger.error('Error cancelando reservas vencidas automaticamente', error);
+      this.logger.error(
+        'Error cancelando reservas vencidas automaticamente',
+        error,
+      );
       this.errorManager.handle(error);
     }
   }
@@ -200,7 +210,7 @@ export class NotificacionesService {
         usersMap.set(user._id.toString(), user);
       });
 
-      let notificaciones: Promise<any>[] = [];
+      const notificaciones: Promise<any>[] = [];
 
       // Procesar reservas usando el mapa (sin queries adicionales)
       for (const reserva of reservasNotification) {

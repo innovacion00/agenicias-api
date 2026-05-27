@@ -26,6 +26,7 @@ import {
   hotelesAutocorePaymenLink,
   notificacionCancelacionToures,
   notificacionCancelacionVoluntariaReservas,
+  notificacionReactivacionPagoFallido,
   notificacionSaldoPendienteIntentoCancelacion,
   notificacionToures,
   notificacionTransporte,
@@ -39,6 +40,7 @@ import {
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
   PagoReservaBilleteraDto,
+  ReactivarReservaDto,
   UpdateFechasPagoDto,
   UpdateReservaDto,
 } from './dto';
@@ -46,11 +48,13 @@ import { Reserva } from './entities';
 import {
   calcularFechaLimitePago,
   obtenerCiudadPorNombre,
+  obtenerHotelIdPorNombre,
   debeBloquearCancelacionPorPrimeraMitadPagada,
 } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
+import { ValidRoles } from 'src/auth/interfaces';
 import {
   CancelReservaMyToolDto,
   CreateReservaMyToolDto,
@@ -61,11 +65,12 @@ import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
 export class ReservasService {
   private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(ReservasService.name);
-  
+
   // Caché para totales de documentos (evita recalcular en cada request)
-  private countCache: Map<string, { count: number; timestamp: number }> = new Map();
+  private countCache: Map<string, { count: number; timestamp: number }> =
+    new Map();
   private readonly CACHE_TTL = 60000; // 1 minuto en milisegundos
-  
+
   // Caché para suma de totales de reservas no canceladas
   private sumaTotalesCache: { value: number; timestamp: number } | null = null;
   private readonly SUMA_CACHE_TTL = 60000; // 1 minuto en milisegundos
@@ -107,7 +112,9 @@ export class ReservasService {
         count = await this.reservasModel.estimatedDocumentCount();
         this.logger.debug(`Total estimado (sin filtros): ${count}`);
       } catch (error) {
-        this.logger.warn('Error al obtener estimatedDocumentCount, usando countDocuments');
+        this.logger.warn(
+          'Error al obtener estimatedDocumentCount, usando countDocuments',
+        );
         count = await this.reservasModel.countDocuments(filter);
       }
     } else {
@@ -116,7 +123,7 @@ export class ReservasService {
 
     // Guardar en caché
     this.countCache.set(cacheKey, { count, timestamp: Date.now() });
-    
+
     // Limpiar caché antiguo (más de 5 minutos)
     this.cleanOldCache();
 
@@ -137,7 +144,10 @@ export class ReservasService {
     }
 
     // Limpiar caché de suma de totales si es antiguo
-    if (this.sumaTotalesCache && now - this.sumaTotalesCache.timestamp > this.SUMA_CACHE_TTL * 5) {
+    if (
+      this.sumaTotalesCache &&
+      now - this.sumaTotalesCache.timestamp > this.SUMA_CACHE_TTL * 5
+    ) {
       this.sumaTotalesCache = null;
     }
   }
@@ -147,9 +157,14 @@ export class ReservasService {
    */
   private async getSumaTotalesNoCanceladas(useCache = true): Promise<number> {
     // Verificar caché
-    if (useCache && this.sumaTotalesCache && 
-        Date.now() - this.sumaTotalesCache.timestamp < this.SUMA_CACHE_TTL) {
-      this.logger.debug(`Usando suma de totales en caché: ${this.sumaTotalesCache.value}`);
+    if (
+      useCache &&
+      this.sumaTotalesCache &&
+      Date.now() - this.sumaTotalesCache.timestamp < this.SUMA_CACHE_TTL
+    ) {
+      this.logger.debug(
+        `Usando suma de totales en caché: ${this.sumaTotalesCache.value}`,
+      );
       return this.sumaTotalesCache.value;
     }
 
@@ -168,9 +183,10 @@ export class ReservasService {
       },
     ]);
 
-    const totalSuma = sumaTotalesNoCanceladas.length > 0 
-      ? sumaTotalesNoCanceladas[0].totalSum 
-      : 0;
+    const totalSuma =
+      sumaTotalesNoCanceladas.length > 0
+        ? sumaTotalesNoCanceladas[0].totalSum
+        : 0;
 
     // Guardar en caché
     this.sumaTotalesCache = {
@@ -224,7 +240,8 @@ export class ReservasService {
       let planAlimentario = '';
 
       // Determinar si es reserva de grupo (10 o más habitaciones)
-      const isReservaGrupo = createReservaDto.reservaInfo.reservation.roomsData.length >= 10;
+      const isReservaGrupo =
+        createReservaDto.reservaInfo.reservation.roomsData.length >= 10;
 
       const userInfo = await this.userModel
         .findById(userId)
@@ -267,7 +284,9 @@ export class ReservasService {
         );
 
       if (!reservaAutocoreInfo) {
-        throw new InternalServerErrorException('Error al crear reserva en Autocore');
+        throw new InternalServerErrorException(
+          'Error al crear reserva en Autocore',
+        );
       }
 
       if (reservaAutocoreInfo.no_available_rooms) {
@@ -295,7 +314,8 @@ export class ReservasService {
         planAlimentario = createReservaDto.planAlimentario;
       }
 
-      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelInfo =
+        hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
       if (!hotelInfo) {
         throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
       }
@@ -305,32 +325,37 @@ export class ReservasService {
       session.startTransaction();
 
       try {
-        const [reserva] = await this.reservasModel.create([{
-          hotel: hotelInfo.name,
-          agenciaId: userInfo.agencia._id,
-          userId,
-          cantidadHabitaciones:
-            createReservaDto.reservaInfo.reservation.roomsData.length,
-          total: createReservaDto.total,
-          totalMitad: createReservaDto.total / 2,
-          reservation: createReservaDto.reservaInfo.reservation,
-          reservaChatbotId: reservaAutocoreInfo.chatbot_id,
-          titularInfo: createReservaDto.titularInfo,
-          fechaLimitePago,
-          fechaLimitePago2,
-          exentoIva: createReservaDto.exentoIva
-            ? createReservaDto.exentoIva
-            : false,
-          ...retenciones,
-          planAlimentario,
-          adicionCena: createReservaDto.adicionCena || false,
-          adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
-          infoTransporte: createReservaDto.infoTransporte || null,
-          infoToures: createReservaDto.infoToures || null,
-          mascotas: createReservaDto.mascotas,
-          mascotasNumber: createReservaDto.mascotasNumber,
-          origenIata: createReservaDto.origenIata,
-        }], { session });
+        const [reserva] = await this.reservasModel.create(
+          [
+            {
+              hotel: hotelInfo.name,
+              agenciaId: userInfo.agencia._id,
+              userId,
+              cantidadHabitaciones:
+                createReservaDto.reservaInfo.reservation.roomsData.length,
+              total: createReservaDto.total,
+              totalMitad: createReservaDto.total / 2,
+              reservation: createReservaDto.reservaInfo.reservation,
+              reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+              titularInfo: createReservaDto.titularInfo,
+              fechaLimitePago,
+              fechaLimitePago2,
+              exentoIva: createReservaDto.exentoIva
+                ? createReservaDto.exentoIva
+                : false,
+              ...retenciones,
+              planAlimentario,
+              adicionCena: createReservaDto.adicionCena || false,
+              adicionAlmuerzo: createReservaDto.adicionAlmuerzo || false,
+              infoTransporte: createReservaDto.infoTransporte || null,
+              infoToures: createReservaDto.infoToures || null,
+              mascotas: createReservaDto.mascotas,
+              mascotasNumber: createReservaDto.mascotasNumber,
+              origenIata: createReservaDto.origenIata,
+            },
+          ],
+          { session },
+        );
 
         userInfo.reservas.push(reserva._id as Types.ObjectId);
         await userInfo.save({ session });
@@ -350,9 +375,12 @@ export class ReservasService {
         'fullName' in userInfo.agencia &&
         userInfo.agencia.fullName !== 'geh suites'
       ) {
-        const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+        const hotelInfo =
+          hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
         if (!hotelInfo) {
-          throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+          throw new BadRequestException(
+            `Hotel con ID ${hotelId} no encontrado`,
+          );
         }
         const { name, city } = hotelInfo;
         const { tipoRecogida } = createReservaDto.infoTransporte;
@@ -420,9 +448,12 @@ export class ReservasService {
         'fullName' in userInfo.agencia &&
         userInfo.agencia.fullName !== 'geh suites'
       ) {
-        const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+        const hotelInfo =
+          hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
         if (!hotelInfo) {
-          throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
+          throw new BadRequestException(
+            `Hotel con ID ${hotelId} no encontrado`,
+          );
         }
         const { name, city } = hotelInfo;
         const email =
@@ -454,12 +485,16 @@ export class ReservasService {
           .sendEmail(
             'reservas@gehsuites.com',
             `Reserva para grupo de ${cantidadHabitacion} para agencia ${
-              userInfo.agencia && typeof userInfo.agencia === 'object' && 'fullName' in userInfo.agencia
+              userInfo.agencia &&
+              typeof userInfo.agencia === 'object' &&
+              'fullName' in userInfo.agencia
                 ? userInfo.agencia.fullName
                 : 'Agencia desconocida'
             }`,
             notificaiconReservaGrupo(
-              userInfo.agencia && typeof userInfo.agencia === 'object' && 'fullName' in userInfo.agencia
+              userInfo.agencia &&
+                typeof userInfo.agencia === 'object' &&
+                'fullName' in userInfo.agencia
                 ? (userInfo.agencia.fullName as string)
                 : 'Agencia desconocida',
               cantidadHabitacion,
@@ -485,6 +520,50 @@ export class ReservasService {
   }
 
   // #region generar link de pago
+  private async buildLinkPagoForReserva(
+    reservaInfo: Reserva,
+    agenciaInfo: Agencia,
+    pagoTotal: boolean,
+  ) {
+    const hotel = reservaInfo.hotel;
+    const external_id = `${reservaInfo._id}${pagoTotal ? ' pagoTotal' : ''}`;
+
+    const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
+      currency: reservaInfo.reservation.currency,
+      agency_id: agenciaInfo.autocoreInfo.id,
+      amount: pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
+      available_hours: 0.1666,
+      booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
+      description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
+      email: agenciaInfo.emailContacto,
+      external_ref_id: external_id,
+      guest_name: agenciaInfo.fullName,
+      hotel_id:
+        hotelesAutocorePaymenLink[
+          hotel as keyof typeof hotelesAutocorePaymenLink
+        ] || 0,
+      phone: agenciaInfo.telefonoContacto,
+      redirect: {
+        failure_url: 'https://agencia.gehsuites.com/misreservas',
+        success_url: 'https://agencia.gehsuites.com/misreservas',
+      },
+      source: 'Booking Connect',
+      temp_webhook_url:
+        'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
+      reservation_id: reservaInfo.reservaChatbotId,
+    });
+
+    if (!linkAutocore) {
+      throw new InternalServerErrorException('Error al generar link de pago');
+    }
+
+    return {
+      link: linkAutocore.url,
+      expirationDate: addMinute(new Date(), 5),
+      idLinkPago: linkAutocore.code,
+    };
+  }
+
   async generarLinkPago(
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
@@ -507,47 +586,16 @@ export class ReservasService {
         throw new NotFoundException('Agencia no encontrada');
       }
 
-      const hotel = reservaInfo.hotel;
+      const pagoTotal = generateLinkDto.pagoTotal ?? false;
+      const linkInfo = await this.buildLinkPagoForReserva(
+        reservaInfo,
+        agenciaInfo,
+        pagoTotal,
+      );
 
-      const external_id = `${generateLinkDto.reservaId}${generateLinkDto.pagoTotal ? ' pagoTotal' : ''}`;
-
-      const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
-        currency: reservaInfo.reservation.currency,
-        agency_id: agenciaInfo.autocoreInfo.id,
-        amount: generateLinkDto.pagoTotal
-          ? reservaInfo.total
-          : reservaInfo.totalMitad,
-        available_hours: 0.1666,
-        booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
-        description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
-        email: agenciaInfo.emailContacto,
-        external_ref_id: external_id,
-        guest_name: agenciaInfo.fullName,
-        hotel_id: hotelesAutocorePaymenLink[hotel as keyof typeof hotelesAutocorePaymenLink] || 0,
-        phone: agenciaInfo.telefonoContacto,
-        redirect: {
-          failure_url: 'https://agencia.gehsuites.com/misreservas',
-          success_url: 'https://agencia.gehsuites.com/misreservas',
-        },
-        source: 'Booking Connect',
-        temp_webhook_url:
-          'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
-        reservation_id: reservaInfo.reservaChatbotId,
-      });
-
-      if (!linkAutocore) {
-        throw new InternalServerErrorException('Error al generar link de pago');
-      }
-
-      const linkInfo = {
-        link: linkAutocore.url,
-        expirationDate: addMinute(new Date(), 5),
-        idLinkPago: linkAutocore.code,
-      };
-
-      if (generateLinkDto.pagoTotal) {
+      if (pagoTotal) {
         await reservaInfo.updateOne({
-          $set: { linkInfo, pagadoPrimeraMitad: generateLinkDto.pagoTotal },
+          $set: { linkInfo, pagadoPrimeraMitad: pagoTotal },
         });
       } else {
         await reservaInfo.updateOne({
@@ -627,7 +675,9 @@ export class ReservasService {
       const titularInfoUpdates = reserva.titularInfo;
       const reservationUpdates = reserva.reservation;
 
-      const updateReservaDtoFields = Object.keys(updateReservaDto) as Array<keyof UpdateReservaDto>;
+      const updateReservaDtoFields = Object.keys(updateReservaDto) as Array<
+        keyof UpdateReservaDto
+      >;
 
       for (const field of updateReservaDtoFields) {
         const value = updateReservaDto[field];
@@ -647,8 +697,7 @@ export class ReservasService {
           `editarReserva: reserva ${reserva.reservaChatbotId} es mytool — sin PUT Autocore; actualización solo en BD.`,
         );
         data = {
-          msg:
-            'Datos actualizados en la base de datos. Esta reserva está en My Tool; los cambios no se replican en Autocore.',
+          msg: 'Datos actualizados en la base de datos. Esta reserva está en My Tool; los cambios no se replican en Autocore.',
         };
       } else {
         const autocoreData = await this.httpCustomService.editarReservas(
@@ -683,7 +732,10 @@ export class ReservasService {
     }
   }
 
-  private enqueuePostCancellationTasks(reserva: Reserva, agenciaDoc: Agencia): void {
+  private enqueuePostCancellationTasks(
+    reserva: Reserva,
+    agenciaDoc: Agencia,
+  ): void {
     const reservaId = String(reserva._id);
 
     if (reserva.linksHistory) {
@@ -703,7 +755,9 @@ export class ReservasService {
     }
 
     const saldoFavor =
-      reserva.status !== ValidPaymentStatus.total ? reserva.totalMitad : reserva.total;
+      reserva.status !== ValidPaymentStatus.total
+        ? reserva.totalMitad
+        : reserva.total;
 
     const mensajeReserva = notificacionCancelacionVoluntariaReservas(
       reserva.reservaChatbotId,
@@ -737,7 +791,8 @@ export class ReservasService {
         reservaId,
         {
           target: contactInfo,
-          subject: 'Booking connect - Notificacion de cancelacion de transporte o tour',
+          subject:
+            'Booking connect - Notificacion de cancelacion de transporte o tour',
           html: mensajeCancelacion,
         },
       );
@@ -765,7 +820,9 @@ export class ReservasService {
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
-      const reserva = await this.reservasModel.findById(cancelReservaDto.reservaId);
+      const reserva = await this.reservasModel.findById(
+        cancelReservaDto.reservaId,
+      );
 
       const agenciaDoc = await this.agenciaModel.findById(user.agencia);
 
@@ -833,7 +890,9 @@ export class ReservasService {
       );
 
       if (!lockedReserva) {
-        const latest = await this.reservasModel.findById(cancelReservaDto.reservaId);
+        const latest = await this.reservasModel.findById(
+          cancelReservaDto.reservaId,
+        );
         if (latest?.status === ValidPaymentStatus.cancelado) {
           return {
             msg: `Reserva ${latest.reservaChatbotId} ya esta cancelada correctamente`,
@@ -914,7 +973,7 @@ export class ReservasService {
       '67c084a87b358f891dd07448',
       '67c761d2be7b7404574c2513',
     ];
-    
+
     const firstValue = valores[0]?.trim();
     if (!firstValue) {
       this.logger.error(
@@ -938,7 +997,7 @@ export class ReservasService {
     }
 
     const reserva = await this.reservasModel.findById(id);
-    
+
     if (!reserva) {
       throw new NotFoundException(`Reserva con id: ${id}`);
     }
@@ -954,7 +1013,9 @@ export class ReservasService {
       return true;
     }
 
-    const status = String(payload.payment_status || '').trim().toLowerCase();
+    const status = String(payload.payment_status || '')
+      .trim()
+      .toLowerCase();
     if (!status) {
       return true;
     }
@@ -988,11 +1049,17 @@ export class ReservasService {
 
           reserva.status = ValidPaymentStatus.rejected;
           await reserva.save();
+          if (reserva.esReactivacion) {
+            await this.handleReactivacionPagoFallido(reserva);
+          }
           return true;
         }
 
         reserva.status = ValidPaymentStatus.rejected;
         await reserva.save();
+        if (reserva.esReactivacion) {
+          await this.handleReactivacionPagoFallido(reserva);
+        }
         return true;
 
       case 'aplicado':
@@ -1011,6 +1078,12 @@ export class ReservasService {
         reserva.linksHistory.push(linkDetails);
         reserva.status = ValidPaymentStatus.total;
         await reserva.save();
+        if (
+          reserva.esReactivacion &&
+          reserva.status === ValidPaymentStatus.total
+        ) {
+          await this.handleReactivacionPagoExitoso(reserva);
+        }
         return true;
 
       default:
@@ -1023,7 +1096,7 @@ export class ReservasService {
     try {
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
@@ -1031,7 +1104,7 @@ export class ReservasService {
       // Asegurar que userId sea un ObjectId válido para la búsqueda
       // Esto funciona tanto para reservas existentes como nuevas
       let userIdObjectId: Types.ObjectId;
-      
+
       if (userId instanceof Types.ObjectId) {
         userIdObjectId = userId;
       } else if (typeof userId === 'string') {
@@ -1171,7 +1244,13 @@ export class ReservasService {
     all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page?: number; pageSize?: number; totalPages?: number; sumaTotales?: number };
+    meta: {
+      total: number;
+      page?: number;
+      pageSize?: number;
+      totalPages?: number;
+      sumaTotales?: number;
+    };
   }> {
     try {
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
@@ -1179,7 +1258,7 @@ export class ReservasService {
       const esAdmin = roles.includes('admin');
 
       // Construir filtro para buscar usuarios según el rol
-      let filtroUsuario: any = {
+      const filtroUsuario: any = {
         fullName: { $regex: nombreAgente, $options: 'i' },
       };
 
@@ -1217,7 +1296,8 @@ export class ReservasService {
       };
 
       // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales = await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
+      const sumaTotales =
+        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
       // Si all=true, retornar TODAS las reservas sin límite
       if (all) {
@@ -1243,22 +1323,22 @@ export class ReservasService {
       // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(PAGE_SIZE)
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.getCachedCount(filtroBusqueda),
+      ]);
 
       return {
         data: reservas,
@@ -1286,7 +1366,13 @@ export class ReservasService {
     all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page?: number; pageSize?: number; totalPages?: number; sumaTotales?: number };
+    meta: {
+      total: number;
+      page?: number;
+      pageSize?: number;
+      totalPages?: number;
+      sumaTotales?: number;
+    };
   }> {
     try {
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
@@ -1294,7 +1380,7 @@ export class ReservasService {
       const esAdmin = roles.includes('admin');
 
       // Construir filtro para buscar agencias según el rol
-      let filtroAgencia: any = {
+      const filtroAgencia: any = {
         fullName: { $regex: nombreAgencia, $options: 'i' },
       };
 
@@ -1328,7 +1414,8 @@ export class ReservasService {
       };
 
       // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales = await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
+      const sumaTotales =
+        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
       // Si all=true, retornar TODAS las reservas sin límite
       if (all) {
@@ -1354,22 +1441,22 @@ export class ReservasService {
       // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(PAGE_SIZE)
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.getCachedCount(filtroBusqueda),
+      ]);
 
       return {
         data: reservas,
@@ -1397,19 +1484,30 @@ export class ReservasService {
     all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page?: number; pageSize?: number; totalPages?: number; sumaTotales?: number };
+    meta: {
+      total: number;
+      page?: number;
+      pageSize?: number;
+      totalPages?: number;
+      sumaTotales?: number;
+    };
   }> {
     try {
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
 
       // Normalizar el texto de búsqueda: eliminar espacios extra
       const nombreLimpio = nombreHuesped.trim().replace(/\s+/g, ' ');
-      
+
       // Escapar caracteres especiales para regex de forma segura
-      const nombreEscapado = nombreLimpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
+      const nombreEscapado = nombreLimpio.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&',
+      );
+
       // Dividir el nombre en partes (por si es nombre completo como "Juan Pérez")
-      const partesNombre = nombreLimpio.split(/\s+/).filter(p => p.length > 0);
+      const partesNombre = nombreLimpio
+        .split(/\s+/)
+        .filter((p) => p.length > 0);
 
       // Construir condiciones de búsqueda
       const condicionesBusqueda: any[] = [
@@ -1428,20 +1526,27 @@ export class ReservasService {
           const parteEscapada = parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const otrasPartes = partesNombre
             .filter((_, i) => i !== index)
-            .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
             .join('|');
-          
+
           condicionesBusqueda.push({
             $and: [
-              { 'reservation.firstName': { $regex: parteEscapada, $options: 'i' } },
-              { 'reservation.lastName': { $regex: otrasPartes, $options: 'i' } },
+              {
+                'reservation.firstName': {
+                  $regex: parteEscapada,
+                  $options: 'i',
+                },
+              },
+              {
+                'reservation.lastName': { $regex: otrasPartes, $options: 'i' },
+              },
             ],
           });
         });
 
         // Buscar en la concatenación completa usando $expr (firstName + " " + lastName)
         const nombreCompletoRegex = partesNombre
-          .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
           .join('.*');
         condicionesBusqueda.push({
           $expr: {
@@ -1467,7 +1572,8 @@ export class ReservasService {
       };
 
       // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales = await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
+      const sumaTotales =
+        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
       // Si all=true, retornar TODAS las reservas sin límite
       if (all) {
@@ -1493,22 +1599,22 @@ export class ReservasService {
       // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(PAGE_SIZE)
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.getCachedCount(filtroBusqueda),
+      ]);
 
       return {
         data: reservas,
@@ -1536,7 +1642,13 @@ export class ReservasService {
     all = false,
   ): Promise<{
     data: any[];
-    meta: { total: number; page?: number; pageSize?: number; totalPages?: number; sumaTotales?: number };
+    meta: {
+      total: number;
+      page?: number;
+      pageSize?: number;
+      totalPages?: number;
+      sumaTotales?: number;
+    };
   }> {
     try {
       const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
@@ -1547,7 +1659,8 @@ export class ReservasService {
       };
 
       // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales = await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
+      const sumaTotales =
+        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
       // Si all=true, retornar TODAS las reservas sin límite
       // ADVERTENCIA: Esto puede ser lento si hay muchas reservas (miles o millones)
@@ -1575,22 +1688,22 @@ export class ReservasService {
       // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(PAGE_SIZE)
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
+      const [reservas, total] = await Promise.all([
+        this.reservasModel
+          .find(filtroBusqueda)
+          .populate('agenciaId', 'fullName _id emailContacto')
+          .populate('userId', 'fullName email')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean(),
+        this.getCachedCount(filtroBusqueda),
+      ]);
 
       return {
         data: reservas,
@@ -1613,7 +1726,7 @@ export class ReservasService {
     try {
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
@@ -1657,7 +1770,7 @@ export class ReservasService {
       console.log('=== SERVICIO DISPONIBILIDAD ===');
       console.log('Agencia ID recibido:', agenciaId);
       console.log('DTO recibido:', disponibilidadAutoCoreDto);
-      
+
       const { layout, checkingDate, ciudad, nights } =
         disponibilidadAutoCoreDto;
 
@@ -1665,7 +1778,10 @@ export class ReservasService {
         disponibilidadAutoCoreDto.category === 0 ||
         disponibilidadAutoCoreDto.category === 1
       ) {
-        console.log('Usando category del DTO:', disponibilidadAutoCoreDto.category);
+        console.log(
+          'Usando category del DTO:',
+          disponibilidadAutoCoreDto.category,
+        );
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
           checkingDate,
@@ -1675,11 +1791,11 @@ export class ReservasService {
           false, // Usar URL de producción temporalmente
         );
 
-         return data;
+        return data;
       } else {
         console.log('Obteniendo info de agencia...');
         const agenciaInfo = await this.agenciaModel.findById(agenciaId);
-        
+
         if (!agenciaInfo) {
           throw new NotFoundException('Agencia no encontrada');
         }
@@ -1688,9 +1804,9 @@ export class ReservasService {
           id: agenciaInfo._id,
           fullName: agenciaInfo.fullName,
           category: agenciaInfo.category,
-          isActive: agenciaInfo.isActive
+          isActive: agenciaInfo.isActive,
         });
-        
+
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
           checkingDate,
@@ -1712,17 +1828,17 @@ export class ReservasService {
   // #region Administracion
   //? Obtener todas las reservas
   async getAllReservas(
-    page = 1, 
-    all = false, 
-    hotel?: string, 
+    page = 1,
+    all = false,
+    hotel?: string,
     nombreAgencia?: string,
     fechaDesde?: string,
-    fechaHasta?: string
+    fechaHasta?: string,
   ) {
     try {
       // Construir el filtro
       const filter: any = {};
-      
+
       // Si se proporciona el parámetro hotel, agregarlo al filtro
       if (hotel && hotel.trim()) {
         // Búsqueda case-insensitive y parcial del nombre del hotel
@@ -1735,14 +1851,14 @@ export class ReservasService {
         const filtroAgencia: any = {
           fullName: { $regex: nombreAgencia.trim(), $options: 'i' },
         };
-        
+
         const agencias = await this.agenciaModel
           .find(filtroAgencia)
           .select('_id')
           .lean();
-        
+
         const agenciaIds = agencias.map((agencia) => agencia._id);
-        
+
         if (agenciaIds.length === 0) {
           // Si no se encuentran agencias, retornar vacío
           return {
@@ -1756,7 +1872,7 @@ export class ReservasService {
             },
           };
         }
-        
+
         filter.agenciaId = { $in: agenciaIds };
       }
 
@@ -1812,7 +1928,7 @@ export class ReservasService {
       // Paginación normal
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
-      
+
       // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
       const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
@@ -1854,7 +1970,7 @@ export class ReservasService {
   async cancelarReservaAdmin(reservaId: Types.ObjectId) {
     try {
       const reserva = await this.reservasModel.findById(reservaId);
-      
+
       if (!reserva) {
         throw new NotFoundException('Reserva no encontrada');
       }
@@ -2158,10 +2274,8 @@ export class ReservasService {
 
       // My Tool solo recibe: hotel, fechas, usuario, maquina, bookData, rooms.
       // Excluido a propósito: mascotasNumber en bookData / raíz y demás solo-MongoDB.
-      const {
-        mascotasNumber: _mascotasBd,
-        ...bookDataSinMascotas
-      } = dto.bookData;
+      const { mascotasNumber: _mascotasBd, ...bookDataSinMascotas } =
+        dto.bookData;
       const myToolBody: Record<string, any> = {
         hotelId: dto.hotelId,
         checkIn: dto.checkIn,
@@ -2220,8 +2334,8 @@ export class ReservasService {
             agency: {
               is_agency: true,
               agency_type: tiposAgencia.minorista as any,
-              external_ref_id: (userInfo.agencia as any).cobreInfo
-                ?.bolcilloId || '',
+              external_ref_id:
+                (userInfo.agencia as any).cobreInfo?.bolcilloId || '',
             },
             reservation: {
               source_of_bussiness: 'Booking Connect',
@@ -2242,7 +2356,8 @@ export class ReservasService {
               rooms: String(dto.rooms.length),
               roomsData: dto.rooms.map((room) => ({
                 nombreHabitacion:
-                  (room.nombreHabitacion && String(room.nombreHabitacion).trim()) ||
+                  (room.nombreHabitacion &&
+                    String(room.nombreHabitacion).trim()) ||
                   'Habitacion',
                 room_id:
                   room.room_id != null && String(room.room_id).trim() !== ''
@@ -2298,14 +2413,10 @@ export class ReservasService {
 
       const reservationData = {
         source_of_bussiness: 'Booking Connect',
-        adults: String(
-          dto.rooms.reduce((sum, r) => sum + r.paxAdultos, 0),
-        ),
+        adults: String(dto.rooms.reduce((sum, r) => sum + r.paxAdultos, 0)),
         checkin,
         checkout,
-        children: String(
-          dto.rooms.reduce((sum, r) => sum + r.paxChilds, 0),
-        ),
+        children: String(dto.rooms.reduce((sum, r) => sum + r.paxChilds, 0)),
         children_ages: '',
         city: hotelConfig.city.toUpperCase(),
         country: 'COL',
@@ -2392,13 +2503,9 @@ export class ReservasService {
         }
 
         if (dto.infoToures) {
-          this.sendToursNotification(
-            dto,
-            hotelConfig,
-            userInfo,
-            checkin,
-          ).catch((err) =>
-            this.logger.error('Error enviando notificación tours:', err),
+          this.sendToursNotification(dto, hotelConfig, userInfo, checkin).catch(
+            (err) =>
+              this.logger.error('Error enviando notificación tours:', err),
           );
         }
 
@@ -2499,9 +2606,7 @@ export class ReservasService {
           dto.maquinaId,
         );
       } else {
-        await this.httpCustomService.cancelarReservas(
-          reserva.reservaChatbotId,
-        );
+        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
       }
 
       reserva.status = ValidPaymentStatus.cancelado;
@@ -2537,7 +2642,9 @@ export class ReservasService {
   private calculateNights(checkin: string, checkout: string): number {
     const start = new Date(checkin + 'T12:00:00');
     const end = new Date(checkout + 'T12:00:00');
-    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.round(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
   }
 
   private async sendTransportNotification(
@@ -2677,4 +2784,370 @@ export class ReservasService {
   }
 
   // #endregion MyTool Booking
+
+  // #region Reactivación de reservas canceladas
+  async reactivarReservaCancelada(
+    reactivarReservaDto: ReactivarReservaDto,
+    user: User,
+  ) {
+    try {
+      const { reservaChatbotId } = reactivarReservaDto;
+      const reservaOrigen = await this.reservasModel.findOne({
+        reservaChatbotId,
+      });
+
+      if (!reservaOrigen) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      if (reservaOrigen.status !== ValidPaymentStatus.cancelado) {
+        throw new BadRequestException(
+          'Solo se pueden reactivar reservas canceladas',
+        );
+      }
+
+      if (reservaOrigen.reservaProvider !== 'autocore') {
+        throw new BadRequestException(
+          'Solo se pueden reactivar reservas de proveedor Autocore',
+        );
+      }
+
+      const esSuperAdmin = user.role.includes('super-admin');
+      const agenciaOrigenId = reservaOrigen.agenciaId.toString();
+      const agenciaUsuarioId = user.agencia?.toString();
+
+      if (!esSuperAdmin && agenciaOrigenId !== agenciaUsuarioId) {
+        throw new ForbiddenException(
+          'No cuentas con permisos para reactivar reservas de otra agencia',
+        );
+      }
+
+      const agenciaInfo = await this.agenciaModel.findById(
+        reservaOrigen.agenciaId,
+      );
+      if (!agenciaInfo) {
+        throw new NotFoundException('Agencia no encontrada');
+      }
+
+      if (reservaOrigen.reactivacionNuevaReservaId) {
+        const reutilizada = await this.reutilizarReactivacionPendiente(
+          reservaOrigen,
+          agenciaInfo,
+        );
+        if (reutilizada) {
+          return reutilizada;
+        }
+      }
+
+      const hotelId = obtenerHotelIdPorNombre(reservaOrigen.hotel);
+      if (!hotelId) {
+        throw new BadRequestException(
+          `No se pudo mapear el hotel "${reservaOrigen.hotel}" a un hotelId de Autocore`,
+        );
+      }
+
+      const reservaInfoAutocore = this.buildReservaInfoAutocoreFromReserva(
+        reservaOrigen,
+        agenciaInfo,
+      );
+
+      const reservaAutocoreInfo =
+        await this.httpCustomService.createReservaAutocore(
+          hotelId,
+          reservaInfoAutocore,
+        );
+
+      if (!reservaAutocoreInfo) {
+        throw new InternalServerErrorException(
+          'Error al crear reserva en Autocore',
+        );
+      }
+
+      if (reservaAutocoreInfo.no_available_rooms) {
+        throw new ConflictException({
+          code: 'REACTIVACION_SIN_DISPONIBILIDAD',
+          message: 'No hay disponibilidad para reactivar esta reserva',
+        });
+      }
+
+      const isReservaGrupo = reservaOrigen.cantidadHabitaciones >= 10;
+      const fechasLimite = calcularFechaLimitePago(
+        reservaOrigen.reservation.checkin,
+        isReservaGrupo,
+        reservaOrigen.agenciaId,
+      );
+
+      const reactivacionExpiraEn = addMinute(new Date(), 24 * 60);
+      const session = await this.connection.startSession();
+      session.startTransaction();
+
+      let nuevaReserva: Reserva;
+
+      try {
+        const [created] = await this.reservasModel.create(
+          [
+            {
+              hotel: reservaOrigen.hotel,
+              agenciaId: reservaOrigen.agenciaId,
+              userId: reservaOrigen.userId,
+              cantidadHabitaciones: reservaOrigen.cantidadHabitaciones,
+              total: reservaOrigen.total,
+              totalMitad: reservaOrigen.totalMitad,
+              reservation: reservaOrigen.reservation,
+              reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+              titularInfo: reservaOrigen.titularInfo,
+              fechaLimitePago: fechasLimite.fechaLimitePago,
+              fechaLimitePago2: fechasLimite.fechaLimitePago2,
+              exentoIva: reservaOrigen.exentoIva,
+              reteFuente: reservaOrigen.reteFuente,
+              reteIca: reservaOrigen.reteIca,
+              reteIva: reservaOrigen.reteIva,
+              planAlimentario: reservaOrigen.planAlimentario,
+              adicionCena: reservaOrigen.adicionCena,
+              adicionAlmuerzo: reservaOrigen.adicionAlmuerzo,
+              infoTransporte: reservaOrigen.infoTransporte,
+              infoToures: reservaOrigen.infoToures,
+              mascotas: reservaOrigen.mascotas,
+              mascotasNumber: reservaOrigen.mascotasNumber,
+              origenIata: reservaOrigen.origenIata,
+              vuelo: reservaOrigen.vuelo,
+              reservaProvider: 'autocore',
+              esReactivacion: true,
+              reactivacionDeReservaId: reservaOrigen._id,
+              reactivacionExpiraEn,
+            },
+          ],
+          { session },
+        );
+
+        nuevaReserva = created;
+
+        await this.reservasModel.updateOne(
+          { _id: reservaOrigen._id },
+          {
+            $set: {
+              reactivacionNuevaReservaId: nuevaReserva._id,
+              reactivacionEstado: 'pendiente_pago',
+            },
+          },
+          { session },
+        );
+
+        const ownerUser = await this.userModel
+          .findById(reservaOrigen.userId)
+          .session(session);
+        if (
+          ownerUser &&
+          !ownerUser.reservas.some((id) =>
+            id.equals(nuevaReserva._id as Types.ObjectId),
+          )
+        ) {
+          ownerUser.reservas.push(nuevaReserva._id as Types.ObjectId);
+          await ownerUser.save({ session });
+        }
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+
+      const linkInfo = await this.buildLinkPagoForReserva(
+        nuevaReserva,
+        agenciaInfo,
+        true,
+      );
+
+      await nuevaReserva.updateOne({
+        $set: {
+          linkInfo,
+          pagadoPrimeraMitad: true,
+          status: ValidPaymentStatus.proceso,
+        },
+      });
+
+      this.cancellationTasksQueueService.enqueueReactivationExpiryJob(
+        nuevaReserva._id.toString(),
+        {
+          nuevaReservaId: nuevaReserva._id.toString(),
+          reservaOrigenId: reservaOrigen._id.toString(),
+        },
+        reactivacionExpiraEn,
+      );
+
+      this.logger.log(
+        `Reactivacion iniciada: origen=${reservaOrigen.reservaChatbotId} nueva=${nuevaReserva.reservaChatbotId}`,
+      );
+
+      return { linkInfo };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  private async reutilizarReactivacionPendiente(
+    reservaOrigen: Reserva,
+    agenciaInfo: Agencia,
+  ): Promise<{
+    linkInfo: { link: string; expirationDate: Date; idLinkPago: string };
+  } | null> {
+    const nuevaPendiente = await this.reservasModel.findById(
+      reservaOrigen.reactivacionNuevaReservaId,
+    );
+
+    if (!nuevaPendiente) {
+      return null;
+    }
+
+    const expirada =
+      nuevaPendiente.reactivacionExpiraEn &&
+      nuevaPendiente.reactivacionExpiraEn <= new Date();
+
+    const pagadaOCancelada =
+      nuevaPendiente.status === ValidPaymentStatus.total ||
+      nuevaPendiente.status === ValidPaymentStatus.cancelado;
+
+    if (expirada || pagadaOCancelada) {
+      return null;
+    }
+
+    const linkInfo = await this.buildLinkPagoForReserva(
+      nuevaPendiente,
+      agenciaInfo,
+      true,
+    );
+
+    await nuevaPendiente.updateOne({
+      $set: {
+        linkInfo,
+        pagadoPrimeraMitad: true,
+        status: ValidPaymentStatus.proceso,
+      },
+    });
+
+    this.logger.log(
+      `Reactivacion pendiente reutilizada: origen=${reservaOrigen.reservaChatbotId} nueva=${nuevaPendiente.reservaChatbotId}`,
+    );
+
+    return { linkInfo };
+  }
+
+  private buildReservaInfoAutocoreFromReserva(
+    reservaOrigen: Reserva,
+    agenciaInfo: Agencia,
+  ) {
+    const externalRefIdFromAgencia =
+      agenciaInfo.cobreInfo?.bolcilloId != null
+        ? String(agenciaInfo.cobreInfo.bolcilloId).trim()
+        : '';
+
+    const agencyTypeString =
+      agenciaInfo.category === 1
+        ? tiposAgencia.mayorista
+        : tiposAgencia.minorista;
+
+    const reservationData = JSON.parse(
+      JSON.stringify(reservaOrigen.reservation),
+    );
+
+    return {
+      agency: {
+        is_agency: true,
+        agency_type: agencyTypeString,
+        external_ref_id:
+          externalRefIdFromAgencia ||
+          String(agenciaInfo.autocoreInfo?.id || ''),
+      },
+      reservation: {
+        ...reservationData,
+        source_of_bussiness: 'Booking Connect',
+      },
+    };
+  }
+
+  private async handleReactivacionPagoExitoso(reservaNueva: Reserva) {
+    if (!reservaNueva.reactivacionDeReservaId) {
+      return;
+    }
+
+    const reservaOrigen = await this.reservasModel.findById(
+      reservaNueva.reactivacionDeReservaId,
+    );
+
+    if (reservaOrigen) {
+      try {
+        await this.httpCustomService.cancelarReservas(
+          reservaOrigen.reservaChatbotId,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Cancelacion best-effort de reserva origen ${reservaOrigen.reservaChatbotId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      await this.reservasModel.findByIdAndDelete(reservaOrigen._id);
+    }
+
+    await this.reservasModel.updateOne(
+      { _id: reservaNueva._id },
+      {
+        $unset: {
+          reactivacionExpiraEn: '',
+          reactivacionDeReservaId: '',
+        },
+        $set: { esReactivacion: false },
+      },
+    );
+
+    this.logger.log(
+      `Reactivacion completada: nueva=${reservaNueva.reservaChatbotId} origen eliminada`,
+    );
+  }
+
+  private async handleReactivacionPagoFallido(reservaNueva: Reserva) {
+    if (reservaNueva.reactivacionCorreoFalloEnviado) {
+      return;
+    }
+
+    const guestEmail = reservaNueva.reservation?.email?.trim();
+    if (!guestEmail) {
+      this.logger.warn(
+        `Reactivacion pago fallido sin email de huesped: ${reservaNueva.reservaChatbotId}`,
+      );
+      return;
+    }
+
+    const expiraEn =
+      reservaNueva.reactivacionExpiraEn ?? addMinute(new Date(), 24 * 60);
+
+    await this.emailService
+      .sendEmail(
+        guestEmail,
+        'Pago de reactivación de reserva no procesado',
+        notificacionReactivacionPagoFallido({
+          hotel: reservaNueva.hotel,
+          checkin: reservaNueva.reservation.checkin,
+          checkout: reservaNueva.reservation.checkout,
+          reservaChatbotId: reservaNueva.reservaChatbotId,
+          monto: reservaNueva.total,
+          expiraEn,
+        }),
+      )
+      .catch((error) => {
+        this.logger.error(
+          `Error enviando correo de reactivacion fallida: ${error}`,
+        );
+      });
+
+    await this.reservasModel.updateOne(
+      { _id: reservaNueva._id },
+      { $set: { reactivacionCorreoFalloEnviado: true } },
+    );
+  }
+  // #endregion Reactivación de reservas canceladas
 }

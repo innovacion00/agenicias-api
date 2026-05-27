@@ -15,10 +15,10 @@ export const IsNotFutureDate = (validationOptions?: ValidationOptions) => {
       validator: {
         validate(value: string, args: ValidationArguments) {
           if (!value) return false;
-          
+
           const fechaActual = new Date();
           fechaActual.setHours(0, 0, 0, 0); // Resetear horas a medianoche
-          
+
           const fechaConsulta = new Date(value);
           fechaConsulta.setHours(0, 0, 0, 0); // Resetear horas a medianoche
 

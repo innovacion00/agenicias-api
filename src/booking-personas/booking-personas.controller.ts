@@ -6,11 +6,7 @@ import {
   HttpCode,
   Query,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BookingPersonasService } from './booking-personas.service';
 import { DisponibilidadPersonasDto } from './dto/disponibilidad-personas.dto';
 import { StaticTokenAuth } from 'src/auth/decorators';
@@ -21,14 +17,24 @@ import { GeneratePaymentLinkPersonasDto } from './dto/generate-payment-link-pers
 @ApiTags('booking-personas')
 @Controller('booking-personas')
 export class BookingPersonasController {
-  constructor(private readonly bookingPersonasService: BookingPersonasService) {}
+  constructor(
+    private readonly bookingPersonasService: BookingPersonasService,
+  ) {}
 
   @Post('disponibilidad')
   @StaticTokenAuth()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Consultar disponibilidad de hoteles para personas' })
-  @ApiResponse({ status: 200, description: 'Disponibilidad consultada exitosamente' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido o faltante' })
+  @ApiOperation({
+    summary: 'Consultar disponibilidad de hoteles para personas',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Disponibilidad consultada exitosamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido o faltante',
+  })
   getDisponibilidad(
     @Body() disponibilidadPersonasDto: DisponibilidadPersonasDto,
   ) {
@@ -41,8 +47,14 @@ export class BookingPersonasController {
   @StaticTokenAuth()
   @HttpCode(200)
   @ApiOperation({ summary: 'Generar link de pago para reserva de personas' })
-  @ApiResponse({ status: 200, description: 'Link de pago generado exitosamente' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido o faltante' })
+  @ApiResponse({
+    status: 200,
+    description: 'Link de pago generado exitosamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido o faltante',
+  })
   generarLinkPago(
     @Body() generatePaymentLinkDto: GeneratePaymentLinkPersonasDto,
     @Query('hotelId', ParseHotelIdPipe) hotelId: string,
@@ -56,10 +68,19 @@ export class BookingPersonasController {
   @Post('reservar')
   @StaticTokenAuth()
   @HttpCode(201)
-  @ApiOperation({ summary: 'Crear una nueva reserva de hotel para personas (requiere pago previo)' })
+  @ApiOperation({
+    summary:
+      'Crear una nueva reserva de hotel para personas (requiere pago previo)',
+  })
   @ApiResponse({ status: 201, description: 'Reserva creada exitosamente' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido o faltante' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o pago no completado' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido o faltante',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o pago no completado',
+  })
   createReserva(
     @Body() createBookingPersonaDto: CreateBookingPersonaDto,
     @Query('hotelId', ParseHotelIdPipe) hotelId: string,

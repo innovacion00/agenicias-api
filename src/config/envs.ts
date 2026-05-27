@@ -155,7 +155,11 @@ const envSchema = joi
     MAARLAB_BASE_URL: joi.string().required(),
     MAARLAB_AUTH_TOKEN: joi.string().allow('').optional().default(''),
     MAARLAB_PARTNER_SYNC_BEARER: joi.string().allow('').optional().default(''),
-    MAARLAB_CHAIN_SEARCH_ENGINE_ID: joi.string().allow('').optional().default(''),
+    MAARLAB_CHAIN_SEARCH_ENGINE_ID: joi
+      .string()
+      .allow('')
+      .optional()
+      .default(''),
   })
   .unknown(true);
 

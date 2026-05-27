@@ -74,7 +74,10 @@ export class MaarlabWebhookService {
 
     const vueloIdx = reserva.vuelo.findIndex((v) => v.packageId === packageId);
     if (vueloIdx < 0) {
-      return { success: false, message: 'Paquete de vuelo no encontrado en reserva' };
+      return {
+        success: false,
+        message: 'Paquete de vuelo no encontrado en reserva',
+      };
     }
 
     const entry = reserva.vuelo[vueloIdx];
@@ -114,16 +117,24 @@ export class MaarlabWebhookService {
       }
 
       if (isFailed) {
-        entry.paymentStatus = normalized.includes('cancel') ? 'canceled' : 'failed';
+        entry.paymentStatus = normalized.includes('cancel')
+          ? 'canceled'
+          : 'failed';
         entry.paymentUpdatedAt = new Date();
         await reserva.save();
-        return { success: true, message: `Pago de vuelo: ${entry.paymentStatus}` };
+        return {
+          success: true,
+          message: `Pago de vuelo: ${entry.paymentStatus}`,
+        };
       }
 
       entry.paymentStatus = normalized || 'pending';
       entry.paymentUpdatedAt = new Date();
       await reserva.save();
-      return { success: true, message: 'Estado de pago actualizado (pendiente)' };
+      return {
+        success: true,
+        message: 'Estado de pago actualizado (pendiente)',
+      };
     }
 
     await reserva.save();
@@ -164,7 +175,8 @@ export class MaarlabWebhookService {
         reservaChatbotId: reserva.reservaChatbotId,
         packageId,
         hotel: reserva.hotel,
-        titularNombre: `${titular?.firstName ?? ''} ${titular?.lastName ?? ''}`.trim(),
+        titularNombre:
+          `${titular?.firstName ?? ''} ${titular?.lastName ?? ''}`.trim(),
         checkin: reservation?.checkin ?? '',
         checkout: reservation?.checkout ?? '',
         origenIata: reserva.origenIata ?? '',
@@ -190,12 +202,7 @@ export class MaarlabWebhookService {
   }
 
   private extractPackageId(payload: Record<string, unknown>): string | null {
-    const keys = [
-      'package_id',
-      'packageId',
-      'package-id',
-      'id_package',
-    ];
+    const keys = ['package_id', 'packageId', 'package-id', 'id_package'];
     for (const key of keys) {
       const v = payload[key];
       if (typeof v === 'string' && v.trim()) {

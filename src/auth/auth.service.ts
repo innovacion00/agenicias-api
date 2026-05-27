@@ -65,7 +65,7 @@ export class AuthService {
   private async generateRefreshToken(userId: Types.ObjectId): Promise<string> {
     // Generar token único usando crypto
     const refreshToken = randomBytes(64).toString('hex');
-    
+
     // Calcular fecha de expiración (7 días)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -73,7 +73,7 @@ export class AuthService {
     // Desactivar refresh tokens anteriores del usuario
     await this.refreshTokenModel.updateMany(
       { userId, isActive: true },
-      { isActive: false }
+      { isActive: false },
     );
 
     // Crear nuevo refresh token
@@ -89,8 +89,10 @@ export class AuthService {
 
   private async generateTokenPair(userId: string) {
     const accessToken = this.generateJwt({ _id: userId });
-    const refreshToken = await this.generateRefreshToken(new Types.ObjectId(userId));
-    
+    const refreshToken = await this.generateRefreshToken(
+      new Types.ObjectId(userId),
+    );
+
     return {
       accessToken,
       refreshToken,
@@ -130,7 +132,7 @@ export class AuthService {
     try {
       this.logger.log(`Enviando código OTP a: ${email}`);
       this.logger.log(`Código OTP generado: ${verificationCode}`);
-      
+
       const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -210,13 +212,13 @@ td {
 </table>
 </body>
 </html>`;
-      
+
       await this.sendEmailCustomService.sendEmail(
         email,
         'Booking connect - Codigo de verificacion',
         html,
       );
-      
+
       this.logger.log(`Email OTP enviado exitosamente a: ${email}`);
     } catch (error) {
       this.logger.error(`Error al enviar email OTP a ${email}:`, error);
@@ -333,7 +335,7 @@ td {
           'No se pueden crear más usuarios en esta agencia.',
         );
       }
-      
+
       const user = await this.userModel.create({
         ...userData,
         role: adminRole ? ['admin'] : ['user'],
@@ -393,7 +395,9 @@ td {
 
     if (user.settings.omitirOtp) {
       const { password, ...userWithoutPassword } = user.toJSON();
-      const tokens = await this.generateTokenPair((user._id as Types.ObjectId).toString());
+      const tokens = await this.generateTokenPair(
+        (user._id as Types.ObjectId).toString(),
+      );
       return {
         ...userWithoutPassword,
         ...tokens,
@@ -451,7 +455,9 @@ td {
       await validacionDb.save();
 
       const { password, ...userWithoutPassword } = userData.toJSON();
-      const tokens = await this.generateTokenPair((userData._id as Types.ObjectId).toString());
+      const tokens = await this.generateTokenPair(
+        (userData._id as Types.ObjectId).toString(),
+      );
       return {
         ...userWithoutPassword,
         ...tokens,
@@ -470,8 +476,13 @@ td {
       // Obtener información del usuario y su agencia
       const user = await this.userModel
         .findById(decodedToken._id)
-        .select('_id fullName email telefono role isActive agencia imageUrl settings')
-        .populate('agencia', 'fullName category empresa isActive slug emailContacto telefonoContacto documentInfo autocoreInfo cobreInfo')
+        .select(
+          '_id fullName email telefono role isActive agencia imageUrl settings',
+        )
+        .populate(
+          'agencia',
+          'fullName category empresa isActive slug emailContacto telefonoContacto documentInfo autocoreInfo cobreInfo',
+        )
         .exec();
 
       if (!user) {
@@ -483,7 +494,12 @@ td {
       }
 
       // Verificar que la agencia esté activa
-      if (user.agencia && typeof user.agencia === 'object' && 'isActive' in user.agencia && !user.agencia.isActive) {
+      if (
+        user.agencia &&
+        typeof user.agencia === 'object' &&
+        'isActive' in user.agencia &&
+        !user.agencia.isActive
+      ) {
         throw new ForbiddenException('Agencia inactiva');
       }
 
@@ -508,7 +524,10 @@ td {
         },
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new UnauthorizedException('Invalid Token');
@@ -519,10 +538,10 @@ td {
   async validateAccessToken(validateAccessTokenDto: ValidateAccessTokenDto) {
     try {
       const { accessToken } = validateAccessTokenDto;
-      
+
       // Verificar el token JWT
       const decodedToken = this.jwtService.verify(accessToken);
-      
+
       // Verificar que el usuario existe y está activo
       const user = await this.userModel
         .findById(decodedToken._id)
@@ -534,7 +553,7 @@ td {
         return {
           valid: false,
           message: 'Usuario no encontrado',
-          code: 'USER_NOT_FOUND'
+          code: 'USER_NOT_FOUND',
         };
       }
 
@@ -542,16 +561,21 @@ td {
         return {
           valid: false,
           message: 'Usuario inactivo',
-          code: 'USER_INACTIVE'
+          code: 'USER_INACTIVE',
         };
       }
 
       // Verificar que la agencia esté activa
-      if (user.agencia && typeof user.agencia === 'object' && 'isActive' in user.agencia && !user.agencia.isActive) {
+      if (
+        user.agencia &&
+        typeof user.agencia === 'object' &&
+        'isActive' in user.agencia &&
+        !user.agencia.isActive
+      ) {
         return {
           valid: false,
           message: 'Agencia inactiva',
-          code: 'AGENCY_INACTIVE'
+          code: 'AGENCY_INACTIVE',
         };
       }
 
@@ -570,31 +594,30 @@ td {
           fullName: user.fullName,
           email: user.email,
           role: user.role,
-          agencia: user.agencia
+          agencia: user.agencia,
         },
         token: {
           expiresAt: new Date(expiresAt * 1000).toISOString(),
           timeRemaining: `${minutesRemaining} minutos`,
-          secondsRemaining: timeRemaining
-        }
+          secondsRemaining: timeRemaining,
+        },
       };
-
     } catch (error) {
       this.logger.error('Error validando access token:', error);
-      
+
       if (error.name === 'TokenExpiredError') {
         return {
           valid: false,
           message: 'Token expirado',
-          code: 'TOKEN_EXPIRED'
+          code: 'TOKEN_EXPIRED',
         };
       }
-      
+
       if (error.name === 'JsonWebTokenError') {
         return {
           valid: false,
           message: 'Token inválido',
-          code: 'TOKEN_INVALID'
+          code: 'TOKEN_INVALID',
         };
       }
 
@@ -602,7 +625,7 @@ td {
         valid: false,
         message: 'Error validando token',
         code: 'VALIDATION_ERROR',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -652,7 +675,9 @@ td {
       await refreshTokenDoc.save();
 
       // Generar nuevos tokens
-      const tokens = await this.generateTokenPair((user._id as Types.ObjectId).toString());
+      const tokens = await this.generateTokenPair(
+        (user._id as Types.ObjectId).toString(),
+      );
 
       // Devolver usuario con nuevos tokens
       const { password, ...userWithoutPassword } = user.toJSON();
@@ -717,7 +742,7 @@ td {
   // #region Cambiar estado de actividad en un usuario
   async switchActivationStatus(agencia: Types.ObjectId, userId: string) {
     const user = await this.userModel.findById(userId);
-    
+
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
@@ -738,13 +763,12 @@ td {
   async cleanupExpiredRefreshTokens() {
     try {
       const result = await this.refreshTokenModel.deleteMany({
-        $or: [
-          { expiresAt: { $lt: new Date() } },
-          { isActive: false }
-        ]
+        $or: [{ expiresAt: { $lt: new Date() } }, { isActive: false }],
       });
-      
-      this.logger.log(`Cleaned up ${result.deletedCount} expired refresh tokens`);
+
+      this.logger.log(
+        `Cleaned up ${result.deletedCount} expired refresh tokens`,
+      );
       return { deletedCount: result.deletedCount };
     } catch (error) {
       this.logger.error(error);
@@ -757,10 +781,12 @@ td {
     try {
       const result = await this.refreshTokenModel.updateMany(
         { userId: new Types.ObjectId(userId), isActive: true },
-        { isActive: false }
+        { isActive: false },
       );
-      
-      this.logger.log(`Revoked ${result.modifiedCount} refresh tokens for user ${userId}`);
+
+      this.logger.log(
+        `Revoked ${result.modifiedCount} refresh tokens for user ${userId}`,
+      );
       return { revokedCount: result.modifiedCount };
     } catch (error) {
       this.logger.error(error);
@@ -780,10 +806,7 @@ td {
   }
 
   // #region Actualizar políticas de agencia
-  async updatePoliticasAgencia(
-    userId: string,
-    politicasAgencia: string,
-  ) {
+  async updatePoliticasAgencia(userId: string, politicasAgencia: string) {
     try {
       const user = await this.userModel.findById(userId);
 

@@ -18,7 +18,10 @@ import { ValidPaymentStatus } from 'src/reservas/interfaces';
 import { DisponibilidadPersonasDto } from './dto/disponibilidad-personas.dto';
 import { CreateBookingPersonaDto } from './dto/create-booking-persona.dto';
 import { BookingPersona } from './entities/booking-persona.entity';
-import { PaymentPending, PaymentStatus } from './entities/payment-pending.entity';
+import {
+  PaymentPending,
+  PaymentStatus,
+} from './entities/payment-pending.entity';
 
 @Injectable()
 export class BookingPersonasService {
@@ -42,76 +45,94 @@ export class BookingPersonasService {
     try {
       this.logger.log('=== SERVICIO DISPONIBILIDAD PERSONAS ===');
       this.logger.log('DTO recibido:', disponibilidadPersonasDto);
-      
+
       const { city, checkin, nights, adults, children_ages, room_type } =
         disponibilidadPersonasDto;
 
       // Normalizar el nombre de la ciudad (case-insensitive)
       const normalizedCity = this.normalizarCiudad(city);
-      
+
       // Buscar todos los hoteles de la ciudad en hotelesAutocore
       const hotelesDeLaCiudad = this.obtenerHotelesPorCiudad(normalizedCity);
-      
+
       if (hotelesDeLaCiudad.length === 0) {
         throw new BadRequestException(
           `No se encontraron hoteles para la ciudad: ${city}. Ciudades disponibles: Cartagena, Bogota, Santa marta`,
         );
       }
 
-      this.logger.log(` Encontrados ${hotelesDeLaCiudad.length} hoteles en ${normalizedCity}:`, 
-        hotelesDeLaCiudad.map(h => ({ id: h.id, name: h.name }))
+      this.logger.log(
+        ` Encontrados ${hotelesDeLaCiudad.length} hoteles en ${normalizedCity}:`,
+        hotelesDeLaCiudad.map((h) => ({ id: h.id, name: h.name })),
       );
 
       // Hacer consultas paralelas a Autocore para cada hotel
-      this.logger.log(` Iniciando ${hotelesDeLaCiudad.length} consultas paralelas a Autocore...`);
-      
+      this.logger.log(
+        ` Iniciando ${hotelesDeLaCiudad.length} consultas paralelas a Autocore...`,
+      );
+
       const consultasDisponibilidad = await Promise.allSettled(
         hotelesDeLaCiudad.map((hotel) =>
-          this.httpCustomService.getDisponibilidadPersonas(
-            hotel.id,
-            checkin,
-            nights,
-            adults,
-            children_ages,
-            room_type,
-            false, // Usar URL de producción
-          ).then((data) => {
-            const dataAny = data as any;
-            this.logger.log(` Hotel ${hotel.id} (${hotel.name}): Disponibilidad obtenida`, {
-              hasData: !!data,
-              isArray: Array.isArray(data),
-              hasAvailableRooms: dataAny && !!dataAny.available_rooms,
-              availableRoomsCount: dataAny && dataAny.available_rooms ? dataAny.available_rooms.length : 0,
-            });
-            return {
-              hotelId: hotel.id,
-              hotelName: hotel.name,
-              city: hotel.city,
-              data,
-            };
-          }).catch((error) => {
-            this.logger.error(` Error al consultar disponibilidad para hotel ${hotel.id} (${hotel.name}):`, {
-              message: error.message,
-              response: error.response?.data,
-              status: error.response?.status,
-            });
-            return {
-              hotelId: hotel.id,
-              hotelName: hotel.name,
-              city: hotel.city,
-              data: null,
-              error: error.message,
-            };
-          })
-        )
+          this.httpCustomService
+            .getDisponibilidadPersonas(
+              hotel.id,
+              checkin,
+              nights,
+              adults,
+              children_ages,
+              room_type,
+              false, // Usar URL de producción
+            )
+            .then((data) => {
+              const dataAny = data as any;
+              this.logger.log(
+                ` Hotel ${hotel.id} (${hotel.name}): Disponibilidad obtenida`,
+                {
+                  hasData: !!data,
+                  isArray: Array.isArray(data),
+                  hasAvailableRooms: dataAny && !!dataAny.available_rooms,
+                  availableRoomsCount:
+                    dataAny && dataAny.available_rooms
+                      ? dataAny.available_rooms.length
+                      : 0,
+                },
+              );
+              return {
+                hotelId: hotel.id,
+                hotelName: hotel.name,
+                city: hotel.city,
+                data,
+              };
+            })
+            .catch((error) => {
+              this.logger.error(
+                ` Error al consultar disponibilidad para hotel ${hotel.id} (${hotel.name}):`,
+                {
+                  message: error.message,
+                  response: error.response?.data,
+                  status: error.response?.status,
+                },
+              );
+              return {
+                hotelId: hotel.id,
+                hotelName: hotel.name,
+                city: hotel.city,
+                data: null,
+                error: error.message,
+              };
+            }),
+        ),
       );
-      
+
       this.logger.log(` Resultados de consultas:`, {
         total: consultasDisponibilidad.length,
-        fulfilled: consultasDisponibilidad.filter(r => r.status === 'fulfilled').length,
-        rejected: consultasDisponibilidad.filter(r => r.status === 'rejected').length,
-        withData: consultasDisponibilidad.filter(r => 
-          r.status === 'fulfilled' && r.value && r.value.data
+        fulfilled: consultasDisponibilidad.filter(
+          (r) => r.status === 'fulfilled',
+        ).length,
+        rejected: consultasDisponibilidad.filter((r) => r.status === 'rejected')
+          .length,
+        withData: consultasDisponibilidad.filter(
+          (r) => r.status === 'fulfilled' && r.value && r.value.data,
         ).length,
       });
 
@@ -133,9 +154,9 @@ export class BookingPersonasService {
   private normalizarCiudad(city: string): string {
     // Normalizar a formato usado en hotelesAutocore
     const cityLower = city.toLowerCase().trim();
-    
+
     this.logger.log(` Normalizando ciudad: "${city}" -> "${cityLower}"`);
-    
+
     if (cityLower.includes('cartagena')) {
       const normalized = 'Cartagena';
       this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
@@ -146,31 +167,47 @@ export class BookingPersonasService {
       this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
       return normalized;
     }
-    if (cityLower.includes('santa marta') || cityLower.includes('santamarta') || cityLower === 'santa marta') {
+    if (
+      cityLower.includes('santa marta') ||
+      cityLower.includes('santamarta') ||
+      cityLower === 'santa marta'
+    ) {
       const normalized = 'Santa marta';
       this.logger.log(` Ciudad normalizada: "${city}" -> "${normalized}"`);
       return normalized;
     }
-    
+
     // Si no coincide, retornar el original capitalizado
-    const normalized = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-    this.logger.warn(` Ciudad no reconocida, usando formato capitalizado: "${city}" -> "${normalized}"`);
+    const normalized =
+      city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+    this.logger.warn(
+      ` Ciudad no reconocida, usando formato capitalizado: "${city}" -> "${normalized}"`,
+    );
     return normalized;
   }
 
   // #region Obtener hoteles por ciudad
-  private obtenerHotelesPorCiudad(city: string): Array<{ id: string; name: string; city: string }> {
+  private obtenerHotelesPorCiudad(
+    city: string,
+  ): Array<{ id: string; name: string; city: string }> {
     const hoteles: Array<{ id: string; name: string; city: string }> = [];
-    
+
     this.logger.log(` Buscando hoteles para ciudad: "${city}"`);
-    this.logger.log(` Hoteles disponibles en hotelesAutocore:`, 
-      Object.entries(hotelesAutocore).map(([id, info]) => ({ id, city: info.city, name: info.name }))
+    this.logger.log(
+      ` Hoteles disponibles en hotelesAutocore:`,
+      Object.entries(hotelesAutocore).map(([id, info]) => ({
+        id,
+        city: info.city,
+        name: info.name,
+      })),
     );
-    
+
     Object.entries(hotelesAutocore).forEach(([hotelId, hotelInfo]) => {
       const cityMatch = hotelInfo.city === city;
-      this.logger.log(` Comparando: "${hotelInfo.city}" === "${city}" -> ${cityMatch}`);
-      
+      this.logger.log(
+        ` Comparando: "${hotelInfo.city}" === "${city}" -> ${cityMatch}`,
+      );
+
       if (cityMatch) {
         hoteles.push({
           id: hotelId,
@@ -180,9 +217,11 @@ export class BookingPersonasService {
         this.logger.log(` Hotel agregado: ${hotelId} - ${hotelInfo.name}`);
       }
     });
-    
-    this.logger.log(` Total hoteles encontrados para "${city}": ${hoteles.length}`);
-    
+
+    this.logger.log(
+      ` Total hoteles encontrados para "${city}": ${hoteles.length}`,
+    );
+
     return hoteles;
   }
 
@@ -192,16 +231,22 @@ export class BookingPersonasService {
     city: string,
   ): any {
     // Estructura para agrupar por hotel
-    const hotelesMap = new Map<string, {
-      hotelId: string;
-      hotelName: string;
-      city: string;
-      availability: Map<string, {
-        adults: number;
-        children_ages: string | null;
-        available_rooms: any[];
-      }>;
-    }>();
+    const hotelesMap = new Map<
+      string,
+      {
+        hotelId: string;
+        hotelName: string;
+        city: string;
+        availability: Map<
+          string,
+          {
+            adults: number;
+            children_ages: string | null;
+            available_rooms: any[];
+          }
+        >;
+      }
+    >();
 
     let hotelesProcesados = 0;
     let hotelesConDisponibilidad = 0;
@@ -209,9 +254,11 @@ export class BookingPersonasService {
     consultas.forEach((resultado, index) => {
       if (resultado.status === 'fulfilled') {
         const { hotelId, hotelName, data, error } = resultado.value;
-        
+
         if (error) {
-          this.logger.warn(` Hotel ${hotelId} (${hotelName}) tiene error: ${error}`);
+          this.logger.warn(
+            ` Hotel ${hotelId} (${hotelName}) tiene error: ${error}`,
+          );
           return;
         }
 
@@ -221,7 +268,7 @@ export class BookingPersonasService {
         }
 
         hotelesProcesados++;
-        
+
         // Inicializar el hotel en el mapa si no existe
         if (!hotelesMap.has(hotelId)) {
           hotelesMap.set(hotelId, {
@@ -239,12 +286,16 @@ export class BookingPersonasService {
         if (Array.isArray(data)) {
           data.forEach((hotelResponse: any) => {
             // Verificar que tenga la estructura correcta
-            if (hotelResponse && hotelResponse.availability && Array.isArray(hotelResponse.availability)) {
+            if (
+              hotelResponse &&
+              hotelResponse.availability &&
+              Array.isArray(hotelResponse.availability)
+            ) {
               hotelResponse.availability.forEach((availabilityItem: any) => {
                 const adults = availabilityItem.adults || 0;
                 const children_ages = availabilityItem.children_ages || null;
                 const key = `${adults}_${children_ages || 'null'}`;
-                
+
                 if (!hotelData.availability.has(key)) {
                   hotelData.availability.set(key, {
                     adults,
@@ -254,21 +305,33 @@ export class BookingPersonasService {
                 }
 
                 const availabilityData = hotelData.availability.get(key)!;
-                if (availabilityItem.available_rooms && Array.isArray(availabilityItem.available_rooms)) {
-                  availabilityData.available_rooms.push(...availabilityItem.available_rooms);
-                  hotelTieneDisponibilidad = hotelTieneDisponibilidad || availabilityItem.available_rooms.length > 0;
+                if (
+                  availabilityItem.available_rooms &&
+                  Array.isArray(availabilityItem.available_rooms)
+                ) {
+                  availabilityData.available_rooms.push(
+                    ...availabilityItem.available_rooms,
+                  );
+                  hotelTieneDisponibilidad =
+                    hotelTieneDisponibilidad ||
+                    availabilityItem.available_rooms.length > 0;
                 }
               });
             }
           });
         }
         // Si la respuesta es un objeto único con hotel y availability
-        else if (data && data.hotel && data.availability && Array.isArray(data.availability)) {
+        else if (
+          data &&
+          data.hotel &&
+          data.availability &&
+          Array.isArray(data.availability)
+        ) {
           data.availability.forEach((availabilityItem: any) => {
             const adults = availabilityItem.adults || 0;
             const children_ages = availabilityItem.children_ages || null;
             const key = `${adults}_${children_ages || 'null'}`;
-            
+
             if (!hotelData.availability.has(key)) {
               hotelData.availability.set(key, {
                 adults,
@@ -278,18 +341,29 @@ export class BookingPersonasService {
             }
 
             const availabilityData = hotelData.availability.get(key)!;
-            if (availabilityItem.available_rooms && Array.isArray(availabilityItem.available_rooms)) {
-              availabilityData.available_rooms.push(...availabilityItem.available_rooms);
-              hotelTieneDisponibilidad = hotelTieneDisponibilidad || availabilityItem.available_rooms.length > 0;
+            if (
+              availabilityItem.available_rooms &&
+              Array.isArray(availabilityItem.available_rooms)
+            ) {
+              availabilityData.available_rooms.push(
+                ...availabilityItem.available_rooms,
+              );
+              hotelTieneDisponibilidad =
+                hotelTieneDisponibilidad ||
+                availabilityItem.available_rooms.length > 0;
             }
           });
         }
         // Si la respuesta es un objeto con available_rooms en la raíz (estructura antigua)
-        else if (data && data.available_rooms && Array.isArray(data.available_rooms)) {
+        else if (
+          data &&
+          data.available_rooms &&
+          Array.isArray(data.available_rooms)
+        ) {
           const adults = data.adults || 0;
           const children_ages = data.children_ages || null;
           const key = `${adults}_${children_ages || 'null'}`;
-          
+
           if (!hotelData.availability.has(key)) {
             hotelData.availability.set(key, {
               adults,
@@ -302,18 +376,24 @@ export class BookingPersonasService {
           availabilityData.available_rooms.push(...data.available_rooms);
           hotelTieneDisponibilidad = data.available_rooms.length > 0;
         } else {
-          this.logger.warn(` Hotel ${hotelId} (${hotelName}): Estructura de datos desconocida`, {
-            type: typeof data,
-            isArray: Array.isArray(data),
-            keys: data ? Object.keys(data) : [],
-          });
+          this.logger.warn(
+            ` Hotel ${hotelId} (${hotelName}): Estructura de datos desconocida`,
+            {
+              type: typeof data,
+              isArray: Array.isArray(data),
+              keys: data ? Object.keys(data) : [],
+            },
+          );
         }
 
         if (hotelTieneDisponibilidad) {
           hotelesConDisponibilidad++;
         }
       } else if (resultado.status === 'rejected') {
-        this.logger.error(` Consulta rechazada en índice ${index}:`, resultado.reason);
+        this.logger.error(
+          ` Consulta rechazada en índice ${index}:`,
+          resultado.reason,
+        );
       }
     });
 
@@ -322,9 +402,12 @@ export class BookingPersonasService {
 
     hotelesMap.forEach((hotelData, hotelId) => {
       // Obtener el ID numérico del hotel desde hotelesAutocorePaymenLink
-      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
-      const hotelPaymentId = hotelInfo 
-        ? hotelesAutocorePaymenLink[hotelInfo.name as keyof typeof hotelesAutocorePaymenLink]
+      const hotelInfo =
+        hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelPaymentId = hotelInfo
+        ? hotelesAutocorePaymenLink[
+            hotelInfo.name as keyof typeof hotelesAutocorePaymenLink
+          ]
         : null;
 
       // Calcular largest_room_beds (máximo de beds en todas las habitaciones)
@@ -351,7 +434,12 @@ export class BookingPersonasService {
 
         // Normalizar children_ages: convertir string vacío o "null" a null
         let children_ages = availabilityData.children_ages;
-        if (children_ages === '' || children_ages === 'null' || children_ages === null || children_ages === undefined) {
+        if (
+          children_ages === '' ||
+          children_ages === 'null' ||
+          children_ages === null ||
+          children_ages === undefined
+        ) {
           children_ages = null;
         }
 
@@ -414,97 +502,122 @@ export class BookingPersonasService {
     };
 
     // Normalizar las tarifas permitidas
-    const rateDescriptionsNormalizados = rateDescriptionsPermitidos.map(normalizarRateDescription);
+    const rateDescriptionsNormalizados = rateDescriptionsPermitidos.map(
+      normalizarRateDescription,
+    );
 
     // Función para verificar si un rateDescription coincide
     const coincideConPermitido = (rateDesc: string): boolean => {
       const normalizado = normalizarRateDescription(rateDesc);
-      return rateDescriptionsNormalizados.some(permitido => 
-        normalizado.includes(permitido) || permitido.includes(normalizado)
+      return rateDescriptionsNormalizados.some(
+        (permitido) =>
+          normalizado.includes(permitido) || permitido.includes(normalizado),
       );
     };
 
     try {
       // Si la respuesta es un array (estructura antigua de Iavailability[])
       if (Array.isArray(data)) {
-        return data.map((hotel: any) => {
-          if (hotel.availability) {
-            const filteredAvailability = hotel.availability.map((room: any) => {
-              if (room.available_rooms) {
-                const filteredRooms = room.available_rooms.map((availableRoom: any) => {
-                  if (availableRoom.rates) {
-                    const filteredRates = availableRoom.rates.filter((rate: any) =>
-                      rateDescriptionsPermitidos.includes(rate.rateDescription),
-                    );
+        return data
+          .map((hotel: any) => {
+            if (hotel.availability) {
+              const filteredAvailability = hotel.availability
+                .map((room: any) => {
+                  if (room.available_rooms) {
+                    const filteredRooms = room.available_rooms
+                      .map((availableRoom: any) => {
+                        if (availableRoom.rates) {
+                          const filteredRates = availableRoom.rates.filter(
+                            (rate: any) =>
+                              rateDescriptionsPermitidos.includes(
+                                rate.rateDescription,
+                              ),
+                          );
+                          return {
+                            ...availableRoom,
+                            rates: filteredRates,
+                          };
+                        }
+                        // Si tiene products en lugar de rates
+                        if (availableRoom.products) {
+                          const filteredProducts =
+                            availableRoom.products.filter((product: any) => {
+                              const coincide = coincideConPermitido(
+                                product.rateDescription || '',
+                              );
+                              if (!coincide && product.rateDescription) {
+                                this.logger.debug(
+                                  ` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`,
+                                );
+                              }
+                              return coincide;
+                            });
+                          return {
+                            ...availableRoom,
+                            products: filteredProducts,
+                          };
+                        }
+                        return availableRoom;
+                      })
+                      .filter(
+                        (room: any) =>
+                          (room.rates && room.rates.length > 0) ||
+                          (room.products && room.products.length > 0),
+                      );
+
                     return {
-                      ...availableRoom,
-                      rates: filteredRates,
+                      ...room,
+                      available_rooms: filteredRooms,
                     };
                   }
-                  // Si tiene products en lugar de rates
-                  if (availableRoom.products) {
-                    const filteredProducts = availableRoom.products.filter((product: any) => {
-                      const coincide = coincideConPermitido(product.rateDescription || '');
-                      if (!coincide && product.rateDescription) {
-                        this.logger.debug(` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
-                      }
-                      return coincide;
-                    });
-                    return {
-                      ...availableRoom,
-                      products: filteredProducts,
-                    };
-                  }
-                  return availableRoom;
-                }).filter((room: any) => 
-                  (room.rates && room.rates.length > 0) || 
-                  (room.products && room.products.length > 0)
+                  return room;
+                })
+                .filter(
+                  (room: any) =>
+                    room.available_rooms && room.available_rooms.length > 0,
                 );
-                
-                return {
-                  ...room,
-                  available_rooms: filteredRooms,
-                };
-              }
-              return room;
-            }).filter((room: any) => 
-              room.available_rooms && room.available_rooms.length > 0
-            );
-            
-            return {
-              ...hotel,
-              availability: filteredAvailability,
-            };
-          }
-          return hotel;
-        }).filter((hotel: any) => 
-          hotel.availability && hotel.availability.length > 0
-        );
+
+              return {
+                ...hotel,
+                availability: filteredAvailability,
+              };
+            }
+            return hotel;
+          })
+          .filter(
+            (hotel: any) => hotel.availability && hotel.availability.length > 0,
+          );
       }
 
       // Si la respuesta es un objeto con available_rooms en la raíz (estructura nueva)
       if (data && data.available_rooms && Array.isArray(data.available_rooms)) {
-        const filteredRooms = data.available_rooms.map((room: any) => {
-          if (room.products && Array.isArray(room.products)) {
-            const filteredProducts = room.products.filter((product: any) => {
-              const coincide = coincideConPermitido(product.rateDescription || '');
-              if (!coincide && product.rateDescription) {
-                this.logger.debug(` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`);
+        const filteredRooms = data.available_rooms
+          .map((room: any) => {
+            if (room.products && Array.isArray(room.products)) {
+              const filteredProducts = room.products.filter((product: any) => {
+                const coincide = coincideConPermitido(
+                  product.rateDescription || '',
+                );
+                if (!coincide && product.rateDescription) {
+                  this.logger.debug(
+                    ` Producto filtrado: "${product.rateDescription}" no coincide con tarifas permitidas`,
+                  );
+                }
+                return coincide;
+              });
+
+              // Solo retornar el room si tiene productos filtrados
+              if (filteredProducts.length > 0) {
+                return {
+                  ...room,
+                  products: filteredProducts,
+                };
               }
-              return coincide;
-            });
-            
-            // Solo retornar el room si tiene productos filtrados
-            if (filteredProducts.length > 0) {
-              return {
-                ...room,
-                products: filteredProducts,
-              };
+              return null; // Excluir rooms sin productos permitidos
             }
-            return null; // Excluir rooms sin productos permitidos
-          }
-          return room;
-        }).filter((room: any) => room !== null);
+            return room;
+          })
+          .filter((room: any) => room !== null);
 
         // Retornar el objeto con las habitaciones filtradas
         return {
@@ -514,11 +627,14 @@ export class BookingPersonasService {
       }
 
       // Si no coincide con ninguna estructura conocida, retornar sin filtrar
-      this.logger.warn(' Estructura de respuesta desconocida, retornando sin filtrar:', {
-        isArray: Array.isArray(data),
-        hasAvailableRooms: data && !!data.available_rooms,
-        keys: data ? Object.keys(data) : [],
-      });
+      this.logger.warn(
+        ' Estructura de respuesta desconocida, retornando sin filtrar:',
+        {
+          isArray: Array.isArray(data),
+          hasAvailableRooms: data && !!data.available_rooms,
+          keys: data ? Object.keys(data) : [],
+        },
+      );
       return data;
     } catch (error) {
       this.logger.error(' Error al filtrar disponibilidad:', error);
@@ -528,35 +644,39 @@ export class BookingPersonasService {
   }
 
   // #region Generar link de pago
-  async generarLinkPago(
-    generatePaymentLinkDto: any,
-    hotelId: string,
-  ) {
+  async generarLinkPago(generatePaymentLinkDto: any, hotelId: string) {
     try {
-      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelInfo =
+        hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
       if (!hotelInfo) {
         throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
       }
 
-      const hotelPaymentId = hotelesAutocorePaymenLink[hotelInfo.name as keyof typeof hotelesAutocorePaymenLink];
+      const hotelPaymentId =
+        hotelesAutocorePaymenLink[
+          hotelInfo.name as keyof typeof hotelesAutocorePaymenLink
+        ];
       if (!hotelPaymentId) {
-        throw new BadRequestException(`ID de pago no configurado para el hotel ${hotelInfo.name}`);
+        throw new BadRequestException(
+          `ID de pago no configurado para el hotel ${hotelInfo.name}`,
+        );
       }
 
       // Generar external_ref_id único antes de crear el link
       const externalRefId = `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const linkPago = await this.httpCustomService.createLinkPagoPersonasAutocore(
-        hotelPaymentId,
-        generatePaymentLinkDto.guest_name,
-        generatePaymentLinkDto.email,
-        generatePaymentLinkDto.phone,
-        generatePaymentLinkDto.amount,
-        generatePaymentLinkDto.booking_dates,
-        generatePaymentLinkDto.description,
-        generatePaymentLinkDto.currency || 'COP',
-        externalRefId,
-      );
+      const linkPago =
+        await this.httpCustomService.createLinkPagoPersonasAutocore(
+          hotelPaymentId,
+          generatePaymentLinkDto.guest_name,
+          generatePaymentLinkDto.email,
+          generatePaymentLinkDto.phone,
+          generatePaymentLinkDto.amount,
+          generatePaymentLinkDto.booking_dates,
+          generatePaymentLinkDto.description,
+          generatePaymentLinkDto.currency || 'COP',
+          externalRefId,
+        );
 
       if (!linkPago) {
         throw new InternalServerErrorException('Error al generar link de pago');
@@ -578,7 +698,7 @@ export class BookingPersonasService {
       return {
         payment_url: linkPago.url,
         payment_code: linkPago.code,
-        message: generatePaymentLinkDto.reservation_data 
+        message: generatePaymentLinkDto.reservation_data
           ? 'Link de pago generado exitosamente. La reserva se creará automáticamente después de que el pago sea completado.'
           : 'Link de pago generado exitosamente. Realiza el pago y luego crea la reserva con el código de pago.',
       };
@@ -596,7 +716,7 @@ export class BookingPersonasService {
   ) {
     const cantidadHabitacion =
       createBookingPersonaDto.reservation.roomsData.length;
-    
+
     try {
       // PASO 1: Verificar que el pago fue exitoso
       if (!paymentCode) {
@@ -605,8 +725,10 @@ export class BookingPersonasService {
         );
       }
 
-      this.logger.log(' Verificando pago antes de crear reserva:', { paymentCode });
-      
+      this.logger.log(' Verificando pago antes de crear reserva:', {
+        paymentCode,
+      });
+
       // Buscar el pago pendiente en la base de datos
       const pagoPendiente = await this.paymentPendingModel.findOne({
         payment_code: paymentCode,
@@ -620,13 +742,18 @@ export class BookingPersonasService {
 
       // Si la reserva ya fue creada automáticamente, retornar la información
       if (pagoPendiente.reserva_creada && pagoPendiente.reserva_id) {
-        const reservaExistente = await this.bookingPersonaModel.findById(pagoPendiente.reserva_id);
+        const reservaExistente = await this.bookingPersonaModel.findById(
+          pagoPendiente.reserva_id,
+        );
         if (reservaExistente) {
-          this.logger.log(`ℹ️ Reserva ya fue creada automáticamente: ${pagoPendiente.reserva_id}`);
+          this.logger.log(
+            `ℹ️ Reserva ya fue creada automáticamente: ${pagoPendiente.reserva_id}`,
+          );
           return {
             reservaId: reservaExistente._id,
             chatbotId: reservaExistente.reservaChatbotId,
-            message: 'La reserva ya fue creada automáticamente después del pago.',
+            message:
+              'La reserva ya fue creada automáticamente después del pago.',
             yaExiste: true,
           };
         }
@@ -644,22 +771,24 @@ export class BookingPersonasService {
 
       // Determinar si es reserva de grupo (10 o más habitaciones)
       const isReservaGrupo = cantidadHabitacion >= 10;
-      
+
       // Calcular fechas límite usando la nueva lógica
       const fechasLimite = calcularFechaLimitePago(
         createBookingPersonaDto.reservation.checkin,
         isReservaGrupo,
       );
-      
+
       const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
-      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelInfo =
+        hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
       if (!hotelInfo) {
         throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
       }
 
       // Establecer source_of_business
-      createBookingPersonaDto.reservation.source_of_bussiness = 'Booking Personas';
+      createBookingPersonaDto.reservation.source_of_bussiness =
+        'Booking Personas';
 
       // PASO 2: Crear reserva en Autocore
       const reservaAutocoreInfo =
@@ -669,7 +798,9 @@ export class BookingPersonasService {
         );
 
       if (!reservaAutocoreInfo) {
-        throw new InternalServerErrorException('Error al crear reserva en Autocore');
+        throw new InternalServerErrorException(
+          'Error al crear reserva en Autocore',
+        );
       }
 
       if (reservaAutocoreInfo.no_available_rooms) {
@@ -705,7 +836,9 @@ export class BookingPersonasService {
       // Marcar el pago como usado (opcional: eliminar o marcar como procesado)
       await this.paymentPendingModel.deleteOne({ payment_code: paymentCode });
 
-      this.logger.log(` Reserva de persona creada exitosamente: ${reserva._id}`);
+      this.logger.log(
+        ` Reserva de persona creada exitosamente: ${reserva._id}`,
+      );
       return {
         reservaId: reserva._id,
         chatbotId: reservaAutocoreInfo.chatbot_id,
@@ -728,7 +861,10 @@ export class BookingPersonasService {
     };
   }) {
     try {
-      this.logger.log(' Webhook recibido para cambio de estado de pago:', payload);
+      this.logger.log(
+        ' Webhook recibido para cambio de estado de pago:',
+        payload,
+      );
 
       // Buscar el pago pendiente por external_ref_id
       const pagoPendiente = await this.paymentPendingModel.findOne({
@@ -736,7 +872,9 @@ export class BookingPersonasService {
       });
 
       if (!pagoPendiente) {
-        this.logger.warn(` Pago pendiente no encontrado para external_ref_id: ${payload.external_ref_id}`);
+        this.logger.warn(
+          ` Pago pendiente no encontrado para external_ref_id: ${payload.external_ref_id}`,
+        );
         return { success: false, message: 'Pago pendiente no encontrado' };
       }
 
@@ -749,24 +887,39 @@ export class BookingPersonasService {
           pagoPendiente.transaction_id = payload.transaction_id;
           pagoPendiente.paid_at = new Date();
           await pagoPendiente.save();
-          this.logger.log(`Pago marcado como pagado: ${pagoPendiente.payment_code}`);
-          
+          this.logger.log(
+            `Pago marcado como pagado: ${pagoPendiente.payment_code}`,
+          );
+
           // Crear reserva automáticamente si hay datos de reserva y no se ha creado ya
-          if (pagoPendiente.reservation_data && !pagoPendiente.reserva_creada && pagoPendiente.hotel_id) {
+          if (
+            pagoPendiente.reservation_data &&
+            !pagoPendiente.reserva_creada &&
+            pagoPendiente.hotel_id
+          ) {
             try {
-              this.logger.log(`Creando reserva automáticamente para pago ${pagoPendiente.payment_code}`);
+              this.logger.log(
+                `Creando reserva automáticamente para pago ${pagoPendiente.payment_code}`,
+              );
               await this.crearReservaAutomatica(pagoPendiente);
             } catch (error) {
-              this.logger.error(`Error al crear reserva automáticamente:`, error);
+              this.logger.error(
+                `Error al crear reserva automáticamente:`,
+                error,
+              );
               // No lanzamos el error para no afectar el webhook
               // La reserva se puede crear manualmente después
             }
           } else {
             if (!pagoPendiente.reservation_data) {
-              this.logger.warn(`No hay datos de reserva para crear automáticamente: ${pagoPendiente.payment_code}`);
+              this.logger.warn(
+                `No hay datos de reserva para crear automáticamente: ${pagoPendiente.payment_code}`,
+              );
             }
             if (pagoPendiente.reserva_creada) {
-              this.logger.log(`Reserva ya fue creada anteriormente: ${pagoPendiente.payment_code}`);
+              this.logger.log(
+                `Reserva ya fue creada anteriormente: ${pagoPendiente.payment_code}`,
+              );
             }
           }
           break;
@@ -776,7 +929,9 @@ export class BookingPersonasService {
         case 'tarjeta no válida':
           pagoPendiente.status = PaymentStatus.REJECTED;
           await pagoPendiente.save();
-          this.logger.log(` Pago marcado como rechazado: ${pagoPendiente.payment_code}`);
+          this.logger.log(
+            ` Pago marcado como rechazado: ${pagoPendiente.payment_code}`,
+          );
           break;
 
         case 'en proceso':
@@ -790,7 +945,10 @@ export class BookingPersonasService {
 
       return { success: true, status: pagoPendiente.status };
     } catch (error) {
-      this.logger.error('ERROR en cambiarEstadoPagoAutocore (Personas):', error);
+      this.logger.error(
+        'ERROR en cambiarEstadoPagoAutocore (Personas):',
+        error,
+      );
       return { success: false, error: error.message };
     }
   }
@@ -808,30 +966,34 @@ export class BookingPersonasService {
         throw new BadRequestException('Datos de reserva o hotel_id faltantes');
       }
 
-      const createBookingPersonaDto = pagoPendiente.reservation_data as CreateBookingPersonaDto;
+      const createBookingPersonaDto =
+        pagoPendiente.reservation_data as CreateBookingPersonaDto;
       const hotelId = pagoPendiente.hotel_id;
-      const cantidadHabitacion = createBookingPersonaDto.reservation.roomsData.length;
+      const cantidadHabitacion =
+        createBookingPersonaDto.reservation.roomsData.length;
 
       let planAlimentario = '';
 
       // Determinar si es reserva de grupo (10 o más habitaciones)
       const isReservaGrupo = cantidadHabitacion >= 10;
-      
+
       // Calcular fechas límite usando la nueva lógica
       const fechasLimite = calcularFechaLimitePago(
         createBookingPersonaDto.reservation.checkin,
         isReservaGrupo,
       );
-      
+
       const { fechaLimitePago, fechaLimitePago2 } = fechasLimite;
 
-      const hotelInfo = hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
+      const hotelInfo =
+        hotelesAutocore[hotelId as keyof typeof hotelesAutocore];
       if (!hotelInfo) {
         throw new BadRequestException(`Hotel con ID ${hotelId} no encontrado`);
       }
 
       // Establecer source_of_business
-      createBookingPersonaDto.reservation.source_of_bussiness = 'Booking Personas';
+      createBookingPersonaDto.reservation.source_of_bussiness =
+        'Booking Personas';
 
       // Crear reserva en Autocore
       const reservaAutocoreInfo =
@@ -841,7 +1003,9 @@ export class BookingPersonasService {
         );
 
       if (!reservaAutocoreInfo) {
-        throw new InternalServerErrorException('Error al crear reserva en Autocore');
+        throw new InternalServerErrorException(
+          'Error al crear reserva en Autocore',
+        );
       }
 
       if (reservaAutocoreInfo.no_available_rooms) {
@@ -883,8 +1047,10 @@ export class BookingPersonasService {
       // y solo se usa como referencia si está disponible al crear el link
       await pagoPendiente.save();
 
-      this.logger.log(`Reserva creada automáticamente: ${reserva._id} para pago ${pagoPendiente.payment_code}`);
-      
+      this.logger.log(
+        `Reserva creada automáticamente: ${reserva._id} para pago ${pagoPendiente.payment_code}`,
+      );
+
       return {
         reservaId: reserva._id,
         chatbotId: reservaAutocoreInfo.chatbot_id,
@@ -896,5 +1062,3 @@ export class BookingPersonasService {
     }
   }
 }
-
-

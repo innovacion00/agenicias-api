@@ -19,11 +19,7 @@ import {
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
-import {
-  IreservaInfoBd,
-  RoomsDatum,
-  ValidCities,
-} from 'src/common/interface';
+import { IreservaInfoBd, RoomsDatum, ValidCities } from 'src/common/interface';
 import { ITitularInfo } from 'src/reservas/interfaces';
 import { IsNotFutureDate } from 'src/reservas/decorators';
 
@@ -249,4 +245,3 @@ export class CreateBookingPersonaDto {
   @IsNotEmpty()
   reservation: IreservaInfoBd;
 }
-

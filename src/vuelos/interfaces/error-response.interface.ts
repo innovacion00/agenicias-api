@@ -77,10 +77,10 @@ export interface NetworkErrorDetails {
 /**
  * Unión de todos los tipos de errores
  */
-export type ErrorDetails = 
-  | AmadeusErrorDetails 
-  | InternalErrorDetails 
-  | ValidationErrorDetails 
+export type ErrorDetails =
+  | AmadeusErrorDetails
+  | InternalErrorDetails
+  | ValidationErrorDetails
   | NetworkErrorDetails;
 
 /**

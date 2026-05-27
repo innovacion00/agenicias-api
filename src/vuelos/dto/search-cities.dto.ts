@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, Min, Max, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class SearchCitiesDto {
@@ -20,7 +27,7 @@ export class SearchCitiesDto {
   @IsOptional()
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return value.split(',').map(item => item.trim().toUpperCase());
+      return value.split(',').map((item) => item.trim().toUpperCase());
     }
     return value;
   })

@@ -59,16 +59,23 @@ export class AgenciasController {
   //? Traer todas las agencias
   @ApiOperation({ summary: 'Obtener todas las agencias (solo superAdmin)' })
   @ApiBearerAuth('JWT-auth')
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Número de página' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Límite de resultados por página' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Número de página',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Límite de resultados por página',
+  })
   @ApiResponse({ status: 200, description: 'Lista de agencias' })
   @ApiResponse({ status: 403, description: 'Solo superAdmin' })
   @Get()
   @Auth(ValidRoles.superAdmin)
-  findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 50;
     return this.agenciasService.findAll(pageNum, limitNum);
@@ -127,12 +134,17 @@ export class AgenciasController {
   }
 
   //? Obtener información completa de agencia por ID (misma agencia o superAdmin)
-  @ApiOperation({ summary: 'Obtener información completa de una agencia por ID' })
+  @ApiOperation({
+    summary: 'Obtener información completa de una agencia por ID',
+  })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', description: 'ID de la agencia (MongoId)' })
   @ApiResponse({ status: 200, description: 'Información de la agencia' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 403, description: 'No tiene permisos para consultar esta agencia' })
+  @ApiResponse({
+    status: 403,
+    description: 'No tiene permisos para consultar esta agencia',
+  })
   @ApiResponse({ status: 404, description: 'Agencia no encontrada' })
   @Get(':id')
   @Auth()

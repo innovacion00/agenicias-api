@@ -6,7 +6,7 @@ export const AGENCIA_FECHA_LIMITE_3_DIAS_ANTES_CHECKIN =
 
 export const calcularFechaLimitePago = (
   fechaCheckin: string,
-  isReservaGrupo: boolean = false,
+  isReservaGrupo = false,
   agenciaId?: string | { toString(): string },
 ) => {
   const fechaActual = new Date();
@@ -30,16 +30,22 @@ export const calcularFechaLimitePago = (
   // Solo aplicar nueva lógica para reservas con 60 días o más hasta el check-in
   if (diasRestantes >= 60) {
     // Calcular porcentajes según tipo de reserva
-    const porcentajePrimeraMitad = isReservaGrupo ? 0.10 : 0.50; // 10% para grupo, 50% para individual
-    const porcentajeSegundaMitad = isReservaGrupo ? 0.30 : 0.60; // 30% para grupo, 60% para individual
+    const porcentajePrimeraMitad = isReservaGrupo ? 0.1 : 0.5; // 10% para grupo, 50% para individual
+    const porcentajeSegundaMitad = isReservaGrupo ? 0.3 : 0.6; // 30% para grupo, 60% para individual
 
     // Calcular días para cada fecha límite
     const diasPrimeraMitad = Math.floor(diasRestantes * porcentajePrimeraMitad);
     const diasSegundaMitad = Math.floor(diasRestantes * porcentajeSegundaMitad);
 
     // Calcular fechas límite
-    const fechaLimitePago = format(addDay(fechaActual, diasPrimeraMitad), 'YYYY-MM-DD');
-    const fechaLimitePago2 = format(addDay(fechaActual, diasSegundaMitad), 'YYYY-MM-DD');
+    const fechaLimitePago = format(
+      addDay(fechaActual, diasPrimeraMitad),
+      'YYYY-MM-DD',
+    );
+    const fechaLimitePago2 = format(
+      addDay(fechaActual, diasSegundaMitad),
+      'YYYY-MM-DD',
+    );
 
     return {
       fechaLimitePago,

@@ -9,17 +9,14 @@ import { Model } from 'mongoose';
 import { AmadeusService } from './amadeus.service';
 import { MaarLabService } from './maarlab.service';
 import { FlightEnrichmentService } from './services/flight-enrichment.service';
-import { 
-  SearchLocationsDto, 
-  FlightOrderDto
-} from './dto';
+import { SearchLocationsDto, FlightOrderDto } from './dto';
 import { MaarLabFlightSearchDto } from './dto/maarlab-flight-search.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BookPackageDto } from './dto/book-package.dto';
-import { 
+import {
   AmadeusLocationResponse,
   AmadeusFlightOrderRequest,
-  AmadeusFlightOrderResponse
+  AmadeusFlightOrderResponse,
 } from './interfaces';
 import { EnrichedFlightOffersResponse } from './interfaces/enriched-flight-offers.interface';
 import { Reserva } from 'src/reservas/entities';
@@ -56,7 +53,9 @@ export class VuelosService {
    * @param searchDto - Parámetros de búsqueda
    * @returns Lista de ubicaciones encontradas
    */
-  async searchLocations(searchDto: SearchLocationsDto): Promise<AmadeusLocationResponse> {
+  async searchLocations(
+    searchDto: SearchLocationsDto,
+  ): Promise<AmadeusLocationResponse> {
     return this.amadeusService.searchLocations(searchDto);
   }
 
@@ -65,7 +64,9 @@ export class VuelosService {
    * @param iataCode - Código IATA del aeropuerto
    * @returns Información del aeropuerto
    */
-  async searchAirportsByIata(iataCode: string): Promise<AmadeusLocationResponse> {
+  async searchAirportsByIata(
+    iataCode: string,
+  ): Promise<AmadeusLocationResponse> {
     return this.amadeusService.searchAirportsByIata(iataCode);
   }
 
@@ -75,7 +76,10 @@ export class VuelosService {
    * @param countryCode - Código del país (opcional)
    * @returns Lista de ciudades encontradas
    */
-  async searchCitiesByName(cityName: string, countryCode?: string): Promise<AmadeusLocationResponse> {
+  async searchCitiesByName(
+    cityName: string,
+    countryCode?: string,
+  ): Promise<AmadeusLocationResponse> {
     return this.amadeusService.searchCitiesByName(cityName, countryCode);
   }
 
@@ -93,24 +97,28 @@ export class VuelosService {
     return this.amadeusService.searchCities(searchDto);
   }
 
-
   /**
    * Buscar ofertas de vuelos disponibles
    * @param searchDto - Criterios de búsqueda de vuelos
    * @returns Lista de ofertas de vuelos disponibles con nombres de ciudades
    */
-  async searchFlightOffers(searchDto: any): Promise<EnrichedFlightOffersResponse> {
+  async searchFlightOffers(
+    searchDto: any,
+  ): Promise<EnrichedFlightOffersResponse> {
     try {
       this.logger.log('Iniciando búsqueda de vuelos...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(searchDto)}`);
-      
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(searchDto)}`,
+      );
+
       // Pasar el request directamente al AmadeusService
       // El AmadeusService se encarga de la transformación
       const result = await this.amadeusService.searchFlightOffers(searchDto);
-      
+
       // Enriquecer la respuesta con nombres de ciudades usando el servicio aislado
-      const enrichedResult = await this.flightEnrichmentService.enrichFlightOffers(result);
-      
+      const enrichedResult =
+        await this.flightEnrichmentService.enrichFlightOffers(result);
+
       this.logger.log('Búsqueda completada exitosamente en VuelosService');
       return enrichedResult;
     } catch (error) {
@@ -119,22 +127,25 @@ export class VuelosService {
     }
   }
 
-
   /**
    * Crear una reserva de vuelo
    * @param orderDto - Datos de la reserva de vuelo
    * @returns Confirmación de la reserva
    */
-  async createFlightOrder(orderDto: FlightOrderDto): Promise<AmadeusFlightOrderResponse> {
+  async createFlightOrder(
+    orderDto: FlightOrderDto,
+  ): Promise<AmadeusFlightOrderResponse> {
     try {
       this.logger.log('Iniciando proceso de reserva de vuelo...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify({
-        flightOffers: orderDto.flightOffers.length,
-        travelers: orderDto.travelers.length,
-        hasRemarks: !!orderDto.remarks,
-        hasContacts: !!orderDto.contacts
-      })}`);
-      
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify({
+          flightOffers: orderDto.flightOffers.length,
+          travelers: orderDto.travelers.length,
+          hasRemarks: !!orderDto.remarks,
+          hasContacts: !!orderDto.contacts,
+        })}`,
+      );
+
       // Transformar el DTO al formato requerido por Amadeus
       const amadeusRequest: AmadeusFlightOrderRequest = {
         data: {
@@ -143,13 +154,14 @@ export class VuelosService {
           travelers: orderDto.travelers,
           remarks: orderDto.remarks,
           ticketingAgreement: orderDto.ticketingAgreement,
-          contacts: orderDto.contacts
-        }
+          contacts: orderDto.contacts,
+        },
       };
-      
+
       // Llamar al servicio de Amadeus
-      const result = await this.amadeusService.createFlightOrder(amadeusRequest);
-      
+      const result =
+        await this.amadeusService.createFlightOrder(amadeusRequest);
+
       this.logger.log(`Reserva creada exitosamente: ${result.data.id}`);
       return result;
     } catch (error) {
@@ -163,12 +175,14 @@ export class VuelosService {
    * @param flightOrderId - ID de la reserva de vuelo
    * @returns Información de la reserva
    */
-  async getFlightOrder(flightOrderId: string): Promise<AmadeusFlightOrderResponse> {
+  async getFlightOrder(
+    flightOrderId: string,
+  ): Promise<AmadeusFlightOrderResponse> {
     try {
       this.logger.log(`Consultando reserva de vuelo: ${flightOrderId}`);
-      
+
       const result = await this.amadeusService.getFlightOrder(flightOrderId);
-      
+
       this.logger.log(`Reserva consultada exitosamente: ${result.data.id}`);
       return result;
     } catch (error) {
@@ -185,9 +199,9 @@ export class VuelosService {
   async cancelFlightOrder(flightOrderId: string): Promise<void> {
     try {
       this.logger.log(`Cancelando reserva de vuelo: ${flightOrderId}`);
-      
+
       await this.amadeusService.cancelFlightOrder(flightOrderId);
-      
+
       this.logger.log(`Reserva cancelada exitosamente: ${flightOrderId}`);
     } catch (error) {
       this.logger.error(`Error en VuelosService.cancelFlightOrder:`, error);
@@ -206,7 +220,9 @@ export class VuelosService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando búsqueda de vuelos en MaarLab...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(searchDto)}`);
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(searchDto)}`,
+      );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.searchFlights(bearer, searchDto);
 
@@ -227,18 +243,20 @@ export class VuelosService {
   async createPackageMaarLab(
     agenciaId: Types.ObjectId,
     createPackageDto: CreatePackageDto,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de paquete de vuelo en MaarLab...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(createPackageDto)}`);
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(createPackageDto)}`,
+      );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.createPackage(
         bearer,
         createPackageDto,
         info,
       );
-      
+
       this.logger.log('Paquete creado exitosamente en VuelosService');
       return result;
     } catch (error) {
@@ -261,8 +279,10 @@ export class VuelosService {
       this.logger.log(`Package ID recibido en VuelosService: ${packageId}`);
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.getLuggage(bearer, packageId);
-      
-      this.logger.log('Consulta de equipaje completada exitosamente en VuelosService');
+
+      this.logger.log(
+        'Consulta de equipaje completada exitosamente en VuelosService',
+      );
       return result;
     } catch (error) {
       this.logger.error('Error en VuelosService.getLuggageMaarLab:', error);
@@ -281,11 +301,13 @@ export class VuelosService {
     agenciaId: Types.ObjectId,
     packageId: string,
     extrasData: any,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando agregado de extras en MaarLab...');
-      this.logger.log(`Package ID recibido en VuelosService: ${packageId}, Info: ${info}`);
+      this.logger.log(
+        `Package ID recibido en VuelosService: ${packageId}, Info: ${info}`,
+      );
       this.logger.log(`Extras data: ${JSON.stringify(extrasData)}`);
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.addExtras(
@@ -294,7 +316,7 @@ export class VuelosService {
         extrasData,
         info,
       );
-      
+
       this.logger.log('Extras agregados exitosamente en VuelosService');
       return result;
     } catch (error) {
@@ -316,12 +338,12 @@ export class VuelosService {
     packageId: string,
     itemId: number,
     typeExtraId: number,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando eliminación de extra en MaarLab...');
       this.logger.log(
-        `Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`
+        `Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`,
       );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.deleteExtras(
@@ -331,7 +353,7 @@ export class VuelosService {
         typeExtraId,
         info,
       );
-      
+
       this.logger.log('Extra eliminado exitosamente en VuelosService');
       return result;
     } catch (error) {
@@ -349,11 +371,13 @@ export class VuelosService {
   async bookPackageMaarLab(
     agenciaId: Types.ObjectId,
     bookPackageDto: BookPackageDto,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando reserva de paquete en MaarLab...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(bookPackageDto).substring(0, 200)}...`);
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(bookPackageDto).substring(0, 200)}...`,
+      );
       this.logger.log(`Info: ${info}`);
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.bookPackage(
@@ -361,7 +385,7 @@ export class VuelosService {
         bookPackageDto,
         info,
       );
-      
+
       this.logger.log('Paquete reservado exitosamente en VuelosService');
 
       // Persistir info de la reserva de vuelo en Mongo (interno).
@@ -380,7 +404,9 @@ export class VuelosService {
 
         // Guardamos toda la respuesta de MaarLab, excepto el objeto "hotel".
         const vueloRespuesta =
-          result && typeof result === 'object' ? { ...result } : { value: result };
+          result && typeof result === 'object'
+            ? { ...result }
+            : { value: result };
         const { hotel, ...resto } = vueloRespuesta as Record<string, any>;
 
         reservaDoc.vuelo = reservaDoc.vuelo ?? [];
@@ -423,7 +449,7 @@ export class VuelosService {
     try {
       this.logger.log('Iniciando obtención de token de pago en MaarLab...');
       this.logger.log(
-        `Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`
+        `Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`,
       );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.getTokenPayment(
@@ -432,11 +458,14 @@ export class VuelosService {
         paymentType,
         deferredPaymentDate,
       );
-      
+
       this.logger.log('Token de pago obtenido exitosamente en VuelosService');
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.getTokenPaymentMaarLab:', error);
+      this.logger.error(
+        'Error en VuelosService.getTokenPaymentMaarLab:',
+        error,
+      );
       throw error;
     }
   }
@@ -450,15 +479,23 @@ export class VuelosService {
   async getPackageMaarLab(
     agenciaId: Types.ObjectId,
     packageId: string,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
-      this.logger.log('Iniciando obtención de detalles de paquete en MaarLab...');
+      this.logger.log(
+        'Iniciando obtención de detalles de paquete en MaarLab...',
+      );
       this.logger.log(`Package ID: ${packageId}, Info: ${info}`);
       const bearer = await this.bearerMaarLab(agenciaId);
-      const result = await this.maarlabService.getPackage(bearer, packageId, info);
-      
-      this.logger.log('Detalles de paquete obtenidos exitosamente en VuelosService');
+      const result = await this.maarlabService.getPackage(
+        bearer,
+        packageId,
+        info,
+      );
+
+      this.logger.log(
+        'Detalles de paquete obtenidos exitosamente en VuelosService',
+      );
       return result;
     } catch (error) {
       this.logger.error('Error en VuelosService.getPackageMaarLab:', error);
@@ -483,11 +520,14 @@ export class VuelosService {
         bearer,
         packageId,
       );
-      
+
       this.logger.log('Contrato ATOL obtenido exitosamente en VuelosService');
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.getInvoiceATOLContractMaarLab:', error);
+      this.logger.error(
+        'Error en VuelosService.getInvoiceATOLContractMaarLab:',
+        error,
+      );
       throw error;
     }
   }
@@ -503,17 +543,22 @@ export class VuelosService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de hotel en MaarLab...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`,
+      );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.searchEngineCompleteProcess(
         bearer,
         completeProcessDto,
       );
-      
+
       this.logger.log('Hotel creado/actualizado exitosamente en VuelosService');
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.searchEngineCompleteProcessMaarLab:', error);
+      this.logger.error(
+        'Error en VuelosService.searchEngineCompleteProcessMaarLab:',
+        error,
+      );
       throw error;
     }
   }
@@ -529,17 +574,24 @@ export class VuelosService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de agencia de viajes en MaarLab...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`,
+      );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.travelAgencyCompleteProcess(
         bearer,
         completeProcessDto,
       );
-      
-      this.logger.log('Agencia de viajes creada/actualizada exitosamente en VuelosService');
+
+      this.logger.log(
+        'Agencia de viajes creada/actualizada exitosamente en VuelosService',
+      );
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.travelAgencyCompleteProcessMaarLab:', error);
+      this.logger.error(
+        'Error en VuelosService.travelAgencyCompleteProcessMaarLab:',
+        error,
+      );
       throw error;
     }
   }
@@ -555,18 +607,27 @@ export class VuelosService {
     completeProcessDto: any,
   ): Promise<any> {
     try {
-      this.logger.log('Iniciando creación de agencia de viajes en MaarLab V1...');
-      this.logger.log(`Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`);
+      this.logger.log(
+        'Iniciando creación de agencia de viajes en MaarLab V1...',
+      );
+      this.logger.log(
+        `Request recibido en VuelosService: ${JSON.stringify(completeProcessDto).substring(0, 200)}...`,
+      );
       const bearer = await this.bearerMaarLab(agenciaId);
       const result = await this.maarlabService.travelAgencyCompleteProcessV1(
         bearer,
         completeProcessDto,
       );
-      
-      this.logger.log('Agencia de viajes creada/actualizada exitosamente en VuelosService (MaarLab V1)');
+
+      this.logger.log(
+        'Agencia de viajes creada/actualizada exitosamente en VuelosService (MaarLab V1)',
+      );
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.travelAgencyCompleteProcessMaarLabV1:', error);
+      this.logger.error(
+        'Error en VuelosService.travelAgencyCompleteProcessMaarLabV1:',
+        error,
+      );
       throw error;
     }
   }
@@ -588,11 +649,14 @@ export class VuelosService {
         bearer,
         idSearchEngine,
       );
-      
+
       this.logger.log('External ID obtenido exitosamente en VuelosService');
       return result;
     } catch (error) {
-      this.logger.error('Error en VuelosService.mappingExternalIdSearchEngineMaarLab:', error);
+      this.logger.error(
+        'Error en VuelosService.mappingExternalIdSearchEngineMaarLab:',
+        error,
+      );
       throw error;
     }
   }

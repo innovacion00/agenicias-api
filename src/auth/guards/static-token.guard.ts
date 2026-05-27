@@ -23,7 +23,9 @@ export class StaticTokenGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['x-booking-token'] || request.headers['authorization']?.replace('Bearer ', '');
+    const token =
+      request.headers['x-booking-token'] ||
+      request.headers['authorization']?.replace('Bearer ', '');
 
     if (!token) {
       throw new UnauthorizedException('Token de autenticación requerido');
@@ -36,4 +38,3 @@ export class StaticTokenGuard implements CanActivate {
     return true;
   }
 }
-

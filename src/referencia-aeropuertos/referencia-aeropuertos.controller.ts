@@ -24,10 +24,7 @@ export class ReferenciaAeropuertosController {
 
   @Get('sugerencias')
   @Throttle({ short: { limit: 200, ttl: 60000 } })
-  @Header(
-    'Cache-Control',
-    'private, max-age=60, stale-while-revalidate=120',
-  )
+  @Header('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
   @ApiOperation({
     summary: 'Búsqueda predictiva de aeropuertos (caché local + MongoDB)',
     description:
@@ -55,14 +52,19 @@ export class ReferenciaAeropuertosController {
     query: AirportSuggestQueryDto,
   ): Promise<{ count: number; data: AeropuertoSugerenciaDto[] }> {
     const limit = query.limit ?? 20;
-    const data = await this.service.suggestPredictivo(query.q, limit, query.country);
+    const data = await this.service.suggestPredictivo(
+      query.q,
+      limit,
+      query.country,
+    );
     return { count: data.length, data };
   }
 
   @Get('estado')
   @ApiOperation({
     summary: 'Documentos indexados en aeropuertos_referencia',
-    description: 'Útil tras ejecutar el script de seed para verificar la carga.',
+    description:
+      'Útil tras ejecutar el script de seed para verificar la carga.',
   })
   @ApiOkResponse({
     description: 'Cantidad de documentos en la colección',

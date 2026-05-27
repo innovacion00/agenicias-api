@@ -25,7 +25,9 @@ export class RoomsDataResponseInterceptor implements NestInterceptor {
     _context: ExecutionContext,
     next: CallHandler,
   ): Observable<unknown> {
-    return next.handle().pipe(map((data) => this.transform(data, new WeakSet())));
+    return next
+      .handle()
+      .pipe(map((data) => this.transform(data, new WeakSet())));
   }
 
   private transform(value: unknown, seen: WeakSet<object>): unknown {
@@ -34,7 +36,10 @@ export class RoomsDataResponseInterceptor implements NestInterceptor {
 
     // Si es un documento Mongoose, conviértelo a objeto plano antes de transformar.
     const maybeDoc = value as { toJSON?: () => unknown };
-    if (typeof maybeDoc.toJSON === 'function' && maybeDoc.toJSON !== Object.prototype.toString) {
+    if (
+      typeof maybeDoc.toJSON === 'function' &&
+      maybeDoc.toJSON !== Object.prototype.toString
+    ) {
       try {
         const plain = maybeDoc.toJSON();
         if (plain !== value) {
@@ -55,7 +60,11 @@ export class RoomsDataResponseInterceptor implements NestInterceptor {
     const obj = value as Record<string, unknown>;
 
     const reservation = obj['reservation'];
-    if (reservation && typeof reservation === 'object' && !Array.isArray(reservation)) {
+    if (
+      reservation &&
+      typeof reservation === 'object' &&
+      !Array.isArray(reservation)
+    ) {
       const reservObj = reservation as Record<string, unknown>;
       const rooms = reservObj['roomsData'];
       if (Array.isArray(rooms)) {

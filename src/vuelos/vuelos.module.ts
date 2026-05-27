@@ -39,7 +39,7 @@ import { AuthModule } from 'src/auth/auth.module';
     FlightEnrichmentService,
     ErrorHandlerService,
     ErrorHandlerInterceptor,
-    ErrorHandlerFilter
+    ErrorHandlerFilter,
   ],
   exports: [VuelosService, AmadeusService, MaarLabService, ErrorHandlerService],
 })

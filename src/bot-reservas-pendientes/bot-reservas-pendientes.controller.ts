@@ -22,16 +22,17 @@ export class BotReservasPendientesController {
   @Post('ejecutar-manualmente')
   @ApiOperation({
     summary: 'Ejecutar bot de reservas pendientes manualmente',
-    description: 'Ejecuta de forma inmediata el proceso que detecta reservas próximas a vencer y envía el reporte.',
+    description:
+      'Ejecuta de forma inmediata el proceso que detecta reservas próximas a vencer y envía el reporte.',
   })
   @RoleProtected(ValidRoles.superAdmin)
   @UseGuards(AuthGuard('jwt'), UserRoleGuard)
   async ejecutarBotManualmente() {
     this.logger.log(' Ejecutando bot manualmente desde el controlador...');
-    
+
     try {
       await this.botReservasPendientesService.ejecutarManualmente();
-      
+
       return {
         success: true,
         message: 'Bot ejecutado exitosamente',
@@ -39,7 +40,7 @@ export class BotReservasPendientesController {
       };
     } catch (error) {
       this.logger.error('Error al ejecutar el bot manualmente:', error);
-      
+
       return {
         success: false,
         message: 'Error al ejecutar el bot',
@@ -56,7 +57,8 @@ export class BotReservasPendientesController {
   @Post('estado')
   @ApiOperation({
     summary: 'Consultar estado del bot',
-    description: 'Devuelve estado operativo del bot de reservas pendientes y metadatos básicos de ejecución.',
+    description:
+      'Devuelve estado operativo del bot de reservas pendientes y metadatos básicos de ejecución.',
   })
   @RoleProtected(ValidRoles.superAdmin)
   @UseGuards(AuthGuard('jwt'), UserRoleGuard)
@@ -76,16 +78,18 @@ export class BotReservasPendientesController {
   @Post('diagnostico')
   @ApiOperation({
     summary: 'Ejecutar diagnóstico del bot',
-    description: 'Genera diagnóstico de reservas y criterios del bot para soporte técnico y validación funcional.',
+    description:
+      'Genera diagnóstico de reservas y criterios del bot para soporte técnico y validación funcional.',
   })
   @RoleProtected(ValidRoles.superAdmin)
   @UseGuards(AuthGuard('jwt'), UserRoleGuard)
   async diagnosticoReservas() {
     this.logger.log(' Ejecutando diagnóstico de reservas...');
-    
+
     try {
-      const diagnostico = await this.botReservasPendientesService.diagnosticoReservas();
-      
+      const diagnostico =
+        await this.botReservasPendientesService.diagnosticoReservas();
+
       return {
         success: true,
         message: 'Diagnóstico ejecutado exitosamente',
@@ -94,7 +98,7 @@ export class BotReservasPendientesController {
       };
     } catch (error) {
       this.logger.error(' Error al ejecutar diagnóstico:', error);
-      
+
       return {
         success: false,
         message: 'Error al ejecutar diagnóstico',

@@ -7,10 +7,11 @@ import { NotificacionesService } from './notificaciones.service';
 export class NotificacionesController {
   constructor(private readonly notificacionesService: NotificacionesService) {}
 
-  @Post("/reservas")
+  @Post('/reservas')
   @ApiOperation({
     summary: 'Enviar notificación de pago de reserva',
-    description: 'Dispara el flujo de notificaciones relacionado con pagos de reservas.',
+    description:
+      'Dispara el flujo de notificaciones relacionado con pagos de reservas.',
   })
   notificacionPago() {
     return this.notificacionesService.notificacionPago();

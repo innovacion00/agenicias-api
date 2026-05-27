@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model, Types } from 'mongoose';
@@ -64,7 +70,9 @@ export class AgenciasService {
       }
 
       if (!bolsilloInfo) {
-        throw new InternalServerErrorException('Error al crear bolsillo en Cobre');
+        throw new InternalServerErrorException(
+          'Error al crear bolsillo en Cobre',
+        );
       }
 
       const autocoreAgenciaInfo =
@@ -83,7 +91,9 @@ export class AgenciasService {
         });
 
       if (!autocoreAgenciaInfo) {
-        throw new InternalServerErrorException('Error al crear agencia en Autocore');
+        throw new InternalServerErrorException(
+          'Error al crear agencia en Autocore',
+        );
       }
 
       //? Set limites de recarga en autocore
@@ -256,7 +266,7 @@ export class AgenciasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
-  } 
+  }
 
   // #region Cantidad de agencias con reservas
   async getCountOfAgenciasReservas() {
@@ -327,7 +337,10 @@ export class AgenciasService {
   // #region Obtener políticas de agencia
   async obtenerPoliticasAgencia(agenciaId: Types.ObjectId) {
     try {
-      const agencia = await this.agenciaModel.findById(agenciaId).select('politicasAgencia').exec();
+      const agencia = await this.agenciaModel
+        .findById(agenciaId)
+        .select('politicasAgencia')
+        .exec();
 
       if (!agencia) {
         throw new NotFoundException('Agencia no encontrada');
