@@ -638,7 +638,7 @@ export class BookingPersonasService {
         );
       }
 
-      this.logger.log('✅ Pago verificado exitosamente');
+      this.logger.log(' Pago verificado exitosamente');
 
       let planAlimentario = '';
 
@@ -749,24 +749,24 @@ export class BookingPersonasService {
           pagoPendiente.transaction_id = payload.transaction_id;
           pagoPendiente.paid_at = new Date();
           await pagoPendiente.save();
-          this.logger.log(`✅ Pago marcado como pagado: ${pagoPendiente.payment_code}`);
+          this.logger.log(`Pago marcado como pagado: ${pagoPendiente.payment_code}`);
           
           // Crear reserva automáticamente si hay datos de reserva y no se ha creado ya
           if (pagoPendiente.reservation_data && !pagoPendiente.reserva_creada && pagoPendiente.hotel_id) {
             try {
-              this.logger.log(`🔄 Creando reserva automáticamente para pago ${pagoPendiente.payment_code}`);
+              this.logger.log(`Creando reserva automáticamente para pago ${pagoPendiente.payment_code}`);
               await this.crearReservaAutomatica(pagoPendiente);
             } catch (error) {
-              this.logger.error(`❌ Error al crear reserva automáticamente:`, error);
+              this.logger.error(`Error al crear reserva automáticamente:`, error);
               // No lanzamos el error para no afectar el webhook
               // La reserva se puede crear manualmente después
             }
           } else {
             if (!pagoPendiente.reservation_data) {
-              this.logger.warn(`⚠️ No hay datos de reserva para crear automáticamente: ${pagoPendiente.payment_code}`);
+              this.logger.warn(`No hay datos de reserva para crear automáticamente: ${pagoPendiente.payment_code}`);
             }
             if (pagoPendiente.reserva_creada) {
-              this.logger.log(`ℹ️ Reserva ya fue creada anteriormente: ${pagoPendiente.payment_code}`);
+              this.logger.log(`Reserva ya fue creada anteriormente: ${pagoPendiente.payment_code}`);
             }
           }
           break;
@@ -800,7 +800,7 @@ export class BookingPersonasService {
     try {
       // Verificar que no se haya creado ya
       if (pagoPendiente.reserva_creada && pagoPendiente.reserva_id) {
-        this.logger.log(`ℹ️ Reserva ya existe: ${pagoPendiente.reserva_id}`);
+        this.logger.log(`Reserva ya existe: ${pagoPendiente.reserva_id}`);
         return { reservaId: pagoPendiente.reserva_id, yaExiste: true };
       }
 
@@ -883,7 +883,7 @@ export class BookingPersonasService {
       // y solo se usa como referencia si está disponible al crear el link
       await pagoPendiente.save();
 
-      this.logger.log(`✅ Reserva creada automáticamente: ${reserva._id} para pago ${pagoPendiente.payment_code}`);
+      this.logger.log(`Reserva creada automáticamente: ${reserva._id} para pago ${pagoPendiente.payment_code}`);
       
       return {
         reservaId: reserva._id,
