@@ -16,7 +16,12 @@ export class PaymentPending extends Document {
   @Prop({ type: String, required: true })
   external_ref_id: string;
 
-  @Prop({ type: String, required: true, enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Prop({
+    type: String,
+    required: true,
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
   status: PaymentStatus;
 
   @Prop({ type: Number, required: true })
@@ -44,5 +49,5 @@ export class PaymentPending extends Document {
   reserva_creada?: boolean; // Flag para saber si ya se creó la reserva
 }
 
-export const PaymentPendingSchema = SchemaFactory.createForClass(PaymentPending);
-
+export const PaymentPendingSchema =
+  SchemaFactory.createForClass(PaymentPending);

@@ -1,7 +1,7 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsNumber, 
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
   IsBoolean,
   IsArray,
   IsDateString,
@@ -10,7 +10,7 @@ import {
   Max,
   ArrayMinSize,
   ArrayMaxSize,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -56,7 +56,7 @@ export class MaarLabFlightSearchDto {
   @Max(17, { each: true })
   @Transform(({ value }) => {
     if (Array.isArray(value)) {
-      return value.map(v => parseInt(v));
+      return value.map((v) => parseInt(v));
     }
     return value ? [parseInt(value)] : undefined;
   })
@@ -99,7 +99,8 @@ export class MaarLabFlightSearchDto {
 
   @IsString()
   @Matches(/^[A-Z]{3}$/, {
-    message: 'currency debe ser exactamente 3 caracteres en mayúsculas (ej: EUR, USD)',
+    message:
+      'currency debe ser exactamente 3 caracteres en mayúsculas (ej: EUR, USD)',
   })
   @Transform(({ value }) => value?.toUpperCase())
   currency: string;

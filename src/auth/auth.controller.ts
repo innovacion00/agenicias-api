@@ -56,7 +56,9 @@ export class AuthController {
     return this.authService.createUser(createUserDto, id);
   }
 
-  @ApiOperation({ summary: 'Registrar usuario a una agencia (solo admin o superAdmin)' })
+  @ApiOperation({
+    summary: 'Registrar usuario a una agencia (solo admin o superAdmin)',
+  })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente' })
   @ApiResponse({ status: 403, description: 'No autorizado' })
@@ -70,7 +72,10 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Iniciar sesión' })
-  @ApiResponse({ status: 200, description: 'Login exitoso, retorna tokens JWT' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login exitoso, retorna tokens JWT',
+  })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto para login
   @Post('sign-in')
@@ -79,9 +84,11 @@ export class AuthController {
   }
 
   // #region Tokens
-  @ApiOperation({ summary: 'Validar token JWT y obtener información del usuario y agencia' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiOperation({
+    summary: 'Validar token JWT y obtener información del usuario y agencia',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'Token válido con información del usuario y agencia',
     schema: {
       type: 'object',
@@ -101,7 +108,10 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Token inválido o usuario no encontrado' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido o usuario no encontrado',
+  })
   @ApiResponse({ status: 403, description: 'Usuario o agencia inactiva' })
   @Post('validar-token')
   @HttpCode(200)
@@ -109,8 +119,13 @@ export class AuthController {
     return this.authService.validarToken(validarTokenDto.token);
   }
 
-  @ApiOperation({ summary: 'Validar access token y obtener información del usuario' })
-  @ApiResponse({ status: 200, description: 'Token válido con información del usuario' })
+  @ApiOperation({
+    summary: 'Validar access token y obtener información del usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token válido con información del usuario',
+  })
   @ApiResponse({ status: 401, description: 'Token inválido' })
   @Post('validate-access-token')
   @HttpCode(200)
@@ -174,7 +189,10 @@ export class AuthController {
   // #region Actualizar políticas de agencia
   @ApiOperation({ summary: 'Actualizar políticas de la agencia' })
   @ApiBearerAuth('JWT-auth')
-  @ApiResponse({ status: 200, description: 'Políticas actualizadas correctamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Políticas actualizadas correctamente',
+  })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @Patch('politicas-agencia')
   @Auth()

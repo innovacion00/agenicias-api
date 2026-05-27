@@ -11,4 +11,3 @@ export const StaticTokenAuth = () => {
     ApiSecurity('x-booking-token'),
   );
 };
-

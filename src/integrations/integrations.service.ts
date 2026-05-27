@@ -53,7 +53,7 @@ export class IntegrationsService {
         disponibilidadAutoCoreDto;
 
       const dev = roles.includes(ValidIntegrationsRoles.autodoreDev);
-      
+
       if (
         disponibilidadAutoCoreDto.category === 0 ||
         disponibilidadAutoCoreDto.category === 1

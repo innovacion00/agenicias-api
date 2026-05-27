@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { HttpCustomService } from 'src/common/services';
@@ -10,7 +15,9 @@ import { debeBloquearCancelacionPorPrimeraMitadPagada } from './utils';
 export class CancellationLockReconciliationService
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(CancellationLockReconciliationService.name);
+  private readonly logger = new Logger(
+    CancellationLockReconciliationService.name,
+  );
   private readonly intervalMs = 1000 * 60 * 5;
   private readonly staleLockMs = 1000 * 60 * 10;
   private timer: NodeJS.Timeout | null = null;

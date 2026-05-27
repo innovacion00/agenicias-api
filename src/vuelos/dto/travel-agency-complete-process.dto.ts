@@ -1,10 +1,10 @@
-import { 
-  IsString, 
-  IsOptional, 
+import {
+  IsString,
+  IsOptional,
   IsInt,
   IsEmail,
   IsNotEmpty,
-  IsEnum
+  IsEnum,
 } from 'class-validator';
 
 /**
@@ -82,7 +82,8 @@ export class TravelAgencyCompleteProcessDto {
   @IsString()
   @IsNotEmpty()
   @IsEnum(['RING2TRAVEL', 'PROPIO_RING2TRAVEL', 'PROPIO'], {
-    message: 'contact_center_type debe ser uno de: RING2TRAVEL, PROPIO_RING2TRAVEL, PROPIO'
+    message:
+      'contact_center_type debe ser uno de: RING2TRAVEL, PROPIO_RING2TRAVEL, PROPIO',
   })
   contact_center_type: 'RING2TRAVEL' | 'PROPIO_RING2TRAVEL' | 'PROPIO';
 

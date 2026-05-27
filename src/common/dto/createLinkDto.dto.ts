@@ -9,7 +9,6 @@ import {
 } from 'class-validator';
 
 export class CreateLinkDto {
-
   @IsNotEmpty()
   @IsString()
   @MaxLength(15)

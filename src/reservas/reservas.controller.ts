@@ -32,14 +32,23 @@ import {
   PagoReservaBilleteraDto,
   UpdateReservaStatusDto,
   UpdateFechasPagoDto,
+  ReactivarReservaDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
-import { ParseCheckinCheckoutPipe, ParseHotelIdPipe, ParseHotelSlugPipe } from './pipes';
+import {
+  ParseCheckinCheckoutPipe,
+  ParseHotelIdPipe,
+  ParseHotelSlugPipe,
+} from './pipes';
 import { ValidRoles } from 'src/auth/interfaces';
 import { ValidPaymentStatus } from './interfaces';
-import { CreateReservaMyToolDto, CancelReservaMyToolDto, SearchReservaMyToolDto } from './dto/create-reserva-mytool.dto';
+import {
+  CreateReservaMyToolDto,
+  CancelReservaMyToolDto,
+  SearchReservaMyToolDto,
+} from './dto/create-reserva-mytool.dto';
 import type { MyToolBookingResponse } from './services/my-tool-booking.service';
 import { RoomsDataResponseInterceptor } from './interceptors/rooms-data-response.interceptor';
 
@@ -117,7 +126,7 @@ export class ReservasController {
   @Auth()
   getReservasByUser(
     @GetUser('_id') _id: Types.ObjectId,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
   ) {
     return this.reservasService.getReservasByUser(_id, page);
   }
@@ -130,7 +139,7 @@ export class ReservasController {
   @Auth(ValidRoles.admin)
   getReservasByAgencia(
     @GetUser('agencia') agencia: Types.ObjectId,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
   ) {
     return this.reservasService.getReservasByAgencia(agencia, page);
   }
@@ -142,6 +151,26 @@ export class ReservasController {
     @GetUser('agencia') agencia: Types.ObjectId,
   ) {
     return this.reservasService.generarLinkPago(generateLinkDto, agencia);
+  }
+
+  @Post('reactivar')
+  @Auth()
+  @ApiOperation({
+    summary: 'Reactivar reserva cancelada (Autocore)',
+    description:
+      'Clona una reserva cancelada en Autocore, genera link de pago total y programa expiración a 24h.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Link de pago generado' })
+  @ApiResponse({ status: 409, description: 'Sin disponibilidad en Autocore' })
+  reactivarReservaCancelada(
+    @Body() reactivarReservaDto: ReactivarReservaDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.reactivarReservaCancelada(
+      reactivarReservaDto,
+      user,
+    );
   }
 
   @Post('pago-billetera-single')
@@ -191,12 +220,12 @@ export class ReservasController {
       email: user.email,
       fullName: user.fullName,
       isActive: user.isActive,
-      agencia: user.agencia
+      agencia: user.agencia,
     });
     console.log('Agencia ID:', agencia);
     console.log('Disponibilidad DTO:', disponibilidadAutoCoreDto);
     console.log('========================');
-    
+
     return this.reservasService.getDisponibilidad(
       agencia,
       disponibilidadAutoCoreDto,
@@ -204,9 +233,10 @@ export class ReservasController {
   }
 
   // #region Búsquedas
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar reservas por reservaChatbotId',
-    description: 'Busca reservas por ID del chatbot. Primero intenta búsqueda exacta, luego parcial. No requiere paginación ya que retorna todos los resultados encontrados (máximo 100).'
+    description:
+      'Busca reservas por ID del chatbot. Primero intenta búsqueda exacta, luego parcial. No requiere paginación ya que retorna todos los resultados encontrados (máximo 100).',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -219,7 +249,9 @@ export class ReservasController {
     @GetUser() user: User,
   ) {
     if (!reservaChatbotId) {
-      throw new BadRequestException('El parámetro reservaChatbotId es requerido');
+      throw new BadRequestException(
+        'El parámetro reservaChatbotId es requerido',
+      );
     }
     return this.reservasService.buscarPorChatbotId(
       reservaChatbotId,
@@ -229,9 +261,10 @@ export class ReservasController {
     );
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar reservas por nombre del agente',
-    description: 'Busca reservas por nombre del agente. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+    description:
+      'Busca reservas por nombre del agente. Usa page para paginación o all=true para obtener todas las reservas sin límite.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -239,7 +272,7 @@ export class ReservasController {
   @Auth()
   buscarPorNombreAgente(
     @Query('nombre') nombre: string,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
     @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
@@ -259,9 +292,10 @@ export class ReservasController {
     );
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar reservas por nombre de agencia',
-    description: 'Busca reservas por nombre de agencia. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+    description:
+      'Busca reservas por nombre de agencia. Usa page para paginación o all=true para obtener todas las reservas sin límite.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -269,7 +303,7 @@ export class ReservasController {
   @Auth()
   buscarPorNombreAgencia(
     @Query('nombre') nombre: string,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
     @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
@@ -289,9 +323,10 @@ export class ReservasController {
     );
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar reservas por nombre del huésped',
-    description: 'Busca reservas por nombre del huésped. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+    description:
+      'Busca reservas por nombre del huésped. Usa page para paginación o all=true para obtener todas las reservas sin límite.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -299,7 +334,7 @@ export class ReservasController {
   @Auth()
   buscarPorNombreHuesped(
     @Query('nombre') nombre: string,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
     @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
@@ -319,9 +354,10 @@ export class ReservasController {
     );
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar reservas por estado',
-    description: 'Busca reservas por estado. Usa page para paginación o all=true para obtener todas las reservas sin límite.'
+    description:
+      'Busca reservas por estado. Usa page para paginación o all=true para obtener todas las reservas sin límite.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Lista de reservas encontradas' })
@@ -329,7 +365,7 @@ export class ReservasController {
   @Auth()
   buscarPorEstado(
     @Query('status') status: string,
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
     @Query('all') all: string,
     @GetUser('_id') userId: Types.ObjectId,
     @GetUser('agencia') agenciaId: Types.ObjectId,
@@ -356,15 +392,16 @@ export class ReservasController {
   }
 
   // #region Administracion
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Obtener todas las reservas (solo superAdmin)',
-    description: 'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite. Opcionalmente filtra por hotel, nombre de agencia (solo superAdmin) o por fecha (fechaDesde y fechaHasta en formato YYYY-MM-DD).'
+    description:
+      'Obtiene todas las reservas del sistema. Usa page para paginación o all=true para obtener todas las reservas sin límite. Opcionalmente filtra por hotel, nombre de agencia (solo superAdmin) o por fecha (fechaDesde y fechaHasta en formato YYYY-MM-DD).',
   })
   @ApiBearerAuth('JWT-auth')
   @Get()
   @Auth(ValidRoles.superAdmin)
   getAllReservas(
-    @Query('page') page: number = 1,
+    @Query('page') page = 1,
     @Query('all') all: string,
     @Query('hotel') hotel?: string,
     @Query('nombreAgencia') nombreAgencia?: string,
@@ -372,7 +409,7 @@ export class ReservasController {
     @Query('fechaHasta') fechaHasta?: string,
   ) {
     const getAll = all === 'true' || all === '1';
-    
+
     // Validar formato de fechas si se proporcionan
     const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (fechaDesde && !fechaRegex.test(fechaDesde)) {
@@ -381,8 +418,15 @@ export class ReservasController {
     if (fechaHasta && !fechaRegex.test(fechaHasta)) {
       throw new BadRequestException('fechaHasta debe tener formato YYYY-MM-DD');
     }
-    
-    return this.reservasService.getAllReservas(page, getAll, hotel, nombreAgencia, fechaDesde, fechaHasta);
+
+    return this.reservasService.getAllReservas(
+      page,
+      getAll,
+      hotel,
+      nombreAgencia,
+      fechaDesde,
+      fechaHasta,
+    );
   }
 
   @Delete('cancelar-reserva-admin/:reservaId')
@@ -460,16 +504,16 @@ export class ReservasController {
     description: 'Identificador slug del hotel configurado para MyTool',
   })
   @ApiBearerAuth('JWT-auth')
-  getMyToolMappings(
-    @Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string,
-  ) {
+  getMyToolMappings(@Param('hotelSlug', ParseHotelSlugPipe) hotelSlug: string) {
     return this.reservasService.getMyToolMappings(hotelSlug);
   }
 
   @Get('mytool/:hotelSlug/buscar')
   @ApiTags('reservas', 'my-tool')
   @Auth()
-  @ApiOperation({ summary: 'Buscar reserva en MyTool por localizador y nombre' })
+  @ApiOperation({
+    summary: 'Buscar reserva en MyTool por localizador y nombre',
+  })
   @ApiParam({
     name: 'hotelSlug',
     description: 'Identificador slug del hotel configurado para MyTool',

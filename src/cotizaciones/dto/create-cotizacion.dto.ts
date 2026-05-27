@@ -289,7 +289,8 @@ export class CotizacionVueloItemDto {
   packageId: string;
 
   @ApiPropertyOptional({
-    description: 'Respuesta de MaarLab (bookPackage, búsqueda, etc.) sin nodo hotel',
+    description:
+      'Respuesta de MaarLab (bookPackage, búsqueda, etc.) sin nodo hotel',
   })
   @IsObject()
   respuestaMaarLab: Record<string, any>;

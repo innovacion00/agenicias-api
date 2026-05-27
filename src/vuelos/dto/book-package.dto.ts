@@ -81,20 +81,18 @@ export class PassengerDto {
   @IsString()
   @IsNotEmpty()
   @Transform(trim)
-  @ValidateBy(
-    {
-      name: 'contactNumberMaarLab',
-      validator: {
-        validate(value: unknown): boolean {
-          if (typeof value !== 'string') return false;
-          const compact = value.replace(/\s+/g, '');
-          return /^\+\d{8,16}$/.test(compact);
-        },
-        defaultMessage: () =>
-          'contact_number debe ser +<código país> y dígitos; se permiten espacios (ej: +34 6778456767)',
+  @ValidateBy({
+    name: 'contactNumberMaarLab',
+    validator: {
+      validate(value: unknown): boolean {
+        if (typeof value !== 'string') return false;
+        const compact = value.replace(/\s+/g, '');
+        return /^\+\d{8,16}$/.test(compact);
       },
+      defaultMessage: () =>
+        'contact_number debe ser +<código país> y dígitos; se permiten espacios (ej: +34 6778456767)',
     },
-  )
+  })
   contact_number: string;
 
   @IsDateString()

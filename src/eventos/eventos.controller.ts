@@ -15,7 +15,8 @@ export class EventosController {
   @Post('create')
   @ApiOperation({
     summary: 'Crear reserva de evento',
-    description: 'Registra una nueva reserva de evento asociada al usuario autenticado.',
+    description:
+      'Registra una nueva reserva de evento asociada al usuario autenticado.',
   })
   @Auth()
   createEventoReserva(
@@ -29,7 +30,8 @@ export class EventosController {
   @Get()
   @ApiOperation({
     summary: 'Listar eventos',
-    description: 'Retorna el listado de eventos disponibles para roles administrativos autorizados.',
+    description:
+      'Retorna el listado de eventos disponibles para roles administrativos autorizados.',
   })
   @Auth(ValidRoles.eventosSuperAdmin, ValidRoles.superAdmin)
   getEventos() {

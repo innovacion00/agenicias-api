@@ -17,7 +17,14 @@ const OFFER_TOTAL_KEYS = [
   'flightPrice',
 ] as const;
 
-const NESTED_PRICE_KEYS = ['total', 'grandTotal', 'amount', 'totalAmount', 'base', 'final'] as const;
+const NESTED_PRICE_KEYS = [
+  'total',
+  'grandTotal',
+  'amount',
+  'totalAmount',
+  'base',
+  'final',
+] as const;
 
 function applyMarkupAmount(base: number, markupPercent: number): number {
   const factor = 1 + markupPercent / 100;
@@ -35,8 +42,7 @@ function formatMarkedUpPrice(
   if (typeof original === 'string') {
     const trimmed = original.trim();
     const dotIndex = trimmed.indexOf('.');
-    const decimals =
-      dotIndex >= 0 ? trimmed.length - dotIndex - 1 : 0;
+    const decimals = dotIndex >= 0 ? trimmed.length - dotIndex - 1 : 0;
     return marked.toFixed(decimals);
   }
 
@@ -67,7 +73,9 @@ const MAARLAB_OFFER_MARKERS = [
 ] as const;
 
 function hasMaarLabOfferPrice(obj: Record<string, unknown>): boolean {
-  return MAARLAB_OFFER_MARKERS.some((key) => parseNumericPrice(obj[key]) !== null);
+  return MAARLAB_OFFER_MARKERS.some(
+    (key) => parseNumericPrice(obj[key]) !== null,
+  );
 }
 
 function isMaarLabFlightOffer(obj: Record<string, unknown>): boolean {
@@ -150,7 +158,12 @@ function walkAndApplyMarkup(node: unknown, markupPercent: number): void {
 
   if (isRoundTripPair(obj)) {
     applyMarkupToFlightOffer(obj, markupPercent);
-    for (const key of ['outbound', 'inbound', 'outboundFlight', 'inboundFlight']) {
+    for (const key of [
+      'outbound',
+      'inbound',
+      'outboundFlight',
+      'inboundFlight',
+    ]) {
       const leg = obj[key];
       if (leg && typeof leg === 'object' && !Array.isArray(leg)) {
         applyMarkupToFlightOffer(leg as Record<string, unknown>, markupPercent);

@@ -27,9 +27,9 @@ export class FilesService {
         throw new BadRequestException('Usuario no encontrado');
       }
 
-      const agenciaName = 
-        user.agencia && 
-        typeof user.agencia === 'object' && 
+      const agenciaName =
+        user.agencia &&
+        typeof user.agencia === 'object' &&
         'fullName' in user.agencia
           ? (user.agencia.fullName as string)
           : 'default';

@@ -37,7 +37,8 @@ export class Reserva extends Document {
     max: 100,
     validate: {
       validator: (v: number) => Number.isInteger(v) && v > 0 && v <= 100,
-      message: 'La cantidad de habitaciones debe ser un número entero entre 1 y 100',
+      message:
+        'La cantidad de habitaciones debe ser un número entero entre 1 y 100',
     },
   })
   cantidadHabitaciones: number;
@@ -417,6 +418,46 @@ export class Reserva extends Document {
     lastWebhookType?: string;
   }>;
   // #endregion MaarLab flights (interno)
+
+  @Prop({
+    type: Boolean,
+    default: false,
+    index: true,
+  })
+  esReactivacion: boolean;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Reserva',
+    default: null,
+  })
+  reactivacionDeReservaId?: Types.ObjectId;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  reactivacionExpiraEn?: Date;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Reserva',
+    default: null,
+  })
+  reactivacionNuevaReservaId?: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    enum: ['pendiente_pago', 'completada', 'expirada'],
+    default: null,
+  })
+  reactivacionEstado?: 'pendiente_pago' | 'completada' | 'expirada';
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  reactivacionCorreoFalloEnviado: boolean;
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

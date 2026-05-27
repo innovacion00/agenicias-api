@@ -11,7 +11,8 @@ export class CotizacionesPublicController {
   @Get('token/:tokenAcceso')
   @ApiOperation({
     summary: 'Consultar cotización pública por token',
-    description: 'Permite consultar una cotización sin autenticación usando su token público.',
+    description:
+      'Permite consultar una cotización sin autenticación usando su token público.',
   })
   findOneByTokenPublic(@Param('tokenAcceso') tokenAcceso: string) {
     return this.cotizacionesService.findByTokenPublic(tokenAcceso);
@@ -29,7 +30,8 @@ export class CotizacionesPublicController {
   @Post('responder/:tokenAcceso')
   @ApiOperation({
     summary: 'Responder cotización pública',
-    description: 'Permite registrar respuesta a una cotización desde el flujo público.',
+    description:
+      'Permite registrar respuesta a una cotización desde el flujo público.',
   })
   responderCotizacionPublic(
     @Param('tokenAcceso') tokenAcceso: string,

@@ -463,7 +463,8 @@ export class CreateReservaMyToolDto {
 /** Body alineado con lo que envía el backend a MyTool `POST .../cancelBookAvail`. */
 export class CancelReservaMyToolDto {
   @ApiProperty({
-    description: 'Localizador de la reserva (mismo valor que `reservaChatbotId` en BD).',
+    description:
+      'Localizador de la reserva (mismo valor que `reservaChatbotId` en BD).',
     example: 'CB88D9393D',
   })
   @IsString()
@@ -492,12 +493,18 @@ export class CancelReservaMyToolDto {
 }
 
 export class SearchReservaMyToolDto {
-  @ApiProperty({ description: 'Localizador MyTool / reservaChatbotId', example: 'CB88D9393D' })
+  @ApiProperty({
+    description: 'Localizador MyTool / reservaChatbotId',
+    example: 'CB88D9393D',
+  })
   @IsString()
   @IsNotEmpty()
   localizador: string;
 
-  @ApiProperty({ description: 'Nombre del titular o huésped', example: 'María Pérez' })
+  @ApiProperty({
+    description: 'Nombre del titular o huésped',
+    example: 'María Pérez',
+  })
   @IsString()
   @IsNotEmpty()
   nombre: string;

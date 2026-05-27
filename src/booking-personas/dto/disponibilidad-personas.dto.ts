@@ -82,4 +82,3 @@ export class DisponibilidadPersonasDto {
   @IsString()
   room_type?: string;
 }
-

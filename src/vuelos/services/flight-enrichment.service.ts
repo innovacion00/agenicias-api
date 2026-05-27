@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AmadeusService } from '../amadeus.service';
-import { 
-  AmadeusFlightOffersResponse, 
-  AmadeusFlightOffer, 
-  AmadeusItinerary, 
-  AmadeusSegment 
+import {
+  AmadeusFlightOffersResponse,
+  AmadeusFlightOffer,
+  AmadeusItinerary,
+  AmadeusSegment,
 } from '../interfaces/amadeus-flight-offers.interface';
-import { 
-  EnrichedFlightOffersResponse, 
-  EnrichedFlightOffer, 
-  EnrichedFlightItinerary, 
-  EnrichedFlightSegment, 
-  EnrichedFlightLocation 
+import {
+  EnrichedFlightOffersResponse,
+  EnrichedFlightOffer,
+  EnrichedFlightItinerary,
+  EnrichedFlightSegment,
+  EnrichedFlightLocation,
 } from '../interfaces/enriched-flight-offers.interface';
 
 @Injectable()
@@ -27,27 +27,30 @@ export class FlightEnrichmentService {
    * @returns Respuesta enriquecida con nombres de ciudades
    */
   async enrichFlightOffers(
-    flightOffersResponse: AmadeusFlightOffersResponse
+    flightOffersResponse: AmadeusFlightOffersResponse,
   ): Promise<EnrichedFlightOffersResponse> {
     try {
       // Recopilar todos los códigos IATA únicos de la respuesta
       const iataCodes = this.extractUniqueIataCodes(flightOffersResponse);
-      
+
       // Obtener nombres de ciudades para todos los códigos IATA
       const cityNamesMap = await this.getCityNamesForIataCodes(iataCodes);
 
       // Enriquecer la respuesta con los nombres de ciudades
       const enrichedOffers = this.enrichOffersWithCityNames(
-        flightOffersResponse.data, 
-        cityNamesMap
+        flightOffersResponse.data,
+        cityNamesMap,
       );
 
       return {
         ...flightOffersResponse,
-        data: enrichedOffers
+        data: enrichedOffers,
       };
     } catch (error) {
-      this.logger.warn('Error al enriquecer con nombres de ciudades, devolviendo respuesta original:', error);
+      this.logger.warn(
+        'Error al enriquecer con nombres de ciudades, devolviendo respuesta original:',
+        error,
+      );
       // En caso de error, devolver la respuesta original sin enriquecimiento
       return this.convertToEnrichedResponse(flightOffersResponse);
     }
@@ -56,9 +59,11 @@ export class FlightEnrichmentService {
   /**
    * Extrae todos los códigos IATA únicos de la respuesta de vuelos
    */
-  private extractUniqueIataCodes(flightOffersResponse: AmadeusFlightOffersResponse): string[] {
+  private extractUniqueIataCodes(
+    flightOffersResponse: AmadeusFlightOffersResponse,
+  ): string[] {
     const iataCodes = new Set<string>();
-    
+
     for (const offer of flightOffersResponse.data) {
       for (const itinerary of offer.itineraries) {
         for (const segment of itinerary.segments) {
@@ -74,7 +79,9 @@ export class FlightEnrichmentService {
   /**
    * Obtiene nombres de ciudades para múltiples códigos IATA
    */
-  private async getCityNamesForIataCodes(iataCodes: string[]): Promise<Map<string, string>> {
+  private async getCityNamesForIataCodes(
+    iataCodes: string[],
+  ): Promise<Map<string, string>> {
     const result = new Map<string, string>();
     const uncachedCodes: string[] = [];
 
@@ -93,15 +100,16 @@ export class FlightEnrichmentService {
       const searchPromises = uncachedCodes.map(async (code) => {
         try {
           const response = await this.amadeusService.searchAirportsByIata(code);
-          
+
           if (response.data && response.data.length > 0) {
             const location = response.data[0];
             if (location) {
-              const cityName = location.address?.cityName || 
-                             location.detailedName || 
-                             location.name || 
-                             code;
-            
+              const cityName =
+                location.address?.cityName ||
+                location.detailedName ||
+                location.name ||
+                code;
+
               result.set(code, cityName);
               this.cityCache.set(code, cityName);
             } else {
@@ -113,7 +121,10 @@ export class FlightEnrichmentService {
             this.cityCache.set(code, code);
           }
         } catch (error) {
-          this.logger.warn(`Error al buscar ciudad para código IATA ${code}:`, error);
+          this.logger.warn(
+            `Error al buscar ciudad para código IATA ${code}:`,
+            error,
+          );
           result.set(code, code);
           this.cityCache.set(code, code);
         }
@@ -130,14 +141,14 @@ export class FlightEnrichmentService {
    * Enriquece las ofertas con nombres de ciudades
    */
   private enrichOffersWithCityNames(
-    offers: AmadeusFlightOffer[], 
-    cityNamesMap: Map<string, string>
+    offers: AmadeusFlightOffer[],
+    cityNamesMap: Map<string, string>,
   ): EnrichedFlightOffer[] {
-    return offers.map(offer => ({
+    return offers.map((offer) => ({
       ...offer,
-      itineraries: offer.itineraries.map(itinerary => 
-        this.enrichItinerary(itinerary, cityNamesMap)
-      )
+      itineraries: offer.itineraries.map((itinerary) =>
+        this.enrichItinerary(itinerary, cityNamesMap),
+      ),
     }));
   }
 
@@ -145,14 +156,14 @@ export class FlightEnrichmentService {
    * Enriquece un itinerario con nombres de ciudades
    */
   private enrichItinerary(
-    itinerary: AmadeusItinerary, 
-    cityNamesMap: Map<string, string>
+    itinerary: AmadeusItinerary,
+    cityNamesMap: Map<string, string>,
   ): EnrichedFlightItinerary {
     return {
       ...itinerary,
-      segments: itinerary.segments.map(segment => 
-        this.enrichSegment(segment, cityNamesMap)
-      )
+      segments: itinerary.segments.map((segment) =>
+        this.enrichSegment(segment, cityNamesMap),
+      ),
     };
   }
 
@@ -160,13 +171,13 @@ export class FlightEnrichmentService {
    * Enriquece un segmento con nombres de ciudades
    */
   private enrichSegment(
-    segment: AmadeusSegment, 
-    cityNamesMap: Map<string, string>
+    segment: AmadeusSegment,
+    cityNamesMap: Map<string, string>,
   ): EnrichedFlightSegment {
     return {
       ...segment,
       departure: this.enrichLocation(segment.departure, cityNamesMap),
-      arrival: this.enrichLocation(segment.arrival, cityNamesMap)
+      arrival: this.enrichLocation(segment.arrival, cityNamesMap),
     };
   }
 
@@ -174,12 +185,12 @@ export class FlightEnrichmentService {
    * Enriquece una ubicación con nombre de ciudad
    */
   private enrichLocation(
-    location: { iataCode: string; terminal?: string; at: string }, 
-    cityNamesMap: Map<string, string>
+    location: { iataCode: string; terminal?: string; at: string },
+    cityNamesMap: Map<string, string>,
   ): EnrichedFlightLocation {
     return {
       ...location,
-      cityName: cityNamesMap.get(location.iataCode) || location.iataCode
+      cityName: cityNamesMap.get(location.iataCode) || location.iataCode,
     };
   }
 
@@ -187,27 +198,27 @@ export class FlightEnrichmentService {
    * Convierte la respuesta original a formato enriquecido sin enriquecimiento
    */
   private convertToEnrichedResponse(
-    flightOffersResponse: AmadeusFlightOffersResponse
+    flightOffersResponse: AmadeusFlightOffersResponse,
   ): EnrichedFlightOffersResponse {
     return {
       ...flightOffersResponse,
-      data: flightOffersResponse.data.map(offer => ({
+      data: flightOffersResponse.data.map((offer) => ({
         ...offer,
-        itineraries: offer.itineraries.map(itinerary => ({
+        itineraries: offer.itineraries.map((itinerary) => ({
           ...itinerary,
-          segments: itinerary.segments.map(segment => ({
+          segments: itinerary.segments.map((segment) => ({
             ...segment,
             departure: {
               ...segment.departure,
-              cityName: segment.departure.iataCode
+              cityName: segment.departure.iataCode,
             },
             arrival: {
               ...segment.arrival,
-              cityName: segment.arrival.iataCode
-            }
-          }))
-        }))
-      }))
+              cityName: segment.arrival.iataCode,
+            },
+          })),
+        })),
+      })),
     };
   }
 

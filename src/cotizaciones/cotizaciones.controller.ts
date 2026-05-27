@@ -31,9 +31,13 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Crear cotización',
-    description: 'Registra una nueva cotización asociada al usuario y su agencia.',
+    description:
+      'Registra una nueva cotización asociada al usuario y su agencia.',
   })
-  create(@Body() createCotizacionDto: CreateCotizacionDto, @GetUser() user: User) {
+  create(
+    @Body() createCotizacionDto: CreateCotizacionDto,
+    @GetUser() user: User,
+  ) {
     return this.cotizacionesService.create(
       createCotizacionDto,
       (user._id as Types.ObjectId).toString(),
@@ -45,7 +49,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Depurar usuario autenticado',
-    description: 'Retorna datos del usuario autenticado para diagnóstico de permisos y contexto.',
+    description:
+      'Retorna datos del usuario autenticado para diagnóstico de permisos y contexto.',
   })
   debugUser(@GetUser() user: User) {
     return {
@@ -61,7 +66,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Probar validación de DTO de cotización',
-    description: 'Endpoint de soporte para validar estructura y transformación del DTO de cotizaciones.',
+    description:
+      'Endpoint de soporte para validar estructura y transformación del DTO de cotizaciones.',
   })
   testValidation(@Body() createCotizacionDto: CreateCotizacionDto) {
     return {
@@ -80,7 +86,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Crear cotización desde disponibilidad',
-    description: 'Genera una cotización usando información proveniente del flujo de disponibilidad.',
+    description:
+      'Genera una cotización usando información proveniente del flujo de disponibilidad.',
   })
   createFromDisponibilidad(
     @Body() createCotizacionDto: CreateCotizacionDto,
@@ -97,7 +104,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Listar cotizaciones',
-    description: 'Lista cotizaciones paginadas; super admin ve todas y demás usuarios ven las de su agencia.',
+    description:
+      'Lista cotizaciones paginadas; super admin ve todas y demás usuarios ven las de su agencia.',
   })
   findAll(
     @GetUser() user: User,
@@ -123,7 +131,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Obtener estadísticas de cotizaciones',
-    description: 'Devuelve métricas agregadas de cotizaciones para la agencia del usuario.',
+    description:
+      'Devuelve métricas agregadas de cotizaciones para la agencia del usuario.',
   })
   getEstadisticas(@GetUser() user: User) {
     return this.cotizacionesService.getEstadisticas(
@@ -135,7 +144,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Probar disponibilidad directa',
-    description: 'Endpoint de soporte para validar integración de disponibilidad usada por cotizaciones.',
+    description:
+      'Endpoint de soporte para validar integración de disponibilidad usada por cotizaciones.',
   })
   testDisponibilidad(@GetUser() user: User) {
     return this.cotizacionesService.testDisponibilidadDirecta(
@@ -156,7 +166,8 @@ export class CotizacionesController {
   @Get('token/:tokenAcceso')
   @ApiOperation({
     summary: 'Obtener cotización por token',
-    description: 'Consulta una cotización usando su token de acceso compartible.',
+    description:
+      'Consulta una cotización usando su token de acceso compartible.',
   })
   findOneByToken(@Param('tokenAcceso') tokenAcceso: string) {
     return this.cotizacionesService.findByToken(tokenAcceso);
@@ -166,7 +177,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Responder cotización',
-    description: 'Permite registrar la respuesta comercial de una cotización usando su token.',
+    description:
+      'Permite registrar la respuesta comercial de una cotización usando su token.',
   })
   responderCotizacion(
     @Param('tokenAcceso') tokenAcceso: string,
@@ -192,7 +204,8 @@ export class CotizacionesController {
   @Auth()
   @ApiOperation({
     summary: 'Convertir cotización en reserva',
-    description: 'Transforma una cotización aprobada en una reserva dentro del sistema.',
+    description:
+      'Transforma una cotización aprobada en una reserva dentro del sistema.',
   })
   convertirAReserva(@Param('id') id: string, @GetUser() user: User) {
     return this.cotizacionesService.convertirAReserva(id, user);
@@ -204,7 +217,10 @@ export class CotizacionesController {
     summary: 'Actualizar cotización',
     description: 'Modifica una cotización existente por su identificador.',
   })
-  update(@Param('id') id: string, @Body() updateCotizacionDto: UpdateCotizacionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCotizacionDto: UpdateCotizacionDto,
+  ) {
     return this.cotizacionesService.update(id, updateCotizacionDto);
   }
 

@@ -1,15 +1,15 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsEnum, 
-  IsNumber, 
-  Min, 
-  Max, 
-  IsArray, 
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
   IsDateString,
   ValidateNested,
   ArrayMinSize,
-  ArrayMaxSize
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -42,8 +42,8 @@ export class OriginDestinationDto {
       destinationLocationCode: this.destinationLocationCode,
       departureDateTimeRange: {
         date: this.departureDate,
-        time: this.departureTime
-      }
+        time: this.departureTime,
+      },
     };
   }
 }
@@ -52,8 +52,27 @@ export class TravelerDto {
   @IsString()
   id: string;
 
-  @IsEnum(['ADULT', 'CHILD', 'SENIOR', 'YOUNG', 'DISABLED', 'DISABLED_CHILD', 'ESCORT', 'LARGE_FAMILY', 'STUDENT'])
-  travelerType: 'ADULT' | 'CHILD' | 'SENIOR' | 'YOUNG' | 'DISABLED' | 'DISABLED_CHILD' | 'ESCORT' | 'LARGE_FAMILY' | 'STUDENT';
+  @IsEnum([
+    'ADULT',
+    'CHILD',
+    'SENIOR',
+    'YOUNG',
+    'DISABLED',
+    'DISABLED_CHILD',
+    'ESCORT',
+    'LARGE_FAMILY',
+    'STUDENT',
+  ])
+  travelerType:
+    | 'ADULT'
+    | 'CHILD'
+    | 'SENIOR'
+    | 'YOUNG'
+    | 'DISABLED'
+    | 'DISABLED_CHILD'
+    | 'ESCORT'
+    | 'LARGE_FAMILY'
+    | 'STUDENT';
 }
 
 export class CabinRestrictionDto {

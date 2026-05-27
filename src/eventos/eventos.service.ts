@@ -23,7 +23,7 @@ export class EventosService {
   ) {
     try {
       const user = await this.userModel.findById(_id);
-      
+
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }

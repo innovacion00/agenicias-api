@@ -6,16 +6,26 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import * as request from 'supertest';
-import { MongooseModule, getModelToken, getConnectionToken } from '@nestjs/mongoose';
+import {
+  MongooseModule,
+  getModelToken,
+  getConnectionToken,
+} from '@nestjs/mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { Model, Connection, Types } from 'mongoose';
 
 import { ReservasController } from '../src/reservas/reservas.controller';
 import { ReservasService } from '../src/reservas/reservas.service';
 import { MyToolBookingService } from '../src/reservas/services/my-tool-booking.service';
-import { Reserva, ReservaSchema } from '../src/reservas/entities/reserva.entity';
+import {
+  Reserva,
+  ReservaSchema,
+} from '../src/reservas/entities/reserva.entity';
 import { User, UserSchema } from '../src/auth/entities/user.entity';
-import { Agencia, AgenciaSchema } from '../src/agencias/entities/agencia.entity';
+import {
+  Agencia,
+  AgenciaSchema,
+} from '../src/agencias/entities/agencia.entity';
 import { ValidPaymentStatus } from '../src/reservas/interfaces/validPaymentStatus.interface';
 import { CancellationTasksQueueService } from '../src/reservas/cancellation-tasks-queue.service';
 import { HttpCustomService } from '../src/common/services/http-custom.service';
@@ -59,15 +69,11 @@ const mockMyToolBookingService = {
     ratePlans: [
       { id: 10, tipo: 'RatePlan', mapCode: 99098, mapName: 'Tarifa Base' },
     ],
-    segmentos: [
-      { id: 20, tipo: 'Segmentos', mapCode: 1, mapName: 'Turismo' },
-    ],
+    segmentos: [{ id: 20, tipo: 'Segmentos', mapCode: 1, mapName: 'Turismo' }],
     subSegmentos: [
       { id: 30, tipo: 'Sub Segmentos', mapCode: 1, mapName: 'General' },
     ],
-    motivos: [
-      { id: 40, tipo: 'Motivos', mapCode: 8, mapName: 'Vacaciones' },
-    ],
+    motivos: [{ id: 40, tipo: 'Motivos', mapCode: 8, mapName: 'Vacaciones' }],
     canalesVenta: [
       { id: 50, tipo: 'Canal de Venta', mapCode: 41, mapName: 'OTA' },
     ],
@@ -215,7 +221,10 @@ describe('MyTool Reservas (e2e)', () => {
         { provide: MyToolBookingService, useValue: mockMyToolBookingService },
         { provide: HttpCustomService, useValue: mockHttpCustomService },
         { provide: SendEmailCustomService, useValue: mockEmailService },
-        { provide: CancellationTasksQueueService, useValue: mockCancellationQueue },
+        {
+          provide: CancellationTasksQueueService,
+          useValue: mockCancellationQueue,
+        },
       ],
     })
       .overrideGuard(AuthGuard())
@@ -235,9 +244,13 @@ describe('MyTool Reservas (e2e)', () => {
     );
     await app.init();
 
-    reservaModel = moduleFixture.get<Model<Reserva>>(getModelToken(Reserva.name));
+    reservaModel = moduleFixture.get<Model<Reserva>>(
+      getModelToken(Reserva.name),
+    );
     userModel = moduleFixture.get<Model<User>>(getModelToken(User.name));
-    agenciaModel = moduleFixture.get<Model<Agencia>>(getModelToken(Agencia.name));
+    agenciaModel = moduleFixture.get<Model<Agencia>>(
+      getModelToken(Agencia.name),
+    );
 
     // Seed test agencia & user
     await agenciaModel.create({
@@ -274,21 +287,46 @@ describe('MyTool Reservas (e2e)', () => {
       cantidadHabitaciones: 1,
       total: 1,
       reservation: {
-        source_of_bussiness: '', adults: '1', checkin: '2026-01-01',
-        checkout: '2026-01-02', children: '0', children_ages: '',
-        city: 'X', country: 'CO', currency: 'COP', email: 'x@x.com',
-        telephone: '0', firstName: 'S', lastName: 'S', nights: '1',
-        notes: '', rooms: '1', roomsData: [{
-          nombreHabitacion: 'H', adults: '1', children: '0',
-          children_ages: '', checkin: '2026-01-01', checkout: '2026-01-02',
-          currency: 'COP', id: '0', quantity: '1', rateId: '0', unitaryPrice: 1,
-        }],
+        source_of_bussiness: '',
+        adults: '1',
+        checkin: '2026-01-01',
+        checkout: '2026-01-02',
+        children: '0',
+        children_ages: '',
+        city: 'X',
+        country: 'CO',
+        currency: 'COP',
+        email: 'x@x.com',
+        telephone: '0',
+        firstName: 'S',
+        lastName: 'S',
+        nights: '1',
+        notes: '',
+        rooms: '1',
+        roomsData: [
+          {
+            nombreHabitacion: 'H',
+            adults: '1',
+            children: '0',
+            children_ages: '',
+            checkin: '2026-01-01',
+            checkout: '2026-01-02',
+            currency: 'COP',
+            id: '0',
+            quantity: '1',
+            rateId: '0',
+            unitaryPrice: 1,
+          },
+        ],
       },
       reservaChatbotId: 'SEED-INDEX-INIT',
       reservaProvider: 'autocore',
       titularInfo: {
-        firstName: 'S', lastName: 'S', tipoDocumento: 'CC',
-        documento: '000000', fechaNacimiento: '2000-01-01',
+        firstName: 'S',
+        lastName: 'S',
+        tipoDocumento: 'CC',
+        documento: '000000',
+        fechaNacimiento: '2000-01-01',
       },
       fechaLimitePago: '2026-01-01',
       status: ValidPaymentStatus.espera,
@@ -391,7 +429,8 @@ describe('MyTool Reservas (e2e)', () => {
         },
         {
           categoriaId: 4,
-          nombreHabitacion: 'Habitacion Cuadruple standard con vista a la ciudad',
+          nombreHabitacion:
+            'Habitacion Cuadruple standard con vista a la ciudad',
           room_id: '83421',
           paxAdultos: 3,
           paxChilds: 0,
@@ -469,7 +508,8 @@ describe('MyTool Reservas (e2e)', () => {
         .send(dto)
         .expect(201);
 
-      const calledBody = mockMyToolBookingService.createBooking.mock.calls[0][1];
+      const calledBody =
+        mockMyToolBookingService.createBooking.mock.calls[0][1];
       const sentGuest = calledBody.rooms[0].guest[0];
       expect(sentGuest).not.toHaveProperty('image1');
       expect(sentGuest).not.toHaveProperty('image2');
@@ -535,7 +575,6 @@ describe('MyTool Reservas (e2e)', () => {
     });
   });
 
- 
   describe('POST /agencias/v1/reservas/mytool/cancelar', () => {
     let savedReservaId: string;
     let savedLocalizador: string;
@@ -789,23 +828,36 @@ describe('MyTool Reservas (e2e)', () => {
   // ─────────────────────────────────────────────
   describe('Validación de hotel slugs (ParseHotelSlugPipe)', () => {
     const validSlugs = [
-      'aixo', 'azuan', 'avexi', 'marina', 'bocagrande',
-      'abi', 'boquilla', 'madisson', 'windsor', 'rodadero',
-      'axis', 'marques', 'sansiraka', 'playasalguero',
+      'aixo',
+      'azuan',
+      'avexi',
+      'marina',
+      'bocagrande',
+      'abi',
+      'boquilla',
+      'madisson',
+      'windsor',
+      'rodadero',
+      'axis',
+      'marques',
+      'sansiraka',
+      'playasalguero',
     ];
 
     validSlugs.forEach((slug) => {
       it(`debe aceptar hotel slug válido: ${slug}`, async () => {
-        const res = await request(app.getHttpServer())
-          .get(`/agencias/v1/reservas/mytool/${slug}/mappings`);
+        const res = await request(app.getHttpServer()).get(
+          `/agencias/v1/reservas/mytool/${slug}/mappings`,
+        );
 
         expect(res.status).not.toBe(400);
       });
     });
 
     it('debe rechazar slug con mayúsculas (normaliza a lowercase)', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/agencias/v1/reservas/mytool/AIXO/mappings');
+      const res = await request(app.getHttpServer()).get(
+        '/agencias/v1/reservas/mytool/AIXO/mappings',
+      );
 
       expect(res.status).toBe(200);
     });

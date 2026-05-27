@@ -14,7 +14,11 @@ import { v4 as uuid } from 'uuid';
 import * as puppeteer from 'puppeteer';
 
 import { Cotizacion, CotizacionStatus } from './entities/cotizacion.entity';
-import { CreateCotizacionDto, ResponderCotizacionDto, UpdateCotizacionDto } from './dto';
+import {
+  CreateCotizacionDto,
+  ResponderCotizacionDto,
+  UpdateCotizacionDto,
+} from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { AgenciasService } from '../agencias/agencias.service';
 import { HttpCustomService } from 'src/common/services';
@@ -199,7 +203,10 @@ export class CotizacionesService {
   }
 
   // #region Obtener todas por agencia
-  async findAll(page = 1, limit = 15): Promise<{
+  async findAll(
+    page = 1,
+    limit = 15,
+  ): Promise<{
     data: any[];
     meta: { total: number; page: number; pageSize: number; totalPages: number };
   }> {
@@ -385,7 +392,8 @@ export class CotizacionesService {
         );
 
         return {
-          message: 'Cotización aceptada pero hubo problemas al crear la reserva',
+          message:
+            'Cotización aceptada pero hubo problemas al crear la reserva',
           cotizacion,
           error: detalleError,
           detalles:
@@ -530,7 +538,7 @@ export class CotizacionesService {
     // Construir layout correctamente - OMITIR children_ages si está vacío
     const layout = cotizacion.reservation.roomsData.map((room) => {
       const adultsCount = parseInt(room.adults);
-      
+
       // Procesar children_ages correctamente
       const layoutRoom: {
         adults: number;
@@ -544,7 +552,7 @@ export class CotizacionesService {
           .split(',')
           .map((age) => parseInt(age.trim()))
           .filter((age) => !isNaN(age));
-        
+
         // Solo agregar children_ages si hay edades válidas
         if (ages.length > 0) {
           layoutRoom.children_ages = ages;
@@ -558,7 +566,7 @@ export class CotizacionesService {
     const agenciaInfo = await this.agenciaModel
       .findById(cotizacion.agenciaId)
       .populate('category');
-    
+
     if (!agenciaInfo) {
       throw new NotFoundException('Agencia no encontrada');
     }
@@ -576,7 +584,7 @@ export class CotizacionesService {
     // Log detallado para debugging
     this.logger.log(' DEBUG - Datos de cotización:', {
       hotel: cotizacion.hotel,
-      roomsData: cotizacion.reservation.roomsData.map(r => ({
+      roomsData: cotizacion.reservation.roomsData.map((r) => ({
         adults: r.adults,
         children: r.children,
         children_ages: r.children_ages,
@@ -597,29 +605,42 @@ export class CotizacionesService {
       cityType: typeof cotizacion.reservation.city,
       category: agenciaInfo.category,
       categoryType: typeof agenciaInfo.category,
-      categoryValue: agenciaInfo.category === 1 ? 'mayorista (wholesale)' : 'minorista (retailer)',
+      categoryValue:
+        agenciaInfo.category === 1
+          ? 'mayorista (wholesale)'
+          : 'minorista (retailer)',
     });
 
     // IMPORTANTE: Asegurar que nights sea un número entero
     const nightsNumber = parseInt(cotizacion.reservation.nights, 10);
-    
+
     if (isNaN(nightsNumber) || nightsNumber <= 0) {
-      throw new BadRequestException(`El número de noches es inválido: ${cotizacion.reservation.nights}`);
+      throw new BadRequestException(
+        `El número de noches es inválido: ${cotizacion.reservation.nights}`,
+      );
     }
 
-    this.logger.warn(' Saltando verificación de disponibilidad - Creando reserva directamente');
-    
+    this.logger.warn(
+      ' Saltando verificación de disponibilidad - Creando reserva directamente',
+    );
+
     // NOTA: La verificación de disponibilidad de Autocore está presentando errores 500
     // Por ahora se salta este paso y se procede directamente a crear la reserva
     // TODO: Reactivar verificación cuando Autocore solucione el problema
 
     const actorIsSuperAdmin = actorUser?.role?.includes('super-admin') ?? false;
-    const cotizacionAgenciaId = this.extractObjectIdString(cotizacion.agenciaId);
+    const cotizacionAgenciaId = this.extractObjectIdString(
+      cotizacion.agenciaId,
+    );
     const actorAgenciaId = this.extractObjectIdString(actorUser?.agencia);
 
     // Si la conversión es manual (con actor autenticado), la reserva debe quedar
     // asociada al agente que ejecuta la acción, y restringida a su agencia.
-    if (actorUser && !actorIsSuperAdmin && actorAgenciaId !== cotizacionAgenciaId) {
+    if (
+      actorUser &&
+      !actorIsSuperAdmin &&
+      actorAgenciaId !== cotizacionAgenciaId
+    ) {
       throw new ForbiddenException(
         'No puedes convertir cotizaciones de otra agencia',
       );
@@ -629,7 +650,9 @@ export class CotizacionesService {
       this.extractObjectIdString(actorUser?._id) ||
       this.extractObjectIdString(cotizacion.userId);
     if (!ownerUserId || !Types.ObjectId.isValid(ownerUserId)) {
-      throw new BadRequestException('ID de usuario inválido para crear reserva');
+      throw new BadRequestException(
+        'ID de usuario inválido para crear reserva',
+      );
     }
 
     // Paso 3: Si todo está bien, crear la reserva
@@ -668,9 +691,10 @@ export class CotizacionesService {
     }
 
     // Transformar agency_type de número a string como lo espera Autocore
-    const agencyTypeString = agenciaInfo.category === 1 
-      ? tiposAgencia.mayorista 
-      : tiposAgencia.minorista;
+    const agencyTypeString =
+      agenciaInfo.category === 1
+        ? tiposAgencia.mayorista
+        : tiposAgencia.minorista;
 
     // Preparar datos para crear la reserva
     // IMPORTANTE: Convertir documento de Mongoose a objeto plano usando JSON parse/stringify
@@ -682,7 +706,8 @@ export class CotizacionesService {
         is_agency: true,
         agency_type: agencyTypeString, // 'wholesale' o 'retailer'
         // En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
-        external_ref_id: externalRefId || String(agenciaInfo.autocoreInfo?.id || ''),
+        external_ref_id:
+          externalRefId || String(agenciaInfo.autocoreInfo?.id || ''),
       },
       reservation: {
         ...reservationData,
@@ -711,13 +736,13 @@ export class CotizacionesService {
     this.logger.log('reservaInfo:', JSON.stringify(reservaInfo, null, 2));
 
     // Crear reserva en Autocore
-    const reservaAutocoreInfo = await this.httpCustomService.createReservaAutocore(
-      hotelId,
-      reservaInfo,
-    );
+    const reservaAutocoreInfo =
+      await this.httpCustomService.createReservaAutocore(hotelId, reservaInfo);
 
     if (!reservaAutocoreInfo) {
-      throw new InternalServerErrorException('Error al crear reserva en Autocore');
+      throw new InternalServerErrorException(
+        'Error al crear reserva en Autocore',
+      );
     }
 
     if (reservaAutocoreInfo.no_available_rooms) {
@@ -747,30 +772,35 @@ export class CotizacionesService {
     session.startTransaction();
 
     try {
-      const [reserva] = await this.reservaModel.create([{
-        hotel: cotizacion.hotel,
-        agenciaId: agenciaIdObjectId,
-        userId: userIdObjectId,
-        cantidadHabitaciones: cotizacion.cantidadHabitaciones,
-        total: cotizacion.total,
-        totalMitad: cotizacion.total / 2,
-        reservation: cotizacion.reservation,
-        reservaChatbotId: reservaAutocoreInfo.chatbot_id,
-        titularInfo: cotizacion.titularInfo,
-        fechaLimitePago: fechasLimite.fechaLimitePago,
-        fechaLimitePago2: fechasLimite.fechaLimitePago2,
-        exentoIva: cotizacion.exentoIva || false,
-        ...retenciones,
-        planAlimentario: cotizacion.planAlimentario,
-        adicionCena: cotizacion.adicionCena || false,
-        adicionAlmuerzo: cotizacion.adicionAlmuerzo || false,
-        infoTransporte: cotizacion.infoTransporte || null,
-        infoToures: cotizacion.infoToures || null,
-        mascotas: cotizacion.mascotas,
-        mascotasNumber: cotizacion.mascotasNumber,
-        origenIata: cotizacion.origenIata,
-        vuelo: this.normalizeVueloEntries(cotizacion.vuelo),
-      }], { session });
+      const [reserva] = await this.reservaModel.create(
+        [
+          {
+            hotel: cotizacion.hotel,
+            agenciaId: agenciaIdObjectId,
+            userId: userIdObjectId,
+            cantidadHabitaciones: cotizacion.cantidadHabitaciones,
+            total: cotizacion.total,
+            totalMitad: cotizacion.total / 2,
+            reservation: cotizacion.reservation,
+            reservaChatbotId: reservaAutocoreInfo.chatbot_id,
+            titularInfo: cotizacion.titularInfo,
+            fechaLimitePago: fechasLimite.fechaLimitePago,
+            fechaLimitePago2: fechasLimite.fechaLimitePago2,
+            exentoIva: cotizacion.exentoIva || false,
+            ...retenciones,
+            planAlimentario: cotizacion.planAlimentario,
+            adicionCena: cotizacion.adicionCena || false,
+            adicionAlmuerzo: cotizacion.adicionAlmuerzo || false,
+            infoTransporte: cotizacion.infoTransporte || null,
+            infoToures: cotizacion.infoToures || null,
+            mascotas: cotizacion.mascotas,
+            mascotasNumber: cotizacion.mascotasNumber,
+            origenIata: cotizacion.origenIata,
+            vuelo: this.normalizeVueloEntries(cotizacion.vuelo),
+          },
+        ],
+        { session },
+      );
 
       // Actualizar usuario con la nueva reserva
       user.reservas.push(reserva._id as Types.ObjectId);
@@ -802,8 +832,12 @@ export class CotizacionesService {
   }
 
   // #region Convertir a reserva (manual)
-  async convertirAReserva(cotizacionId: string, actorUser?: User): Promise<string> {
-    return (await this.convertirAReservaAutomatica(cotizacionId, actorUser)).message;
+  async convertirAReserva(
+    cotizacionId: string,
+    actorUser?: User,
+  ): Promise<string> {
+    return (await this.convertirAReservaAutomatica(cotizacionId, actorUser))
+      .message;
   }
 
   /** Normaliza entradas de vuelo MaarLab (mismo shape que `Reserva.vuelo`). */
@@ -836,7 +870,10 @@ export class CotizacionesService {
   }
 
   // #region Actualizar
-  async update(id: string, updateCotizacionDto: UpdateCotizacionDto): Promise<Cotizacion> {
+  async update(
+    id: string,
+    updateCotizacionDto: UpdateCotizacionDto,
+  ): Promise<Cotizacion> {
     const { vuelo, ...rest } = updateCotizacionDto;
     const payload: Partial<Cotizacion> = { ...rest };
     if (vuelo !== undefined) {
@@ -900,14 +937,14 @@ export class CotizacionesService {
     };
 
     const result = await this.cloudinaryService.uploadImage(file, folder);
-    
+
     if ('secure_url' in result && 'public_id' in result) {
       return {
         secure_url: result.secure_url,
         public_id: result.public_id,
       };
     }
-    
+
     throw new Error('Error al subir PDF a Cloudinary');
   }
 
@@ -924,7 +961,7 @@ export class CotizacionesService {
     const layout = [
       {
         adults: 2,
-      }
+      },
     ];
 
     const disponibilidadDto = {
@@ -962,7 +999,10 @@ export class CotizacionesService {
 
     if (error && typeof error === 'object') {
       const e = error as {
-        response?: { status?: number; data?: { message?: string; msg?: string; error?: string } };
+        response?: {
+          status?: number;
+          data?: { message?: string; msg?: string; error?: string };
+        };
       };
 
       const detail =
@@ -971,7 +1011,9 @@ export class CotizacionesService {
         e.response?.data?.error;
 
       if (detail) {
-        return e.response?.status ? `HTTP ${e.response.status}: ${detail}` : detail;
+        return e.response?.status
+          ? `HTTP ${e.response.status}: ${detail}`
+          : detail;
       }
     }
 

@@ -35,7 +35,8 @@ function describeMaarLabErrorBody(
   const push = (v: unknown) => {
     if (v == null) return;
     if (typeof v === 'string' && v.trim()) parts.push(v.trim());
-    else if (typeof v === 'number' || typeof v === 'boolean') parts.push(String(v));
+    else if (typeof v === 'number' || typeof v === 'boolean')
+      parts.push(String(v));
   };
 
   push(d.message);
@@ -58,9 +59,7 @@ function describeMaarLabErrorBody(
   if (d.errors && typeof d.errors === 'object' && !Array.isArray(d.errors)) {
     for (const v of Object.values(d.errors as Record<string, unknown>)) {
       if (Array.isArray(v)) {
-        v.forEach((x) =>
-          push(typeof x === 'string' ? x : JSON.stringify(x)),
-        );
+        v.forEach((x) => push(typeof x === 'string' ? x : JSON.stringify(x)));
       } else {
         push(typeof v === 'string' ? v : JSON.stringify(v));
       }
@@ -126,37 +125,46 @@ export class MaarLabService {
 
       // Construir query parameters en el orden correcto
       const queryParams = new URLSearchParams();
-      
+
       // Parámetros requeridos (en el orden que muestra el ejemplo)
       queryParams.append('origin', searchDto.origin);
       queryParams.append('departureDate', searchDto.departureDate);
-      
+
       // returnDate antes de adults (según el ejemplo)
       if (searchDto.returnDate) {
         queryParams.append('returnDate', searchDto.returnDate);
       }
-      
+
       queryParams.append('adults', searchDto.adults.toString());
       queryParams.append('destination', searchDto.destination);
       queryParams.append('currency', searchDto.currency);
 
       // Parámetros opcionales
       if (searchDto.ages && searchDto.ages.length > 0) {
-        searchDto.ages.forEach(age => {
+        searchDto.ages.forEach((age) => {
           queryParams.append('ages', age.toString());
         });
       }
 
       if (searchDto.canarian_resident !== undefined) {
-        queryParams.append('canarian_resident', searchDto.canarian_resident.toString());
+        queryParams.append(
+          'canarian_resident',
+          searchDto.canarian_resident.toString(),
+        );
       }
 
       if (searchDto.balear_resident !== undefined) {
-        queryParams.append('balear_resident', searchDto.balear_resident.toString());
+        queryParams.append(
+          'balear_resident',
+          searchDto.balear_resident.toString(),
+        );
       }
 
       if (searchDto.ceuta_melilla_resident !== undefined) {
-        queryParams.append('ceuta_melilla_resident', searchDto.ceuta_melilla_resident.toString());
+        queryParams.append(
+          'ceuta_melilla_resident',
+          searchDto.ceuta_melilla_resident.toString(),
+        );
       }
 
       if (searchDto.search_mode) {
@@ -174,12 +182,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Búsqueda de vuelos completada exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al buscar vuelos en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al buscar vuelos en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -187,28 +200,28 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
             error.response.data?.message || 'Parámetros de búsqueda inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -234,15 +247,17 @@ export class MaarLabService {
   async createPackage(
     bearerToken: string,
     createPackageDto: any,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de paquete de vuelo en MaarLab...');
-      this.logger.debug(`Parámetros de creación: ${JSON.stringify(createPackageDto)}`);
+      this.logger.debug(
+        `Parámetros de creación: ${JSON.stringify(createPackageDto)}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
       this.logger.debug(`Base URL: ${baseUrl}`);
-      
+
       // Construir la URL con el endpoint (con barra final según documentación MaarLab)
       const endpoint = `${baseUrl}/createPackage/`;
       this.logger.debug(`Endpoint construido: ${endpoint}`);
@@ -256,7 +271,9 @@ export class MaarLabService {
       const url = `${endpoint}?${queryParams.toString()}`;
 
       this.logger.debug(`URL completa de creación de paquete: ${url}`);
-      this.logger.debug(`URL esperada: https://test-api.oceanflights.io/api/v1/createPackage/?info=${info}`);
+      this.logger.debug(
+        `URL esperada: https://test-api.oceanflights.io/api/v1/createPackage/?info=${info}`,
+      );
 
       // Consolidator: webhooks siempre apuntan a gehsuitesapps (MaarLab hace GET con package_id).
       const hotelPayload: Record<string, unknown> = {
@@ -277,7 +294,9 @@ export class MaarLabService {
       }
 
       this.logger.debug(`URL completa: ${url}`);
-      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody, null, 2)}`);
+      this.logger.debug(
+        `Body de la petición: ${JSON.stringify(requestBody, null, 2)}`,
+      );
       this.logger.debug(`Headers: Authorization: Bearer ***`);
 
       // Realizar la petición POST
@@ -287,7 +306,9 @@ export class MaarLabService {
       });
 
       this.logger.log('Paquete de vuelo creado exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
@@ -299,9 +320,13 @@ export class MaarLabService {
           data: error.response?.data,
           url: error.config?.url,
           method: error.config?.method,
-          requestBody: error.config?.data ? (typeof error.config.data === 'string' ? JSON.parse(error.config.data) : error.config.data) : null,
+          requestBody: error.config?.data
+            ? typeof error.config.data === 'string'
+              ? JSON.parse(error.config.data)
+              : error.config.data
+            : null,
         };
-        
+
         this.logger.error('Error detallado de MaarLab al crear paquete:');
         this.logger.error(JSON.stringify(errorDetails, null, 2));
 
@@ -315,9 +340,12 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
-          const maarLabMessage = error.response.data?.message || error.response.data?.error || JSON.stringify(error.response.data);
+          const maarLabMessage =
+            error.response.data?.message ||
+            error.response.data?.error ||
+            JSON.stringify(error.response.data);
           throw new HttpException(
             {
               message: 'Parámetros de creación de paquete inválidos',
@@ -327,20 +355,33 @@ export class MaarLabService {
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 422) {
           const maarLabResponse = error.response.data;
-          const maarLabMessage = maarLabResponse?.message || maarLabResponse?.error || maarLabResponse?.detail || JSON.stringify(maarLabResponse);
-          const requestBodySent = error.config?.data ? (typeof error.config.data === 'string' ? JSON.parse(error.config.data) : error.config.data) : null;
-          
+          const maarLabMessage =
+            maarLabResponse?.message ||
+            maarLabResponse?.error ||
+            maarLabResponse?.detail ||
+            JSON.stringify(maarLabResponse);
+          const requestBodySent = error.config?.data
+            ? typeof error.config.data === 'string'
+              ? JSON.parse(error.config.data)
+              : error.config.data
+            : null;
+
           this.logger.error('Error 422 de MaarLab - Detalles de validación:');
-          this.logger.error(`MaarLab Response: ${JSON.stringify(maarLabResponse, null, 2)}`);
-          this.logger.error(`Request Body Sent: ${JSON.stringify(requestBodySent, null, 2)}`);
+          this.logger.error(
+            `MaarLab Response: ${JSON.stringify(maarLabResponse, null, 2)}`,
+          );
+          this.logger.error(
+            `Request Body Sent: ${JSON.stringify(requestBodySent, null, 2)}`,
+          );
           this.logger.error(`URL: ${error.config?.url}`);
-          
+
           throw new HttpException(
             {
-              message: 'Error de validación en MaarLab. Verifica los datos enviados.',
+              message:
+                'Error de validación en MaarLab. Verifica los datos enviados.',
               maarLabError: maarLabResponse,
               maarLabMessage,
               maarLabResponse: maarLabResponse, // Incluir respuesta completa
@@ -349,23 +390,25 @@ export class MaarLabService {
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
         }
-        
+
         if (error.response?.status === 404) {
           // Verificar si el error es sobre un recurso específico (Flight ID, Package ID, etc.)
           // o si es realmente un endpoint no encontrado
-          const maarLabMessage = error.response.data?.errors?.message || 
-                                 error.response.data?.message || 
-                                 error.response.data?.detail || 
-                                 JSON.stringify(error.response.data);
-          
+          const maarLabMessage =
+            error.response.data?.errors?.message ||
+            error.response.data?.message ||
+            error.response.data?.detail ||
+            JSON.stringify(error.response.data);
+
           // Si el mensaje contiene "not found" o "no encontrado", es un recurso no encontrado
-          const isResourceNotFound = maarLabMessage.toLowerCase().includes('not found') || 
-                                    maarLabMessage.toLowerCase().includes('no encontrado');
-          
-          const errorMessage = isResourceNotFound 
-            ? maarLabMessage 
+          const isResourceNotFound =
+            maarLabMessage.toLowerCase().includes('not found') ||
+            maarLabMessage.toLowerCase().includes('no encontrado');
+
+          const errorMessage = isResourceNotFound
+            ? maarLabMessage
             : 'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.';
-          
+
           throw new HttpException(
             {
               message: errorMessage,
@@ -376,21 +419,23 @@ export class MaarLabService {
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             {
-              message: 'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
+              message:
+                'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
               maarLabError: error.response.data,
             },
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             {
-              message: 'Error interno del servidor de MaarLab. Intenta más tarde.',
+              message:
+                'Error interno del servidor de MaarLab. Intenta más tarde.',
               maarLabError: error.response.data,
             },
             HttpStatus.INTERNAL_SERVER_ERROR,
@@ -398,7 +443,10 @@ export class MaarLabService {
         }
       }
 
-      this.logger.error('Error al crear paquete de vuelo en MaarLab:', error.message);
+      this.logger.error(
+        'Error al crear paquete de vuelo en MaarLab:',
+        error.message,
+      );
       throw new HttpException(
         {
           message: `Error al crear paquete de vuelo: ${error.message}`,
@@ -422,7 +470,7 @@ export class MaarLabService {
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
       this.logger.debug(`Base URL: ${baseUrl}`);
-      
+
       // Construir la URL con el endpoint (getLuggages con 's' según documentación MaarLab)
       const endpoint = `${baseUrl}/getLuggages/`;
       this.logger.debug(`Endpoint construido: ${endpoint}`);
@@ -442,11 +490,13 @@ export class MaarLabService {
       });
 
       this.logger.log('Consulta de equipaje completada exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-       // Log detallado del error
+      // Log detallado del error
       if (error instanceof AxiosError) {
         this.logger.error('Error detallado de MaarLab al consultar equipaje:', {
           status: error.response?.status,
@@ -456,7 +506,7 @@ export class MaarLabService {
           method: error.config?.method,
           packageId,
         });
-        
+
         if (error.response?.status === 401) {
           throw new HttpException(
             {
@@ -467,32 +517,36 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
             {
-              message: error.response.data?.message || 'Parámetros de consulta de equipaje inválidos',
+              message:
+                error.response.data?.message ||
+                'Parámetros de consulta de equipaje inválidos',
               maarLabError: error.response.data,
             },
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           // Verificar si el error es sobre un recurso específico (Package ID) o si es realmente un endpoint no encontrado
-          const maarLabMessage = error.response.data?.errors?.message || 
-                                 error.response.data?.message || 
-                                 error.response.data?.detail || 
-                                 JSON.stringify(error.response.data);
-          
+          const maarLabMessage =
+            error.response.data?.errors?.message ||
+            error.response.data?.message ||
+            error.response.data?.detail ||
+            JSON.stringify(error.response.data);
+
           // Si el mensaje contiene "not found" o "no encontrado", es un recurso no encontrado
-          const isResourceNotFound = maarLabMessage.toLowerCase().includes('not found') || 
-                                    maarLabMessage.toLowerCase().includes('no encontrado');
-          
-          const errorMessage = isResourceNotFound 
-            ? maarLabMessage 
+          const isResourceNotFound =
+            maarLabMessage.toLowerCase().includes('not found') ||
+            maarLabMessage.toLowerCase().includes('no encontrado');
+
+          const errorMessage = isResourceNotFound
+            ? maarLabMessage
             : 'Endpoint no encontrado. Verifica MAARLAB_BASE_URL.';
-          
+
           throw new HttpException(
             {
               message: errorMessage,
@@ -504,14 +558,14 @@ export class MaarLabService {
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -539,7 +593,7 @@ export class MaarLabService {
     bearerToken: string,
     packageId: string,
     extrasData: any,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     let url = '';
     let requestBody: any = {};
@@ -549,7 +603,7 @@ export class MaarLabService {
       this.logger.debug(`Extras data: ${JSON.stringify(extrasData)}`);
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint (con barra final según patrón de otros endpoints)
       const endpoint = `${baseUrl}/addExtras/`;
 
@@ -559,21 +613,27 @@ export class MaarLabService {
         queryParams.append('info', info);
       }
 
-      url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      url = queryParams.toString()
+        ? `${endpoint}?${queryParams.toString()}`
+        : endpoint;
 
       this.logger.debug(`URL de agregado de extras: ${url}`);
 
       // La API de MaarLab espera packageId y extras en el body
       // Si extrasData ya es un objeto con "extras", lo usamos directamente
       // Si es un array, lo envuelve en un objeto con la propiedad "extras"
-      const extrasArray = Array.isArray(extrasData) ? extrasData : (extrasData.extras || extrasData);
-      
+      const extrasArray = Array.isArray(extrasData)
+        ? extrasData
+        : extrasData.extras || extrasData;
+
       requestBody = {
         packageId: packageId,
-        extras: extrasArray
+        extras: extrasArray,
       };
 
-      this.logger.log(`Request body completo: ${JSON.stringify(requestBody, null, 2)}`);
+      this.logger.log(
+        `Request body completo: ${JSON.stringify(requestBody, null, 2)}`,
+      );
       this.logger.log(`Package ID en body: ${packageId}`);
 
       // Realizar la petición PUT (la API de MaarLab requiere PUT para addExtras)
@@ -583,12 +643,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Extras agregados exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al agregar extras en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al agregar extras en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -596,47 +661,54 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
-          const errorDetails = error.response?.data 
+          const errorDetails = error.response?.data
             ? JSON.stringify(error.response.data)
             : 'Sin detalles adicionales';
-          this.logger.error(`Error 400 en addExtras - Response: ${errorDetails}`);
+          this.logger.error(
+            `Error 400 en addExtras - Response: ${errorDetails}`,
+          );
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de agregado de extras inválidos',
+            error.response.data?.message ||
+              'Parámetros de agregado de extras inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
 
         if (error.response?.status === 422) {
-          const errorDetails = error.response?.data 
+          const errorDetails = error.response?.data
             ? JSON.stringify(error.response.data)
             : 'Sin detalles adicionales';
-          this.logger.error(`Error 422 en addExtras - URL: ${url}, PackageId: ${packageId}, Request Body: ${JSON.stringify(requestBody)}, Response: ${errorDetails}`);
+          this.logger.error(
+            `Error 422 en addExtras - URL: ${url}, PackageId: ${packageId}, Request Body: ${JSON.stringify(requestBody)}, Response: ${errorDetails}`,
+          );
           throw new HttpException(
             `Error de validación en MaarLab: ${errorDetails}`,
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
         }
-        
+
         if (error.response?.status === 404) {
-          const errorDetails = error.response?.data 
+          const errorDetails = error.response?.data
             ? JSON.stringify(error.response.data)
             : 'Sin detalles adicionales';
-          this.logger.error(`Error 404 en addExtras - URL: ${url}, PackageId: ${packageId}, Response: ${errorDetails}`);
+          this.logger.error(
+            `Error 404 en addExtras - URL: ${url}, PackageId: ${packageId}, Response: ${errorDetails}`,
+          );
           throw new HttpException(
             `Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId. Detalles: ${errorDetails}`,
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -666,14 +738,16 @@ export class MaarLabService {
     packageId: string,
     itemId: number,
     typeExtraId: number,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando eliminación de extra en MaarLab...');
-      this.logger.debug(`Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`);
+      this.logger.debug(
+        `Package ID: ${packageId}, Item ID: ${itemId}, Type Extra ID: ${typeExtraId}, Info: ${info}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/deleteExtras/`;
 
@@ -697,12 +771,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Extra eliminado exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al eliminar extra en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al eliminar extra en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -710,28 +789,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de eliminación de extra inválidos',
+            error.response.data?.message ||
+              'Parámetros de eliminación de extra inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o paquete/extra no existe. Verifica MAARLAB_BASE_URL y los parámetros.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -801,15 +881,19 @@ export class MaarLabService {
   async bookPackage(
     bearerToken: string,
     bookPackageDto: BookPackageDto,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
       this.logger.log('Iniciando reserva de paquete en MaarLab...');
-      this.logger.debug(`Package ID: ${bookPackageDto.packageId}, Info: ${info}`);
-      this.logger.debug(`Passengers: ${bookPackageDto.passengers?.length || 0}`);
+      this.logger.debug(
+        `Package ID: ${bookPackageDto.packageId}, Info: ${info}`,
+      );
+      this.logger.debug(
+        `Passengers: ${bookPackageDto.passengers?.length || 0}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/bookPackage/`;
 
@@ -830,7 +914,8 @@ export class MaarLabService {
             ...(bookPackageDto.payment.payment_type && {
               payment_type: bookPackageDto.payment.payment_type,
             }),
-            ...(bookPackageDto.payment.payment_type === 'FLIGHT_NOW_HOTEL_LATER' &&
+            ...(bookPackageDto.payment.payment_type ===
+              'FLIGHT_NOW_HOTEL_LATER' &&
             bookPackageDto.payment.deferred_payment_date
               ? {
                   deferred_payment_date:
@@ -848,14 +933,18 @@ export class MaarLabService {
       const requestBody = {
         packageId: bookPackageDto.packageId,
         ...(bookPackageDto.hotel_id && { hotel_id: bookPackageDto.hotel_id }),
-        ...(bookPackageDto.partner_id && { partner_id: bookPackageDto.partner_id }),
+        ...(bookPackageDto.partner_id && {
+          partner_id: bookPackageDto.partner_id,
+        }),
         passengers: this.passengersForMaarLabBookPackage(
           bookPackageDto.passengers,
         ),
         ...(paymentPayload && { payment: paymentPayload }),
       };
 
-      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`);
+      this.logger.debug(
+        `Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`,
+      );
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(url, requestBody, {
@@ -864,12 +953,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Paquete reservado exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al reservar paquete en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al reservar paquete en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -877,7 +971,7 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           const respData = error.response.data;
           const { summary, raw } = describeMaarLabErrorBody(respData);
@@ -917,21 +1011,21 @@ export class MaarLabService {
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -963,21 +1057,23 @@ export class MaarLabService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de token de pago en MaarLab...');
-      this.logger.debug(`Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`);
+      this.logger.debug(
+        `Package ID: ${packageId}, Payment Type: ${paymentType}, Deferred Date: ${deferredPaymentDate}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getTokenPayment/`;
 
       // Construir query parameters
       const queryParams = new URLSearchParams();
       queryParams.append('packageId', packageId);
-      
+
       if (paymentType) {
         queryParams.append('paymentType', paymentType);
       }
-      
+
       if (deferredPaymentDate) {
         queryParams.append('deferredPaymentDate', deferredPaymentDate);
       }
@@ -993,12 +1089,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Token de pago obtenido exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al obtener token de pago en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al obtener token de pago en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1006,28 +1107,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de obtención de token de pago inválidos',
+            error.response.data?.message ||
+              'Parámetros de obtención de token de pago inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -1053,14 +1155,16 @@ export class MaarLabService {
   async getPackage(
     bearerToken: string,
     packageId: string,
-    info: string = 'all',
+    info = 'all',
   ): Promise<any> {
     try {
-      this.logger.log('Iniciando obtención de detalles de paquete en MaarLab...');
+      this.logger.log(
+        'Iniciando obtención de detalles de paquete en MaarLab...',
+      );
       this.logger.debug(`Package ID: ${packageId}, Info: ${info}`);
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getPackage`;
 
@@ -1082,12 +1186,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Detalles de paquete obtenidos exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al obtener detalles de paquete en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al obtener detalles de paquete en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1095,28 +1204,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de obtención de paquete inválidos',
+            error.response.data?.message ||
+              'Parámetros de obtención de paquete inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -1138,13 +1248,16 @@ export class MaarLabService {
    * @param packageId - ID del paquete para obtener el contrato ATOL
    * @returns Respuesta con el contrato de factura ATOL
    */
-  async getInvoiceATOLContract(bearerToken: string, packageId: string): Promise<any> {
+  async getInvoiceATOLContract(
+    bearerToken: string,
+    packageId: string,
+  ): Promise<any> {
     try {
       this.logger.log('Iniciando obtención de contrato ATOL en MaarLab...');
       this.logger.debug(`Package ID: ${packageId}`);
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/getInvoiceATOLContract`;
 
@@ -1163,12 +1276,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Contrato ATOL obtenido exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al obtener contrato ATOL en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al obtener contrato ATOL en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1176,28 +1294,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de obtención de contrato ATOL inválidos',
+            error.response.data?.message ||
+              'Parámetros de obtención de contrato ATOL inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o paquete no existe. Verifica MAARLAB_BASE_URL y el packageId.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -1225,10 +1344,12 @@ export class MaarLabService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de hotel en MaarLab...');
-      this.logger.debug(`Hotel name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`);
+      this.logger.debug(
+        `Hotel name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/search_engine/complete_process`;
 
@@ -1255,12 +1376,20 @@ export class MaarLabService {
         contact_center_type: completeProcessDto.contact_center_type,
         account_manager_name: completeProcessDto.account_manager_name,
         account_manager_email: completeProcessDto.account_manager_email,
-        ...(completeProcessDto.description && { description: completeProcessDto.description }),
-        ...(completeProcessDto.account_manager_phone && { account_manager_phone: completeProcessDto.account_manager_phone }),
-        ...(completeProcessDto.prefix_locator && { prefix_locator: completeProcessDto.prefix_locator }),
+        ...(completeProcessDto.description && {
+          description: completeProcessDto.description,
+        }),
+        ...(completeProcessDto.account_manager_phone && {
+          account_manager_phone: completeProcessDto.account_manager_phone,
+        }),
+        ...(completeProcessDto.prefix_locator && {
+          prefix_locator: completeProcessDto.prefix_locator,
+        }),
       };
 
-      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`);
+      this.logger.debug(
+        `Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`,
+      );
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
@@ -1269,12 +1398,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Hotel creado/actualizado exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al crear/actualizar hotel en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al crear/actualizar hotel en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1282,28 +1416,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de creación de hotel inválidos',
+            error.response.data?.message ||
+              'Parámetros de creación de hotel inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado. Verifica MAARLAB_BASE_URL y que la cadena de hoteles y el partner hayan sido creados previamente.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -1331,10 +1466,12 @@ export class MaarLabService {
   ): Promise<any> {
     try {
       this.logger.log('Iniciando creación de agencia de viajes en MaarLab...');
-      this.logger.debug(`Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`);
+      this.logger.debug(
+        `Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`,
+      );
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint
       const endpoint = `${baseUrl}/travel_agency/complete_process`;
 
@@ -1361,12 +1498,20 @@ export class MaarLabService {
         contact_center_type: completeProcessDto.contact_center_type,
         account_manager_name: completeProcessDto.account_manager_name,
         account_manager_email: completeProcessDto.account_manager_email,
-        ...(completeProcessDto.description && { description: completeProcessDto.description }),
-        ...(completeProcessDto.account_manager_phone && { account_manager_phone: completeProcessDto.account_manager_phone }),
-        ...(completeProcessDto.prefix_locator && { prefix_locator: completeProcessDto.prefix_locator }),
+        ...(completeProcessDto.description && {
+          description: completeProcessDto.description,
+        }),
+        ...(completeProcessDto.account_manager_phone && {
+          account_manager_phone: completeProcessDto.account_manager_phone,
+        }),
+        ...(completeProcessDto.prefix_locator && {
+          prefix_locator: completeProcessDto.prefix_locator,
+        }),
       };
 
-      this.logger.debug(`Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`);
+      this.logger.debug(
+        `Body de la petición: ${JSON.stringify(requestBody).substring(0, 500)}...`,
+      );
 
       // Realizar la petición POST
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
@@ -1375,12 +1520,17 @@ export class MaarLabService {
       });
 
       this.logger.log('Agencia de viajes creada/actualizada exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al crear/actualizar agencia de viajes en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al crear/actualizar agencia de viajes en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1388,7 +1538,7 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           const respData = error.response.data;
           const { summary, raw, hadParts } = describeMaarLabErrorBody(
@@ -1414,21 +1564,21 @@ export class MaarLabService {
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado. Verifica MAARLAB_BASE_URL y que la cadena de hoteles y el partner hayan sido creados previamente.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',
@@ -1456,12 +1606,14 @@ export class MaarLabService {
     completeProcessDto: any,
   ): Promise<any> {
     try {
-      this.logger.log('Iniciando creación de agencia de viajes en MaarLab V1...');
+      this.logger.log(
+        'Iniciando creación de agencia de viajes en MaarLab V1...',
+      );
       this.logger.debug(
         `Agency name: ${completeProcessDto.name}, External ID: ${completeProcessDto.external_id}`,
       );
 
-      let baseUrl = this.normalizeMaarLabBaseUrl();
+      const baseUrl = this.normalizeMaarLabBaseUrl();
 
       const endpoint = baseUrl.endsWith('/v1')
         ? `${baseUrl}/travel_agency/complete_process`
@@ -1489,11 +1641,15 @@ export class MaarLabService {
         contact_center_type: completeProcessDto.contact_center_type,
         account_manager_name: completeProcessDto.account_manager_name,
         account_manager_email: completeProcessDto.account_manager_email,
-        ...(completeProcessDto.description && { description: completeProcessDto.description }),
+        ...(completeProcessDto.description && {
+          description: completeProcessDto.description,
+        }),
         ...(completeProcessDto.account_manager_phone && {
           account_manager_phone: completeProcessDto.account_manager_phone,
         }),
-        ...(completeProcessDto.prefix_locator && { prefix_locator: completeProcessDto.prefix_locator }),
+        ...(completeProcessDto.prefix_locator && {
+          prefix_locator: completeProcessDto.prefix_locator,
+        }),
       };
 
       const response: AxiosResponse = await axios.post(endpoint, requestBody, {
@@ -1501,7 +1657,9 @@ export class MaarLabService {
         timeout: 60000, // 60 segundos de timeout
       });
 
-      this.logger.log('Agencia de viajes creada/actualizada exitosamente en MaarLab V1');
+      this.logger.log(
+        'Agencia de viajes creada/actualizada exitosamente en MaarLab V1',
+      );
       this.logger.debug(
         `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
       );
@@ -1591,7 +1749,7 @@ export class MaarLabService {
       this.logger.debug(`ID Search Engine: ${idSearchEngine}`);
 
       const baseUrl = this.normalizeMaarLabBaseUrl();
-      
+
       // Construir la URL con el endpoint (path parameter)
       const endpoint = `${baseUrl}/search_engine/mapping-external-id/${idSearchEngine}/`;
 
@@ -1604,12 +1762,17 @@ export class MaarLabService {
       });
 
       this.logger.log('External ID obtenido exitosamente');
-      this.logger.debug(`Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`);
+      this.logger.debug(
+        `Respuesta recibida: ${JSON.stringify(response.data).substring(0, 500)}...`,
+      );
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error al obtener external ID en MaarLab:', error.response?.data || error.message);
-      
+      this.logger.error(
+        'Error al obtener external ID en MaarLab:',
+        error.response?.data || error.message,
+      );
+
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new HttpException(
@@ -1617,28 +1780,29 @@ export class MaarLabService {
             HttpStatus.UNAUTHORIZED,
           );
         }
-        
+
         if (error.response?.status === 400) {
           throw new HttpException(
-            error.response.data?.message || 'Parámetros de obtención de external ID inválidos',
+            error.response.data?.message ||
+              'Parámetros de obtención de external ID inválidos',
             HttpStatus.BAD_REQUEST,
           );
         }
-        
+
         if (error.response?.status === 404) {
           throw new HttpException(
             'Endpoint no encontrado o search engine no existe. Verifica MAARLAB_BASE_URL y el id_search_engine.',
             HttpStatus.NOT_FOUND,
           );
         }
-        
+
         if (error.response?.status === 429) {
           throw new HttpException(
             'Límite de solicitudes excedido en MaarLab. Intenta más tarde.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
-        
+
         if (error.response?.status && error.response.status >= 500) {
           throw new HttpException(
             'Error interno del servidor de MaarLab. Intenta más tarde.',

@@ -14,7 +14,8 @@ export class IntegrationsController {
   @Post('create')
   @ApiOperation({
     summary: 'Crear integración',
-    description: 'Registra una nueva integración externa con sus credenciales y configuración.',
+    description:
+      'Registra una nueva integración externa con sus credenciales y configuración.',
   })
   create(@Body() createIntegrationDto: CreateIntegrationDto) {
     return this.integrationsService.create(createIntegrationDto);
@@ -23,10 +24,14 @@ export class IntegrationsController {
   @Post('disponibilidad')
   @ApiOperation({
     summary: 'Consultar disponibilidad vía integración',
-    description: 'Permite a integraciones autorizadas consultar disponibilidad de Autocore usando API key.',
+    description:
+      'Permite a integraciones autorizadas consultar disponibilidad de Autocore usando API key.',
   })
   @HttpCode(200)
-  @ApiKeyProtected(ValidIntegrationsRoles.autodoreDev, ValidIntegrationsRoles.autocoreProd)
+  @ApiKeyProtected(
+    ValidIntegrationsRoles.autodoreDev,
+    ValidIntegrationsRoles.autocoreProd,
+  )
   getDisponibilidad(
     @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
     @GetIntegration('roles') roles: string[],

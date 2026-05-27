@@ -88,7 +88,8 @@ export class GeneratePaymentLinkPersonasDto {
   description: string;
 
   @ApiProperty({
-    description: 'Datos de la reserva para crear automáticamente después del pago',
+    description:
+      'Datos de la reserva para crear automáticamente después del pago',
     type: CreateBookingPersonaDto,
     required: false,
   })
@@ -97,4 +98,3 @@ export class GeneratePaymentLinkPersonasDto {
   @Type(() => CreateBookingPersonaDto)
   reservation_data?: CreateBookingPersonaDto;
 }
-

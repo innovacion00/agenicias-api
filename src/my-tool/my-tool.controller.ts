@@ -11,7 +11,8 @@ export class MyToolController {
   @Get('reservas-info')
   @ApiOperation({
     summary: 'Consultar información de reservas para herramienta interna',
-    description: 'Devuelve información consolidada de reservas según parámetros de consulta internos.',
+    description:
+      'Devuelve información consolidada de reservas según parámetros de consulta internos.',
   })
   getReservaInfo(@Query() reservaInfo: ReservaInfoDto) {
     return this.myToolService.getReservaInfo(reservaInfo);

@@ -9,4 +9,3 @@ export class UpdateReservaStatusDto {
   @Max(6)
   status: number;
 }
-

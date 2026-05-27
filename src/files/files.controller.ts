@@ -19,7 +19,8 @@ export class FilesController {
   @Post('user-profile')
   @ApiOperation({
     summary: 'Subir imagen de perfil de usuario',
-    description: 'Carga una imagen y actualiza la foto de perfil del usuario autenticado.',
+    description:
+      'Carga una imagen y actualiza la foto de perfil del usuario autenticado.',
   })
   @UseInterceptors(
     FileInterceptor('file', {

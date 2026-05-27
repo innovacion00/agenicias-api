@@ -44,7 +44,7 @@ export class SendEmailCustomService {
     const toEmails = Array.isArray(to) ? to.join(', ') : to;
     const messageId = `<${Date.now()}-${Math.random().toString(36)}@gehsuites.com>`;
     const date = new Date().toUTCString();
-    
+
     // Construir headers básicos con mejores prácticas anti-spam
     let message = `From: "Geh Suites" <${from}>\r\n`;
     message += `To: ${toEmails}\r\n`;
@@ -52,30 +52,33 @@ export class SendEmailCustomService {
     message += `Date: ${date}\r\n`;
     message += `Message-ID: ${messageId}\r\n`;
     message += `MIME-Version: 1.0\r\n`;
-    
+
     // Headers anti-spam importantes
     message += `X-Mailer: Geh Suites API\r\n`;
     message += `X-Priority: 3\r\n`; // Prioridad normal
     message += `Precedence: bulk\r\n`; // Indica que es correo masivo/transaccional
     message += `Auto-Submitted: auto-generated\r\n`; // Indica que es generado automáticamente
-    
+
     // Headers de identificación
     message += `Reply-To: ${from}\r\n`;
     message += `Return-Path: ${from}\r\n`;
-    
+
     // Headers de organización
     message += `Organization: Geh Suites\r\n`;
     message += `X-Entity-Ref-ID: ${Date.now()}\r\n`; // ID único para tracking
-    
+
     // Limpiar y normalizar el HTML (eliminar espacios extra y saltos de línea innecesarios)
-    const cleanHtml = html.trim().replace(/\r\n/g, '\n').replace(/\n\s*\n/g, '\n');
-    
+    const cleanHtml = html
+      .trim()
+      .replace(/\r\n/g, '\n')
+      .replace(/\n\s*\n/g, '\n');
+
     // Si hay attachments, usar multipart/mixed
     if (attachments && attachments.length > 0) {
       const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
       message += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
-      
+
       // Parte del HTML (usar base64 para mejor compatibilidad)
       message += `--${boundary}\r\n`;
       message += `Content-Type: text/html; charset=UTF-8\r\n`;
@@ -83,7 +86,7 @@ export class SendEmailCustomService {
       const htmlBase64 = Buffer.from(cleanHtml, 'utf8').toString('base64');
       const htmlBase64Lines = htmlBase64.match(/.{1,76}/g) || [];
       message += htmlBase64Lines.join('\r\n') + '\r\n\r\n';
-      
+
       // Agregar archivos adjuntos
       attachments.forEach((attachment) => {
         message += `--${boundary}\r\n`;
@@ -95,7 +98,7 @@ export class SendEmailCustomService {
         const base64Lines = base64Content.match(/.{1,76}/g) || [];
         message += base64Lines.join('\r\n') + '\r\n';
       });
-      
+
       message += `--${boundary}--\r\n`;
     } else {
       // Sin attachments, mensaje simple HTML (usar base64 para mejor compatibilidad)
@@ -105,7 +108,7 @@ export class SendEmailCustomService {
       const htmlBase64Lines = htmlBase64.match(/.{1,76}/g) || [];
       message += htmlBase64Lines.join('\r\n') + '\r\n';
     }
-    
+
     return message;
   }
 
@@ -128,7 +131,11 @@ export class SendEmailCustomService {
       this.logger.log('Refrescando Access Token de Gmail API...');
 
       // Validar que las variables estén configuradas
-      if (!envs.googleGmailClientId || !envs.googleGmailClientSecret || !envs.googleGmailRefreshToken) {
+      if (
+        !envs.googleGmailClientId ||
+        !envs.googleGmailClientSecret ||
+        !envs.googleGmailRefreshToken
+      ) {
         throw new Error(
           'Variables de entorno faltantes: GOOGLE_GMAIL_CLIENT_ID, GOOGLE_GMAIL_CLIENT_SECRET o GOOGLE_GMAIL_REFRESH_TOKEN',
         );
@@ -136,29 +143,41 @@ export class SendEmailCustomService {
 
       // Limpiar y validar el refresh token (eliminar espacios, saltos de línea, etc.)
       let refreshToken = envs.googleGmailRefreshToken.trim();
-      
+
       // Eliminar cualquier carácter de nueva línea o retorno de carro que pueda haber
       refreshToken = refreshToken.replace(/\r?\n/g, '').replace(/\s+/g, '');
-      
+
       // Validar formato básico (debe comenzar con "1//")
       if (!refreshToken || refreshToken.length < 10) {
-        this.logger.error(`Refresh Token inválido: length=${refreshToken?.length || 0}`);
+        this.logger.error(
+          `Refresh Token inválido: length=${refreshToken?.length || 0}`,
+        );
         throw new Error('GOOGLE_GMAIL_REFRESH_TOKEN no es válido o está vacío');
       }
-      
+
       if (!refreshToken.startsWith('1//')) {
-        this.logger.warn(`Refresh Token no tiene el formato esperado. Primeros caracteres: ${refreshToken.substring(0, 10)}`);
+        this.logger.warn(
+          `Refresh Token no tiene el formato esperado. Primeros caracteres: ${refreshToken.substring(0, 10)}`,
+        );
       }
 
       // Logging detallado para debugging (usar log en lugar de debug para ver siempre)
-      this.logger.log(`[DEBUG] Client ID: ${envs.googleGmailClientId?.substring(0, 30) || 'NO DEFINIDO'}...`);
-      this.logger.log(`[DEBUG] Client Secret: ${envs.googleGmailClientSecret?.substring(0, 10) || 'NO DEFINIDO'}...`);
-      this.logger.log(`[DEBUG] Refresh Token (primeros 30 chars): ${refreshToken.substring(0, 30)}...`);
-      this.logger.log(`[DEBUG] Refresh Token length: ${refreshToken.length} caracteres`);
+      this.logger.log(
+        `[DEBUG] Client ID: ${envs.googleGmailClientId?.substring(0, 30) || 'NO DEFINIDO'}...`,
+      );
+      this.logger.log(
+        `[DEBUG] Client Secret: ${envs.googleGmailClientSecret?.substring(0, 10) || 'NO DEFINIDO'}...`,
+      );
+      this.logger.log(
+        `[DEBUG] Refresh Token (primeros 30 chars): ${refreshToken.substring(0, 30)}...`,
+      );
+      this.logger.log(
+        `[DEBUG] Refresh Token length: ${refreshToken.length} caracteres`,
+      );
       this.logger.log(`[DEBUG] Refresh Token completo: ${refreshToken}`);
 
       const tokenUrl = 'https://oauth2.googleapis.com/token';
-      
+
       const params = new URLSearchParams({
         client_id: envs.googleGmailClientId.trim(),
         client_secret: envs.googleGmailClientSecret.trim(),
@@ -192,15 +211,25 @@ export class SendEmailCustomService {
       this.logger.error('Error al refrescar Access Token:', error);
       if (error.response) {
         this.logger.error(`Status: ${error.response.status}`);
-        this.logger.error(`Respuesta: ${JSON.stringify(error.response.data, null, 2)}`);
-        
+        this.logger.error(
+          `Respuesta: ${JSON.stringify(error.response.data, null, 2)}`,
+        );
+
         // Mensajes más específicos según el error
         if (error.response.data?.error === 'invalid_grant') {
-          this.logger.error('⚠️  El refresh token es inválido o ha sido revocado');
+          this.logger.error(
+            '⚠️  El refresh token es inválido o ha sido revocado',
+          );
           this.logger.error('⚠️  Posibles causas:');
-          this.logger.error('   1. El refresh token no está configurado correctamente en GOOGLE_GMAIL_REFRESH_TOKEN');
-          this.logger.error('   2. El refresh token fue revocado en Google Cloud Console');
-          this.logger.error('   3. El refresh token tiene espacios o caracteres extra');
+          this.logger.error(
+            '   1. El refresh token no está configurado correctamente en GOOGLE_GMAIL_REFRESH_TOKEN',
+          );
+          this.logger.error(
+            '   2. El refresh token fue revocado en Google Cloud Console',
+          );
+          this.logger.error(
+            '   3. El refresh token tiene espacios o caracteres extra',
+          );
           this.logger.error('   4. Necesitas generar un nuevo refresh token');
         }
       }
@@ -215,7 +244,11 @@ export class SendEmailCustomService {
    */
   private async getValidAccessToken(): Promise<string> {
     // Si tenemos un token en cache y no ha expirado, usarlo
-    if (this.cachedAccessToken && this.tokenExpiryTime && Date.now() < this.tokenExpiryTime) {
+    if (
+      this.cachedAccessToken &&
+      this.tokenExpiryTime &&
+      Date.now() < this.tokenExpiryTime
+    ) {
       this.logger.debug('Usando Access Token en cache');
       return this.cachedAccessToken;
     }
@@ -241,54 +274,56 @@ export class SendEmailCustomService {
     apiUrl: string,
     payload: any,
     headers: any,
-    maxRetries: number = 3,
-    initialDelay: number = 1000,
+    maxRetries = 3,
+    initialDelay = 1000,
   ): Promise<any> {
     let lastError: any = null;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const response = await axios.post(apiUrl, payload, { headers });
         return response;
       } catch (error: any) {
         lastError = error;
-        
+
         // Solo reintentar si es error 429 (Too Many Requests)
         if (error.response?.status === 429 && attempt < maxRetries) {
           // Calcular delay con backoff exponencial
-          const retryAfter = error.response.headers['retry-after'] || error.response.headers['Retry-After'];
+          const retryAfter =
+            error.response.headers['retry-after'] ||
+            error.response.headers['Retry-After'];
           let delay: number;
-          
+
           if (retryAfter) {
             // Usar el valor de Retry-After si está disponible (en segundos)
             delay = parseInt(retryAfter, 10) * 1000;
             this.logger.warn(
               `Error 429 recibido. Gmail API indica esperar ${retryAfter} segundos. ` +
-              `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`
+                `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`,
             );
           } else {
             // Backoff exponencial: 1s, 2s, 4s, 8s...
             delay = initialDelay * Math.pow(2, attempt);
             this.logger.warn(
               `Error 429 recibido (límite de cuota excedido). ` +
-              `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`
+                `Reintentando en ${delay / 1000} segundos... (intento ${attempt + 1}/${maxRetries})`,
             );
           }
-          
+
           // Esperar antes de reintentar
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-        
+
         // Si no es 429 o ya se agotaron los reintentos, lanzar el error
         throw error;
       }
     }
-    
+
     // Si llegamos aquí, se agotaron todos los reintentos
     throw lastError;
   }
-  
+
   public async sendEmail(
     target: string | string[],
     subject: string,
@@ -296,13 +331,17 @@ export class SendEmailCustomService {
     attachments?: Attachment[],
   ) {
     // Validar que las variables de entorno estén configuradas
-    if (!envs.googleGmailApiKey || !envs.googleGmailUrl || 
-        !envs.googleGmailClientId || !envs.googleGmailClientSecret || 
-        !envs.googleGmailRefreshToken) {
+    if (
+      !envs.googleGmailApiKey ||
+      !envs.googleGmailUrl ||
+      !envs.googleGmailClientId ||
+      !envs.googleGmailClientSecret ||
+      !envs.googleGmailRefreshToken
+    ) {
       this.logger.error('Variables de entorno de Gmail API no configuradas');
       throw new InternalServerErrorException(
         'Configuración de Gmail API no encontrada. Verifique: GOOGLE_GMAIL_API_KEY, ' +
-        'GOOGLE_GMAIL_URL, GOOGLE_GMAIL_CLIENT_ID, GOOGLE_GMAIL_CLIENT_SECRET y GOOGLE_GMAIL_REFRESH_TOKEN',
+          'GOOGLE_GMAIL_URL, GOOGLE_GMAIL_CLIENT_ID, GOOGLE_GMAIL_CLIENT_SECRET y GOOGLE_GMAIL_REFRESH_TOKEN',
       );
     }
 
@@ -313,12 +352,14 @@ export class SendEmailCustomService {
       );
     }
 
-    this.logger.log(`Intentando enviar email a: ${Array.isArray(target) ? target.join(', ') : target}`);
+    this.logger.log(
+      `Intentando enviar email a: ${Array.isArray(target) ? target.join(', ') : target}`,
+    );
     this.logger.log(`Asunto: ${subject}`);
 
     // Obtener el userId de Gmail
     const userId = this.getGmailUserId(envs.senderEmail);
-    
+
     // Construir el mensaje en formato RFC 2822
     const rawMessage = this.buildRfc2822Message(
       envs.senderEmail,
@@ -329,9 +370,13 @@ export class SendEmailCustomService {
     );
 
     // Logging del mensaje (primeros 500 caracteres para debug)
-    this.logger.debug(`Mensaje RFC 2822 (primeros 500 chars):\n${rawMessage.substring(0, 500)}...`);
+    this.logger.debug(
+      `Mensaje RFC 2822 (primeros 500 chars):\n${rawMessage.substring(0, 500)}...`,
+    );
     this.logger.log(`Remitente: ${envs.senderEmail}`);
-    this.logger.log(`Destinatario: ${Array.isArray(target) ? target.join(', ') : target}`);
+    this.logger.log(
+      `Destinatario: ${Array.isArray(target) ? target.join(', ') : target}`,
+    );
 
     // Convertir el mensaje a base64url
     const encodedMessage = this.bufferToBase64Url(Buffer.from(rawMessage));
@@ -356,7 +401,7 @@ export class SendEmailCustomService {
 
       // Configurar headers
       const headers = {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       };
 
@@ -367,24 +412,35 @@ export class SendEmailCustomService {
       try {
         const profileUrl = `${baseUrl}/gmail/v1/users/me/profile`;
         const profileResponse = await axios.get(profileUrl, { headers });
-        this.logger.log(`Cuenta Gmail autenticada: ${profileResponse.data.emailAddress}`);
-        
+        this.logger.log(
+          `Cuenta Gmail autenticada: ${profileResponse.data.emailAddress}`,
+        );
+
         // Verificar que el remitente coincida con la cuenta autenticada
-        if (profileResponse.data.emailAddress && profileResponse.data.emailAddress !== envs.senderEmail) {
+        if (
+          profileResponse.data.emailAddress &&
+          profileResponse.data.emailAddress !== envs.senderEmail
+        ) {
           this.logger.warn(
             `⚠️ ADVERTENCIA: El remitente configurado (${envs.senderEmail}) no coincide con la cuenta autenticada (${profileResponse.data.emailAddress}). ` +
-            `Esto puede causar que los correos no se envíen correctamente.`
+              `Esto puede causar que los correos no se envíen correctamente.`,
           );
         }
       } catch (profileError) {
-        this.logger.warn('No se pudo verificar el perfil de la cuenta (no crítico)');
+        this.logger.warn(
+          'No se pudo verificar el perfil de la cuenta (no crítico)',
+        );
       }
 
       // Enviar el email usando la API de Gmail con retry para errores 429
       const response = await this.sendEmailWithRetry(apiUrl, payload, headers);
 
-      this.logger.log(`Email enviado exitosamente. MessageId: ${response.data.id}`);
-      this.logger.log(`Respuesta de Gmail API: ${JSON.stringify(response.data)}`);
+      this.logger.log(
+        `Email enviado exitosamente. MessageId: ${response.data.id}`,
+      );
+      this.logger.log(
+        `Respuesta de Gmail API: ${JSON.stringify(response.data)}`,
+      );
 
       return {
         messageId: response.data.id,
@@ -394,70 +450,86 @@ export class SendEmailCustomService {
     } catch (error) {
       this.logger.error('Error al enviar email:', error);
       this.logger.error(`Detalles del error: ${error.message}`);
-      
+
       if (error.response) {
         const errorData = error.response.data;
-        this.logger.error(`Respuesta de Gmail API: ${JSON.stringify(errorData, null, 2)}`);
+        this.logger.error(
+          `Respuesta de Gmail API: ${JSON.stringify(errorData, null, 2)}`,
+        );
         this.logger.error(`Status: ${error.response.status}`);
-        
+
         // Mensajes específicos para errores comunes
         if (error.response.status === 401) {
-          const errorMessage = errorData?.error?.message || 'Token inválido o expirado';
-          
+          const errorMessage =
+            errorData?.error?.message || 'Token inválido o expirado';
+
           // Si el token falló, limpiar cache e intentar refrescar
           this.cachedAccessToken = null;
           this.tokenExpiryTime = null;
-          
+
           // Intentar refrescar el token y reintentar una vez
           try {
             this.logger.log('Token expirado, intentando refrescar...');
             const newToken = await this.refreshAccessToken();
-            
+
             // Reintentar con el nuevo token
             const retryHeaders = {
-              'Authorization': `Bearer ${newToken}`,
+              Authorization: `Bearer ${newToken}`,
               'Content-Type': 'application/json',
             };
-            
+
             this.logger.log('Reintentando envío con nuevo token...');
-            const retryResponse = await this.sendEmailWithRetry(apiUrl, payload, retryHeaders);
-            
-            this.logger.log(`Email enviado exitosamente después de refrescar token. MessageId: ${retryResponse.data.id}`);
+            const retryResponse = await this.sendEmailWithRetry(
+              apiUrl,
+              payload,
+              retryHeaders,
+            );
+
+            this.logger.log(
+              `Email enviado exitosamente después de refrescar token. MessageId: ${retryResponse.data.id}`,
+            );
             return {
               messageId: retryResponse.data.id,
               threadId: retryResponse.data.threadId,
               labelIds: retryResponse.data.labelIds,
             };
           } catch (retryError) {
-            this.logger.error('Error al reintentar después de refrescar token:', retryError);
+            this.logger.error(
+              'Error al reintentar después de refrescar token:',
+              retryError,
+            );
             throw new InternalServerErrorException(
               `Error de autenticación con Gmail API: ${errorMessage}. ` +
-              `Verifica que GOOGLE_GMAIL_CLIENT_ID, GOOGLE_GMAIL_CLIENT_SECRET y ` +
-              `GOOGLE_GMAIL_REFRESH_TOKEN estén configurados correctamente.`,
+                `Verifica que GOOGLE_GMAIL_CLIENT_ID, GOOGLE_GMAIL_CLIENT_SECRET y ` +
+                `GOOGLE_GMAIL_REFRESH_TOKEN estén configurados correctamente.`,
             );
           }
         }
-        
+
         if (error.response.status === 403) {
           throw new InternalServerErrorException(
             `Error de permisos con Gmail API: ${errorData?.error?.message || 'Sin permisos'}. ` +
-            `Verifica que el token tenga el scope 'https://www.googleapis.com/auth/gmail.send'.`,
+              `Verifica que el token tenga el scope 'https://www.googleapis.com/auth/gmail.send'.`,
           );
         }
 
         if (error.response.status === 429) {
-          const retryAfter = error.response.headers['retry-after'] || error.response.headers['Retry-After'];
-          const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : null;
-          
+          const retryAfter =
+            error.response.headers['retry-after'] ||
+            error.response.headers['Retry-After'];
+          const retryAfterSeconds = retryAfter
+            ? parseInt(retryAfter, 10)
+            : null;
+
           throw new InternalServerErrorException(
             `Límite de solicitudes excedido en Gmail API (429 Too Many Requests). ` +
-            `${retryAfterSeconds ? `Intenta nuevamente después de ${retryAfterSeconds} segundos.` : 'Intenta nuevamente más tarde.'} ` +
-            `Gmail API tiene límites de cuota: 1 billón de cuotas por día por usuario. ` +
-            `Si el problema persiste, considera implementar un sistema de cola de emails.`,
+              `${retryAfterSeconds ? `Intenta nuevamente después de ${retryAfterSeconds} segundos.` : 'Intenta nuevamente más tarde.'} ` +
+              `Gmail API tiene límites de cuota: 1 billón de cuotas por día por usuario. ` +
+              `Si el problema persiste, considera implementar un sistema de cola de emails.`,
           );
         }
       }
-      
+
       if (error.code) {
         this.logger.error(`Código de error: ${error.code}`);
       }

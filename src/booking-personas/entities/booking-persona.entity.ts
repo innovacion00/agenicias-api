@@ -195,5 +195,5 @@ export class BookingPersona extends Document {
   }>;
 }
 
-export const BookingPersonaSchema = SchemaFactory.createForClass(BookingPersona);
-
+export const BookingPersonaSchema =
+  SchemaFactory.createForClass(BookingPersona);
