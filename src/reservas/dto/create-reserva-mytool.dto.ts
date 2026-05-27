@@ -39,7 +39,7 @@ class TitularInfoDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(3)
+  @MinLength(1)
   @MaxLength(20)
   tipoDocumento: string;
 
