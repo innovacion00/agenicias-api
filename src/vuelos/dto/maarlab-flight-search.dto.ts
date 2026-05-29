@@ -43,7 +43,7 @@ export class MaarLabFlightSearchDto {
 
   @IsNumber()
   @Min(1)
-  @Max(50)
+  @Max(5)
   @Transform(({ value }) => parseInt(value))
   adults: number;
 
