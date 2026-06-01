@@ -6,6 +6,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -32,12 +33,13 @@ import { randomBytes } from 'crypto';
 import { SendEmailCustomService } from 'src/common/services';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(AuthService.name);
+  private readonly encuestaExcludedAgenciaId = '677d771d155954115cea20a3';
 
   private readonly userAttributes =
-    'email telefono fullName firstLog role agencia isActive changePassword otpRef imageUrl settings password';
+    'email telefono fullName firstLog encuesta role agencia isActive changePassword otpRef imageUrl settings password';
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
@@ -60,6 +62,30 @@ export class AuthService {
   private generateJwt(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
     return token;
+  }
+
+  private getInitialEncuestaValue(agenciaId: Types.ObjectId): boolean {
+    return agenciaId.toString() === this.encuestaExcludedAgenciaId;
+  }
+
+  async onModuleInit() {
+    try {
+      const excludedAgenciaObjectId = new Types.ObjectId(
+        this.encuestaExcludedAgenciaId,
+      );
+
+      await this.userModel.updateMany(
+        { agencia: { $ne: excludedAgenciaObjectId } },
+        { $set: { encuesta: false } },
+      );
+
+      await this.userModel.updateMany(
+        { agencia: excludedAgenciaObjectId },
+        { $set: { encuesta: true } },
+      );
+    } catch (error) {
+      this.logger.error('Error sincronizando campo encuesta al iniciar', error);
+    }
   }
 
   private async generateRefreshToken(userId: Types.ObjectId): Promise<string> {
@@ -280,6 +306,7 @@ td {
         ...userData,
         role: agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'],
         agencia: new Types.ObjectId(id),
+        encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
         password: bcrypt.hashSync(password, 10),
       });
 
@@ -341,6 +368,7 @@ td {
         ...userData,
         role: adminRole ? ['admin'] : ['user'],
         agencia: new Types.ObjectId(id),
+        encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
         password: bcrypt.hashSync(password, 10),
       });
 
@@ -829,6 +857,36 @@ td {
       return {
         message: 'Políticas de agencia actualizadas correctamente',
         politicasAgencia: agencia.politicasAgencia,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async actualizarEncuesta(userId: string) {
+    try {
+      const user = await this.userModel.findById(userId).select('encuesta');
+
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (user.encuesta) {
+        return {
+          ok: true,
+          message: 'La encuesta ya estaba actualizada',
+          encuesta: true,
+        };
+      }
+
+      user.encuesta = true;
+      await user.save();
+
+      return {
+        ok: true,
+        message: 'Encuesta actualizada correctamente',
+        encuesta: true,
       };
     } catch (error) {
       this.logger.error(error);

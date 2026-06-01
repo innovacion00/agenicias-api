@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import axios from 'axios';
 
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 import { CreateIntegrationDto } from './dto';
+import { ChatBridgeDto } from './dto/chat-bridge.dto';
 import { ErrorManager } from 'src/common/helpers';
 import { InjectModel } from '@nestjs/mongoose';
 import { Integration } from './entities';
@@ -11,6 +13,7 @@ import { Model } from 'mongoose';
 import { HttpCustomService } from 'src/common/services';
 import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 import { ValidIntegrationsRoles } from 'src/auth/interfaces';
+import { envs } from 'src/config';
 
 @Injectable()
 export class IntegrationsService {
@@ -80,6 +83,30 @@ export class IntegrationsService {
 
         return data;
       }
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  async chat(chatBridgeDto: ChatBridgeDto, b2bToken: string) {
+    try {
+      const hostBridge = envs.hostBridge?.trim();
+      const baseHost = hostBridge?.replace(/^https?:\/\//, '');
+      const bridgeUrl = `http://${baseHost}:3001/chat`;
+
+      const payload = {
+        ...chatBridgeDto,
+        b2bToken,
+      };
+
+      const { data } = await axios.post(bridgeUrl, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return data;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
