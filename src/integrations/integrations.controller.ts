@@ -1,8 +1,20 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IntegrationsService } from './integrations.service';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
-import { ApiKeyProtected, GetIntegration } from 'src/auth/decorators';
+import { ChatBridgeDto } from './dto';
+import {
+  ApiKeyProtected,
+  Auth,
+  GetIntegration,
+} from 'src/auth/decorators';
 import { ValidIntegrationsRoles } from 'src/auth/interfaces';
 import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 
@@ -40,5 +52,28 @@ export class IntegrationsController {
       disponibilidadAutoCoreDto,
       roles,
     );
+  }
+
+  @Post('chat')
+  @ApiOperation({
+    summary: 'Enviar mensaje al bridge de chat',
+    description:
+      'Reenvía mensaje y contexto opcional al bridge POST /chat usando el Bearer token del header Authorization como b2bToken.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @Auth()
+  @HttpCode(200)
+  chat(
+    @Body() chatBridgeDto: ChatBridgeDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const b2bToken = authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!b2bToken) {
+      throw new UnauthorizedException(
+        'Authorization Bearer token requerido',
+      );
+    }
+
+    return this.integrationsService.chat(chatBridgeDto, b2bToken);
   }
 }

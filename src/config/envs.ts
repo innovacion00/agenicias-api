@@ -79,6 +79,9 @@ interface EnvVars {
   MAARLAB_PARTNER_SYNC_BEARER?: string;
   /** UUID cadena MaarLab (`id_chain_search_engine`) para el script de sincronización. */
   MAARLAB_CHAIN_SEARCH_ENGINE_ID?: string;
+
+  //? Bridge Chat
+  HOST_BRIDGE: string;
 }
 
 // API_1525: joi.string().required(),
@@ -160,6 +163,9 @@ const envSchema = joi
       .allow('')
       .optional()
       .default(''),
+
+    //? Bridge Chat
+    HOST_BRIDGE: joi.string().required(),
   })
   .unknown(true);
 
@@ -248,4 +254,7 @@ export const envs = {
   maarlabPartnerSyncBearer: envVars.MAARLAB_PARTNER_SYNC_BEARER ?? '',
   /** UUID cadena para `id_chain_search_engine`. */
   maarlabChainSearchEngineId: envVars.MAARLAB_CHAIN_SEARCH_ENGINE_ID ?? '',
+
+  //? Bridge Chat
+  hostBridge: envVars.HOST_BRIDGE,
 };

@@ -565,7 +565,7 @@ export class CotizacionesService {
 
     // Consultar disponibilidad usando categoría de agencia
     const agenciaInfo = await this.agenciaModel
-      .findById(cotizacion.agenciaId)
+      .findById(cotizacion.agenciaId) 
       .populate('category');
 
     if (!agenciaInfo) {
