@@ -69,6 +69,12 @@ export class User extends Document {
   firstLog: boolean;
 
   @Prop({
+    type: Boolean,
+    default: false,
+  })
+  encuesta: boolean;
+
+  @Prop({
     type: [String],
     required: true,
     enum: Object.values(ValidRoles),

@@ -205,4 +205,20 @@ export class AuthController {
       updatePoliticasDto.politicasAgencia,
     );
   }
+
+  @ApiOperation({
+    summary: 'Marcar encuesta como completada',
+    description: 'Actualiza el campo encuesta del usuario autenticado a true.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({
+    status: 200,
+    description: 'Encuesta actualizada correctamente',
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @Patch('encuesta')
+  @Auth()
+  actualizarEncuesta(@GetUser('_id') userId: string) {
+    return this.authService.actualizarEncuesta(userId);
+  }
 }
