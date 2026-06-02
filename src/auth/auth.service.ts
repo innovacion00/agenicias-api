@@ -68,6 +68,36 @@ export class AuthService implements OnModuleInit {
     return agenciaId.toString() === this.encuestaExcludedAgenciaId;
   }
 
+  /**
+   * Primer login exitoso: firstLog sigue false.
+   * Segundo login exitoso en adelante: firstLog pasa a true.
+   */
+  private async processFirstLogAfterLogin(
+    userId: string,
+  ): Promise<{ firstLog: boolean }> {
+    const user = await this.userModel
+      .findById(userId)
+      .select('firstLog loginCount');
+
+    if (!user) {
+      return { firstLog: false };
+    }
+
+    if (user.firstLog) {
+      return { firstLog: true };
+    }
+
+    const nextCount = (user.loginCount ?? 0) + 1;
+    user.loginCount = nextCount;
+
+    if (nextCount >= 2) {
+      user.firstLog = true;
+    }
+
+    await user.save();
+    return { firstLog: user.firstLog };
+  }
+
   async onModuleInit() {
     try {
       const excludedAgenciaObjectId = new Types.ObjectId(
@@ -307,6 +337,8 @@ td {
         role: agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'],
         agencia: new Types.ObjectId(id),
         encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
+        firstLog: false,
+        loginCount: 0,
         password: bcrypt.hashSync(password, 10),
       });
 
@@ -368,6 +400,8 @@ td {
         role: adminRole ? ['admin'] : ['user'],
         agencia: new Types.ObjectId(id),
         encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
+        firstLog: false,
+        loginCount: 0,
         password: bcrypt.hashSync(password, 10),
       });
 
@@ -422,6 +456,8 @@ td {
     }
 
     if (user.settings.omitirOtp) {
+      const { firstLog } = await this.processFirstLogAfterLogin(user.id);
+      user.firstLog = firstLog;
       const { password, ...userWithoutPassword } = user.toJSON();
       const tokens = await this.generateTokenPair(
         (user._id as Types.ObjectId).toString(),
@@ -481,6 +517,9 @@ td {
       validacionDb.usado = true;
 
       await validacionDb.save();
+
+      const { firstLog } = await this.processFirstLogAfterLogin(userData.id);
+      userData.firstLog = firstLog;
 
       const { password, ...userWithoutPassword } = userData.toJSON();
       const tokens = await this.generateTokenPair(
