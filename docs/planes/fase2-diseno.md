@@ -1,6 +1,6 @@
 # Fase 2 — Diseño final (Arquitecto)
 
-> Estado: GATE (pendiente de aprobación humana).
+> Estado: APROBADO (2026-06-11).
 > Insumos: `fase2-inventario-reservas.md`, `fase2-inventario-http.md`,
 > `fase2-diff-busquedas.md`, `fase2-inventario-errores.md`, verificados contra
 > el código en `src/` el 2026-06-10.
