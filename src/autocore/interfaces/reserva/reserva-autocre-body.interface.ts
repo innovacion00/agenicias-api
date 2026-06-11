@@ -1,4 +1,4 @@
-import { ValidCities } from 'src/common/interface';
+import { ValidCities } from '../disponibilidad';
 
 export interface IreservaInfo {
   agency: Agency;
