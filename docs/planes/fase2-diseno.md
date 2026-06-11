@@ -14,6 +14,24 @@
 
 ---
 
+## 0. Estado de ejecución (Etapa E)
+
+| PR | Estado | Merge en `mejoras/plan-implementacion` |
+|----|--------|------------------------------------------|
+| Fase 1 (tests de dinero, prerrequisito §0.3 / R1) | ✅ Mergeado | `92a95ff` |
+| **2.1 búsquedas** | ✅ Mergeado | `49adada` |
+| **2.2 clientes** | ✅ Mergeado | `3d3d5ed` |
+| **2.3 filtro** | ✅ Mergeado | `1b26bff` |
+| 2.4 booking | ⏳ Pendiente — desbloqueada (2.1+2.2+2.3 ya mergeadas) | — |
+| 2.5 pagos | ⏳ Pendiente — requiere 2.4 | — |
+| 2.6 cancelación | ⏳ Pendiente — requiere 2.5 | — |
+| 2.7 plantillas | ⏳ Pendiente — puede arrancar en paralelo con 2.4–2.6 | — |
+| 2.8 mecánica final | ⏳ Pendiente — siempre la última | — |
+
+R1 (§6) queda resuelto: Fase 1 cerrada antes de iniciar 2.4.
+
+---
+
 ## 1. Decisiones de diseño cerradas
 
 ### D1 — Clientes HTTP: módulos top-level `src/autocore/` y `src/cobre/`
