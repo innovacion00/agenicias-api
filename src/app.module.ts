@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
+import { randomUUID } from 'crypto';
 
 import { envs } from './config';
+import { GlobalExceptionFilter } from './common/filters';
 
 import { AgenciasModule } from './agencias/agencias.module';
 import { AuthModule } from './auth/auth.module';
@@ -34,6 +36,9 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        // correlationId real por petición (reemplaza el contador por proceso
+        // de pino-http); el GlobalExceptionFilter lo expone como correlationId
+        genReqId: () => randomUUID(),
         transport:
           process.env.NODE_ENV !== 'production'
             ? {
@@ -126,6 +131,13 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // Filtro global de excepciones (superset compatible: añade
+    // correlationId/timestamp/path sin cambiar statusCode ni message).
+    // El filtro local de VuelosController (@UseFilters) gana por precedencia.
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
     },
   ],
 })
