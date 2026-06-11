@@ -54,6 +54,7 @@ import {
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
+import { ReservasSearchService } from './services/reservas-search.service';
 import { ValidRoles } from 'src/auth/interfaces';
 import {
   CancelReservaMyToolDto,
@@ -66,15 +67,6 @@ export class ReservasService {
   private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(ReservasService.name);
 
-  // Caché para totales de documentos (evita recalcular en cada request)
-  private countCache: Map<string, { count: number; timestamp: number }> =
-    new Map();
-  private readonly CACHE_TTL = 60000; // 1 minuto en milisegundos
-
-  // Caché para suma de totales de reservas no canceladas
-  private sumaTotalesCache: { value: number; timestamp: number } | null = null;
-  private readonly SUMA_CACHE_TTL = 60000; // 1 minuto en milisegundos
-
   constructor(
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
@@ -85,142 +77,9 @@ export class ReservasService {
     private readonly myToolBookingService: MyToolBookingService,
     @InjectConnection()
     private readonly connection: Connection,
+    private readonly reservasSearchService: ReservasSearchService,
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
-  }
-
-  /**
-   * Obtiene el total de documentos con caché
-   * @param filter Filtro de búsqueda para generar clave de caché
-   * @param useCache Si es false, fuerza recalcular
-   */
-  private async getCachedCount(filter: any, useCache = true): Promise<number> {
-    const cacheKey = JSON.stringify(filter);
-    const cached = this.countCache.get(cacheKey);
-
-    if (useCache && cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      this.logger.debug(`Usando total en caché: ${cached.count}`);
-      return cached.count;
-    }
-
-    // OPTIMIZACIÓN: Para queries sin filtros, usar estimatedDocumentCount (más rápido)
-    const isEmptyFilter = !filter || Object.keys(filter).length === 0;
-    let count: number;
-
-    if (isEmptyFilter) {
-      try {
-        count = await this.reservasModel.estimatedDocumentCount();
-        this.logger.debug(`Total estimado (sin filtros): ${count}`);
-      } catch (error) {
-        this.logger.warn(
-          'Error al obtener estimatedDocumentCount, usando countDocuments',
-        );
-        count = await this.reservasModel.countDocuments(filter);
-      }
-    } else {
-      count = await this.reservasModel.countDocuments(filter);
-    }
-
-    // Guardar en caché
-    this.countCache.set(cacheKey, { count, timestamp: Date.now() });
-
-    // Limpiar caché antiguo (más de 5 minutos)
-    this.cleanOldCache();
-
-    return count;
-  }
-
-  /**
-   * Limpia entradas de caché antiguas
-   */
-  private cleanOldCache(): void {
-    const now = Date.now();
-    const maxAge = this.CACHE_TTL * 5; // 5 minutos
-
-    for (const [key, value] of this.countCache.entries()) {
-      if (now - value.timestamp > maxAge) {
-        this.countCache.delete(key);
-      }
-    }
-
-    // Limpiar caché de suma de totales si es antiguo
-    if (
-      this.sumaTotalesCache &&
-      now - this.sumaTotalesCache.timestamp > this.SUMA_CACHE_TTL * 5
-    ) {
-      this.sumaTotalesCache = null;
-    }
-  }
-
-  /**
-   * Obtiene la suma de totales de reservas no canceladas con caché
-   */
-  private async getSumaTotalesNoCanceladas(useCache = true): Promise<number> {
-    // Verificar caché
-    if (
-      useCache &&
-      this.sumaTotalesCache &&
-      Date.now() - this.sumaTotalesCache.timestamp < this.SUMA_CACHE_TTL
-    ) {
-      this.logger.debug(
-        `Usando suma de totales en caché: ${this.sumaTotalesCache.value}`,
-      );
-      return this.sumaTotalesCache.value;
-    }
-
-    // Calcular la suma usando agregación
-    const sumaTotalesNoCanceladas = await this.reservasModel.aggregate([
-      {
-        $match: {
-          status: { $ne: 4 }, // Excluir reservas canceladas (status = 4)
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalSum: { $sum: '$total' },
-        },
-      },
-    ]);
-
-    const totalSuma =
-      sumaTotalesNoCanceladas.length > 0
-        ? sumaTotalesNoCanceladas[0].totalSum
-        : 0;
-
-    // Guardar en caché
-    this.sumaTotalesCache = {
-      value: totalSuma,
-      timestamp: Date.now(),
-    };
-
-    this.logger.debug(`Suma de totales calculada: ${totalSuma}`);
-    return totalSuma;
-  }
-
-  /**
-   * Calcula la suma de totales de reservas que coinciden con un filtro
-   * @param filter Filtro de búsqueda
-   */
-  private async calcularSumaTotalesPorFiltro(filter: any): Promise<number> {
-    try {
-      const resultado = await this.reservasModel.aggregate([
-        {
-          $match: filter,
-        },
-        {
-          $group: {
-            _id: null,
-            totalSum: { $sum: '$total' },
-          },
-        },
-      ]);
-
-      return resultado.length > 0 ? resultado[0].totalSum : 0;
-    } catch (error) {
-      this.logger.error('Error al calcular suma de totales:', error);
-      return 0;
-    }
   }
 
   // #region Crear reserva
@@ -1093,105 +952,10 @@ export class ReservasService {
 
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
-    try {
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      // Asegurar que userId sea un ObjectId válido para la búsqueda
-      // Esto funciona tanto para reservas existentes como nuevas
-      let userIdObjectId: Types.ObjectId;
-
-      if (userId instanceof Types.ObjectId) {
-        userIdObjectId = userId;
-      } else if (typeof userId === 'string') {
-        // Validar que sea un ObjectId válido antes de crear
-        if (!Types.ObjectId.isValid(userId)) {
-          throw new BadRequestException('ID de usuario inválido');
-        }
-        userIdObjectId = new Types.ObjectId(userId);
-      } else {
-        throw new BadRequestException('Formato de ID de usuario no válido');
-      }
-
-      const filter = this.buildIdFilter('userId', userIdObjectId);
-
-      // OPTIMIZACIÓN: Usar caché para el total y optimizar query con índices
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filter)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 }) // Usa índice compuesto { userId: 1, status: 1, createdAt: -1 }
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(), // Mejor rendimiento al retornar objetos planos
-        this.getCachedCount(filter), // Usa caché para el total
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.reservasSearchService.getReservasByUser(userId, page);
   }
 
   // #region Búsquedas de reservas
-  /**
-   * Compatibilidad con datos legacy:
-   * algunas reservas antiguas pueden tener IDs persistidos como string.
-   * Construimos filtros que aceptan ObjectId y su representación string.
-   */
-  private buildIdFilter(
-    field: 'userId' | 'agenciaId',
-    id: Types.ObjectId | string,
-  ): Record<string, any> {
-    const idAsString = typeof id === 'string' ? id : id.toString();
-
-    if (!Types.ObjectId.isValid(idAsString)) {
-      return { [field]: idAsString };
-    }
-
-    const objectId =
-      id instanceof Types.ObjectId ? id : new Types.ObjectId(idAsString);
-
-    return { [field]: { $in: [objectId, idAsString] } };
-  }
-
-  /**
-   * Helper para construir filtro base según el rol del usuario
-   */
-  private construirFiltroPorRol(
-    userId: Types.ObjectId,
-    agenciaId: Types.ObjectId,
-    roles: string[],
-  ): any {
-    const esSuperAdmin = roles.includes('super-admin');
-    const esAdmin = roles.includes('admin');
-
-    if (esSuperAdmin) {
-      // SuperAdmin: sin filtros, puede ver todas las reservas
-      return {};
-    } else if (esAdmin) {
-      // Admin: solo reservas de su agencia
-      return this.buildIdFilter('agenciaId', agenciaId);
-    } else {
-      // User: solo sus propias reservas
-      return this.buildIdFilter('userId', userId);
-    }
-  }
-
   //? Buscar reserva por reservaChatbotId
   // Nota: reservaChatbotId es único, por lo tanto la búsqueda es exacta
   // No requiere paginación porque siempre retorna 0 o 1 resultado
@@ -1200,38 +964,13 @@ export class ReservasService {
     userId: Types.ObjectId,
     agenciaId: Types.ObjectId,
     roles: string[],
-  ): Promise<{
-    data: any | null;
-    found: boolean;
-    sumaTotales?: number;
-  }> {
-    try {
-      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
-
-      // Búsqueda exacta (reservaChatbotId es único)
-      const filtroBusqueda = {
-        ...filtroRol,
-        reservaChatbotId: reservaChatbotId, // Búsqueda exacta, sin regex
-      };
-
-      const [reserva, sumaTotales] = await Promise.all([
-        this.reservasModel
-          .findOne(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .lean(),
-        this.calcularSumaTotalesPorFiltro(filtroBusqueda),
-      ]);
-
-      return {
-        data: reserva,
-        found: !!reserva,
-        sumaTotales: reserva ? reserva.total : 0, // Si existe, devolver su total
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  ) {
+    return this.reservasSearchService.buscarPorChatbotId(
+      reservaChatbotId,
+      userId,
+      agenciaId,
+      roles,
+    );
   }
 
   //? Buscar reservas por nombre del agente
@@ -1242,118 +981,15 @@ export class ReservasService {
     roles: string[],
     page = 1,
     all = false,
-  ): Promise<{
-    data: any[];
-    meta: {
-      total: number;
-      page?: number;
-      pageSize?: number;
-      totalPages?: number;
-      sumaTotales?: number;
-    };
-  }> {
-    try {
-      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
-      const esSuperAdmin = roles.includes('super-admin');
-      const esAdmin = roles.includes('admin');
-
-      // Construir filtro para buscar usuarios según el rol
-      const filtroUsuario: any = {
-        fullName: { $regex: nombreAgente, $options: 'i' },
-      };
-
-      // Si es admin, solo buscar usuarios de su agencia
-      if (esAdmin && !esSuperAdmin) {
-        filtroUsuario.agencia = agenciaId;
-      }
-      // Si es user, solo puede buscar su propio nombre
-      if (!esAdmin && !esSuperAdmin) {
-        filtroUsuario._id = userId;
-      }
-
-      // Buscar usuarios que coincidan con el nombre
-      const usuarios = await this.userModel
-        .find(filtroUsuario)
-        .select('_id')
-        .lean();
-
-      const userIds = usuarios.map((user) => user._id);
-
-      if (userIds.length === 0) {
-        return {
-          data: [],
-          meta: {
-            total: 0,
-            ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
-          },
-        };
-      }
-
-      // Aplicar filtro de rol a las reservas
-      const filtroBusqueda = {
-        ...filtroRol,
-        userId: { $in: userIds },
-      };
-
-      // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales =
-        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
-
-      // Si all=true, retornar TODAS las reservas sin límite
-      if (all) {
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
-
-        return {
-          data: reservas,
-          meta: {
-            total,
-            sumaTotales,
-          },
-        };
-      }
-
-      // Paginación normal
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(),
-        this.getCachedCount(filtroBusqueda),
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-          sumaTotales,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  ) {
+    return this.reservasSearchService.buscarPorNombreAgente(
+      nombreAgente,
+      userId,
+      agenciaId,
+      roles,
+      page,
+      all,
+    );
   }
 
   //? Buscar reservas por nombre de agencia
@@ -1364,114 +1000,15 @@ export class ReservasService {
     roles: string[],
     page = 1,
     all = false,
-  ): Promise<{
-    data: any[];
-    meta: {
-      total: number;
-      page?: number;
-      pageSize?: number;
-      totalPages?: number;
-      sumaTotales?: number;
-    };
-  }> {
-    try {
-      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
-      const esSuperAdmin = roles.includes('super-admin');
-      const esAdmin = roles.includes('admin');
-
-      // Construir filtro para buscar agencias según el rol
-      const filtroAgencia: any = {
-        fullName: { $regex: nombreAgencia, $options: 'i' },
-      };
-
-      // Si es admin o user, solo puede buscar su propia agencia
-      if (!esSuperAdmin) {
-        filtroAgencia._id = agenciaId;
-      }
-
-      // Buscar agencias que coincidan con el nombre
-      const agencias = await this.agenciaModel
-        .find(filtroAgencia)
-        .select('_id')
-        .lean();
-
-      const agenciaIds = agencias.map((agencia) => agencia._id);
-
-      if (agenciaIds.length === 0) {
-        return {
-          data: [],
-          meta: {
-            total: 0,
-            ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
-          },
-        };
-      }
-
-      // Aplicar filtro de rol a las reservas
-      const filtroBusqueda = {
-        ...filtroRol,
-        agenciaId: { $in: agenciaIds },
-      };
-
-      // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales =
-        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
-
-      // Si all=true, retornar TODAS las reservas sin límite
-      if (all) {
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
-
-        return {
-          data: reservas,
-          meta: {
-            total,
-            sumaTotales,
-          },
-        };
-      }
-
-      // Paginación normal
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(),
-        this.getCachedCount(filtroBusqueda),
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-          sumaTotales,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  ) {
+    return this.reservasSearchService.buscarPorNombreAgencia(
+      nombreAgencia,
+      userId,
+      agenciaId,
+      roles,
+      page,
+      all,
+    );
   }
 
   //? Buscar reservas por nombre del huésped
@@ -1482,154 +1019,15 @@ export class ReservasService {
     roles: string[],
     page = 1,
     all = false,
-  ): Promise<{
-    data: any[];
-    meta: {
-      total: number;
-      page?: number;
-      pageSize?: number;
-      totalPages?: number;
-      sumaTotales?: number;
-    };
-  }> {
-    try {
-      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
-
-      // Normalizar el texto de búsqueda: eliminar espacios extra
-      const nombreLimpio = nombreHuesped.trim().replace(/\s+/g, ' ');
-
-      // Escapar caracteres especiales para regex de forma segura
-      const nombreEscapado = nombreLimpio.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&',
-      );
-
-      // Dividir el nombre en partes (por si es nombre completo como "Juan Pérez")
-      const partesNombre = nombreLimpio
-        .split(/\s+/)
-        .filter((p) => p.length > 0);
-
-      // Construir condiciones de búsqueda
-      const condicionesBusqueda: any[] = [
-        // Búsqueda en firstName (case-insensitive)
-        { 'reservation.firstName': { $regex: nombreEscapado, $options: 'i' } },
-        // Búsqueda en lastName (case-insensitive)
-        { 'reservation.lastName': { $regex: nombreEscapado, $options: 'i' } },
-      ];
-
-      // Si hay múltiples palabras, buscar también en la combinación
-      if (partesNombre.length > 1) {
-        // Buscar si alguna parte coincide con firstName y otra con lastName
-        // Ejemplo: "Juan Pérez" busca firstName="Juan" AND lastName contiene "Pérez"
-        // o firstName contiene "Pérez" AND lastName="Juan"
-        partesNombre.forEach((parte, index) => {
-          const parteEscapada = parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const otrasPartes = partesNombre
-            .filter((_, i) => i !== index)
-            .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-            .join('|');
-
-          condicionesBusqueda.push({
-            $and: [
-              {
-                'reservation.firstName': {
-                  $regex: parteEscapada,
-                  $options: 'i',
-                },
-              },
-              {
-                'reservation.lastName': { $regex: otrasPartes, $options: 'i' },
-              },
-            ],
-          });
-        });
-
-        // Buscar en la concatenación completa usando $expr (firstName + " " + lastName)
-        const nombreCompletoRegex = partesNombre
-          .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-          .join('.*');
-        condicionesBusqueda.push({
-          $expr: {
-            $regexMatch: {
-              input: {
-                $concat: [
-                  { $ifNull: ['$reservation.firstName', ''] },
-                  ' ',
-                  { $ifNull: ['$reservation.lastName', ''] },
-                ],
-              },
-              regex: nombreCompletoRegex,
-              options: 'i',
-            },
-          },
-        });
-      }
-
-      // Buscar por firstName, lastName o combinación en reservation
-      const filtroBusqueda = {
-        ...filtroRol,
-        $or: condicionesBusqueda,
-      };
-
-      // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales =
-        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
-
-      // Si all=true, retornar TODAS las reservas sin límite
-      if (all) {
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
-
-        return {
-          data: reservas,
-          meta: {
-            total,
-            sumaTotales,
-          },
-        };
-      }
-
-      // Paginación normal
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(),
-        this.getCachedCount(filtroBusqueda),
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-          sumaTotales,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  ) {
+    return this.reservasSearchService.buscarPorNombreHuesped(
+      nombreHuesped,
+      userId,
+      agenciaId,
+      roles,
+      page,
+      all,
+    );
   }
 
   //? Buscar reservas por estado
@@ -1640,125 +1038,20 @@ export class ReservasService {
     roles: string[],
     page = 1,
     all = false,
-  ): Promise<{
-    data: any[];
-    meta: {
-      total: number;
-      page?: number;
-      pageSize?: number;
-      totalPages?: number;
-      sumaTotales?: number;
-    };
-  }> {
-    try {
-      const filtroRol = this.construirFiltroPorRol(userId, agenciaId, roles);
-
-      const filtroBusqueda = {
-        ...filtroRol,
-        status,
-      };
-
-      // Calcular suma de totales para las reservas que coinciden con el filtro
-      const sumaTotales =
-        await this.calcularSumaTotalesPorFiltro(filtroBusqueda);
-
-      // Si all=true, retornar TODAS las reservas sin límite
-      // ADVERTENCIA: Esto puede ser lento si hay muchas reservas (miles o millones)
-      if (all) {
-        const [reservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filtroBusqueda)
-            .populate('agenciaId', 'fullName _id emailContacto')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            // Sin límite - retorna todas las reservas que cumplan el filtro
-            .lean(),
-          this.getCachedCount(filtroBusqueda),
-        ]);
-
-        return {
-          data: reservas,
-          meta: {
-            total,
-            sumaTotales,
-          },
-        };
-      }
-
-      // Paginación normal
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(),
-        this.getCachedCount(filtroBusqueda),
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-          sumaTotales,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+  ) {
+    return this.reservasSearchService.buscarPorEstado(
+      status,
+      userId,
+      agenciaId,
+      roles,
+      page,
+      all,
+    );
   }
 
   // #region Obtener reservas por agencia
   async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
-    try {
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      const filter = this.buildIdFilter('agenciaId', agenciaId);
-
-      // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
-      const [reservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filter)
-          .populate('userId', 'fullName email')
-          .populate('agenciaId', 'fullName _id')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(), // Mejor rendimiento al retornar objetos planos
-        this.getCachedCount(filter),
-      ]);
-
-      return {
-        data: reservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.reservasSearchService.getReservasByAgencia(agenciaId, page);
   }
 
   // #region Disponibilidad
@@ -1835,135 +1128,14 @@ export class ReservasService {
     fechaDesde?: string,
     fechaHasta?: string,
   ) {
-    try {
-      // Construir el filtro
-      const filter: any = {};
-
-      // Si se proporciona el parámetro hotel, agregarlo al filtro
-      if (hotel && hotel.trim()) {
-        // Búsqueda case-insensitive y parcial del nombre del hotel
-        filter.hotel = { $regex: hotel.trim(), $options: 'i' };
-      }
-
-      // Filtro por nombre de agencia (solo para superAdmin)
-      if (nombreAgencia && nombreAgencia.trim()) {
-        // Buscar agencias que coincidan con el nombre
-        const filtroAgencia: any = {
-          fullName: { $regex: nombreAgencia.trim(), $options: 'i' },
-        };
-
-        const agencias = await this.agenciaModel
-          .find(filtroAgencia)
-          .select('_id')
-          .lean();
-
-        const agenciaIds = agencias.map((agencia) => agencia._id);
-
-        if (agenciaIds.length === 0) {
-          // Si no se encuentran agencias, retornar vacío
-          return {
-            data: [],
-            meta: {
-              total: 0,
-              ...(all ? {} : { page: 1, pageSize: 15, totalPages: 0 }),
-              sumaTotalesNoCanceladas: 0,
-              ...(hotel && { hotelFiltrado: hotel }),
-              ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
-            },
-          };
-        }
-
-        filter.agenciaId = { $in: agenciaIds };
-      }
-
-      // Filtro por fecha de checkin (fechaDesde y/o fechaHasta)
-      if (fechaDesde || fechaHasta) {
-        // El checkin está almacenado como string en formato YYYY-MM-DD
-        // Usamos comparación de strings ya que el formato es ISO (YYYY-MM-DD)
-        if (fechaDesde && fechaHasta) {
-          // Rango completo: desde fechaDesde hasta fechaHasta
-          filter['reservation.checkin'] = {
-            $gte: fechaDesde.trim(),
-            $lte: fechaHasta.trim(),
-          };
-        } else if (fechaDesde) {
-          // Solo fechaDesde: filtrar solo ese día específico
-          filter['reservation.checkin'] = fechaDesde.trim();
-        } else if (fechaHasta) {
-          // Solo fechaHasta: checkin <= fechaHasta
-          filter['reservation.checkin'] = {
-            $lte: fechaHasta.trim(),
-          };
-        }
-      }
-
-      // Obtener la suma de totales de reservas no canceladas (con caché)
-      const totalSuma = await this.getSumaTotalesNoCanceladas();
-
-      // Si all=true, retornar TODAS las reservas sin límite
-      if (all) {
-        const [allReservas, total] = await Promise.all([
-          this.reservasModel
-            .find(filter)
-            .populate('agenciaId', 'fullName _id')
-            .populate('userId', 'fullName email')
-            .sort({ createdAt: -1 })
-            .lean(),
-          this.getCachedCount(filter),
-        ]);
-
-        return {
-          data: allReservas,
-          meta: {
-            total,
-            sumaTotalesNoCanceladas: totalSuma,
-            ...(hotel && { hotelFiltrado: hotel }),
-            ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
-            ...(fechaDesde && { fechaDesde }),
-            ...(fechaHasta && { fechaHasta }),
-          },
-        };
-      }
-
-      // Paginación normal
-      const PAGE_SIZE = 15;
-      const currentPage = Number(page) > 0 ? Number(page) : 1;
-
-      // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
-      const MAX_SKIP = 10000; // Máximo 10,000 registros a saltar
-      const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
-
-      // OPTIMIZACIÓN: Usar caché para el total y optimizar query
-      const [allReservas, total] = await Promise.all([
-        this.reservasModel
-          .find(filter)
-          .populate('agenciaId', 'fullName _id')
-          .populate('userId', 'fullName email')
-          .sort({ createdAt: -1 }) // Usa índice { status: 1, createdAt: -1 }
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean(), // Mejor rendimiento al retornar objetos planos
-        this.getCachedCount(filter), // Usa caché para el total (estimatedDocumentCount si no hay filtros)
-      ]);
-
-      return {
-        data: allReservas,
-        meta: {
-          total,
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          totalPages: Math.ceil(total / PAGE_SIZE) || 1,
-          sumaTotalesNoCanceladas: totalSuma,
-          ...(hotel && { hotelFiltrado: hotel }),
-          ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
-          ...(fechaDesde && { fechaDesde }),
-          ...(fechaHasta && { fechaHasta }),
-        },
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.reservasSearchService.getAllReservas(
+      page,
+      all,
+      hotel,
+      nombreAgencia,
+      fechaDesde,
+      fechaHasta,
+    );
   }
 
   //? Cancelar reservas
@@ -2627,16 +1799,11 @@ export class ReservasService {
     localizador: string,
     nombre: string,
   ) {
-    try {
-      return await this.myToolBookingService.searchBooking(
-        hotelSlug,
-        localizador,
-        nombre,
-      );
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.reservasSearchService.searchReservaMyTool(
+      hotelSlug,
+      localizador,
+      nombre,
+    );
   }
 
   private calculateNights(checkin: string, checkout: string): number {

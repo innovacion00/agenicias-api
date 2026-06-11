@@ -10,6 +10,8 @@ import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { CancellationLockReconciliationService } from './cancellation-lock-reconciliation.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
+import { ReservasSearchService } from './services/reservas-search.service';
+import { ReservasCountCacheService } from './services/reservas-count-cache.service';
 
 @Module({
   controllers: [ReservasController],
@@ -18,6 +20,8 @@ import { MyToolBookingService } from './services/my-tool-booking.service';
     CancellationTasksQueueService,
     CancellationLockReconciliationService,
     MyToolBookingService,
+    ReservasSearchService,
+    ReservasCountCacheService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),
