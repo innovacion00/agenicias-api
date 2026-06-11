@@ -116,14 +116,11 @@ export class ReservasSearchService {
         reservaChatbotId: reservaChatbotId, // Búsqueda exacta, sin regex
       };
 
-      const [reserva, sumaTotales] = await Promise.all([
-        this.reservasModel
-          .findOne(filtroBusqueda)
-          .populate('agenciaId', 'fullName _id emailContacto')
-          .populate('userId', 'fullName email')
-          .lean(),
-        this.countCache.calcularSumaTotalesPorFiltro(filtroBusqueda),
-      ]);
+      const reserva = await this.reservasModel
+        .findOne(filtroBusqueda)
+        .populate('agenciaId', 'fullName _id emailContacto')
+        .populate('userId', 'fullName email')
+        .lean();
 
       return {
         data: reserva,

@@ -5,7 +5,10 @@ import { Model } from 'mongoose';
 import { Reserva } from '../entities';
 
 export interface ICountCache {
-  getCachedCount(filter: Record<string, any>, useCache?: boolean): Promise<number>;
+  getCachedCount(
+    filter: Record<string, any>,
+    useCache?: boolean,
+  ): Promise<number>;
   getSumaTotalesNoCanceladas(useCache?: boolean): Promise<number>;
   calcularSumaTotalesPorFiltro(filter: Record<string, any>): Promise<number>;
 }

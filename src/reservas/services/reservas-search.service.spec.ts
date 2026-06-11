@@ -329,7 +329,9 @@ function crearReservasService() {
   const argsExtra: any[] = [];
   try {
     // Servicios nuevos de PR-2.1 (no existen antes del refactor).
-    const { ReservasCountCacheService } = require('./reservas-count-cache.service');
+    const {
+      ReservasCountCacheService,
+    } = require('./reservas-count-cache.service');
     const { ReservasSearchService } = require('./reservas-search.service');
     const countCache = new ReservasCountCacheService(reservaModel);
     const searchService = new ReservasSearchService(
@@ -954,7 +956,14 @@ describe('ReservasController — wiring de las 5 rutas de búsqueda (divergencia
   });
 
   it('GET buscar/agente delega y convierte all ("true"/"1" → true, resto → false)', () => {
-    controller.buscarPorNombreAgente('juan', 2, 'true', userId, agenciaId, usuario);
+    controller.buscarPorNombreAgente(
+      'juan',
+      2,
+      'true',
+      userId,
+      agenciaId,
+      usuario,
+    );
     expect(serviceMock.buscarPorNombreAgente).toHaveBeenCalledWith(
       'juan',
       userId,
@@ -964,7 +973,14 @@ describe('ReservasController — wiring de las 5 rutas de búsqueda (divergencia
       true,
     );
 
-    controller.buscarPorNombreAgente('juan', 1, undefined, userId, agenciaId, usuario);
+    controller.buscarPorNombreAgente(
+      'juan',
+      1,
+      undefined,
+      userId,
+      agenciaId,
+      usuario,
+    );
     expect(serviceMock.buscarPorNombreAgente).toHaveBeenLastCalledWith(
       'juan',
       userId,
@@ -989,7 +1005,14 @@ describe('ReservasController — wiring de las 5 rutas de búsqueda (divergencia
   });
 
   it('GET buscar/agencia delega con la firma intacta', () => {
-    controller.buscarPorNombreAgencia('alfa', 1, '1', userId, agenciaId, usuario);
+    controller.buscarPorNombreAgencia(
+      'alfa',
+      1,
+      '1',
+      userId,
+      agenciaId,
+      usuario,
+    );
     expect(serviceMock.buscarPorNombreAgencia).toHaveBeenCalledWith(
       'alfa',
       userId,
@@ -1001,7 +1024,14 @@ describe('ReservasController — wiring de las 5 rutas de búsqueda (divergencia
   });
 
   it('GET buscar/huesped delega con la firma intacta', () => {
-    controller.buscarPorNombreHuesped('maria', 3, 'no', userId, agenciaId, usuario);
+    controller.buscarPorNombreHuesped(
+      'maria',
+      3,
+      'no',
+      userId,
+      agenciaId,
+      usuario,
+    );
     expect(serviceMock.buscarPorNombreHuesped).toHaveBeenCalledWith(
       'maria',
       userId,
@@ -1027,11 +1057,25 @@ describe('ReservasController — wiring de las 5 rutas de búsqueda (divergencia
   it('divergencia 9: estado fuera de [0–6] o no numérico lanza 400', () => {
     for (const invalido of ['7', '-1', 'abc']) {
       expect(() =>
-        controller.buscarPorEstado(invalido, 1, undefined, userId, agenciaId, usuario),
+        controller.buscarPorEstado(
+          invalido,
+          1,
+          undefined,
+          userId,
+          agenciaId,
+          usuario,
+        ),
       ).toThrow(BadRequestException);
     }
     expect(() =>
-      controller.buscarPorEstado(undefined, 1, undefined, userId, agenciaId, usuario),
+      controller.buscarPorEstado(
+        undefined,
+        1,
+        undefined,
+        userId,
+        agenciaId,
+        usuario,
+      ),
     ).toThrow(BadRequestException);
   });
 });
