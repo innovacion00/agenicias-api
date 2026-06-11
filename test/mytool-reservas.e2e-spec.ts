@@ -17,6 +17,8 @@ import { Model, Connection, Types } from 'mongoose';
 import { ReservasController } from '../src/reservas/reservas.controller';
 import { ReservasService } from '../src/reservas/reservas.service';
 import { MyToolBookingService } from '../src/reservas/services/my-tool-booking.service';
+import { ReservasSearchService } from '../src/reservas/services/reservas-search.service';
+import { ReservasCountCacheService } from '../src/reservas/services/reservas-count-cache.service';
 import {
   Reserva,
   ReservaSchema,
@@ -218,6 +220,8 @@ describe('MyTool Reservas (e2e)', () => {
       controllers: [ReservasController],
       providers: [
         ReservasService,
+        ReservasSearchService,
+        ReservasCountCacheService,
         { provide: MyToolBookingService, useValue: mockMyToolBookingService },
         { provide: HttpCustomService, useValue: mockHttpCustomService },
         { provide: SendEmailCustomService, useValue: mockEmailService },
