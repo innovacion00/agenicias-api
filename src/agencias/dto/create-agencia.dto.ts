@@ -29,7 +29,7 @@ class DocumentDto {
     description: 'Número de documento (sin espacios ni guiones bajos)',
     example: '1234567890',
     type: String,
-    minLength: 6,
+    minLength: 4,
   })
   @IsString()
   @IsNotEmpty()
