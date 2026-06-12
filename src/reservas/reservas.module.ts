@@ -12,6 +12,10 @@ import { CancellationLockReconciliationService } from './cancellation-lock-recon
 import { MyToolBookingService } from './services/my-tool-booking.service';
 import { ReservasSearchService } from './services/reservas-search.service';
 import { ReservasCountCacheService } from './services/reservas-count-cache.service';
+import { ReservasBookingService } from './services/reservas-booking.service';
+import { ReservasReactivacionService } from './services/reservas-reactivacion.service';
+import { LinksPagoService } from './services/links-pago.service';
+import { AutocoreModule } from 'src/autocore/autocore.module';
 
 @Module({
   controllers: [ReservasController],
@@ -22,11 +26,15 @@ import { ReservasCountCacheService } from './services/reservas-count-cache.servi
     MyToolBookingService,
     ReservasSearchService,
     ReservasCountCacheService,
+    ReservasBookingService,
+    ReservasReactivacionService,
+    LinksPagoService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),
     AuthModule,
     CommonModule,
+    AutocoreModule,
     MongooseModule.forFeature([
       {
         name: Reserva.name,

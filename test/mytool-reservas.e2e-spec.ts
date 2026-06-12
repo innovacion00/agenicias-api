@@ -19,6 +19,9 @@ import { ReservasService } from '../src/reservas/reservas.service';
 import { MyToolBookingService } from '../src/reservas/services/my-tool-booking.service';
 import { ReservasSearchService } from '../src/reservas/services/reservas-search.service';
 import { ReservasCountCacheService } from '../src/reservas/services/reservas-count-cache.service';
+import { ReservasBookingService } from '../src/reservas/services/reservas-booking.service';
+import { ReservasReactivacionService } from '../src/reservas/services/reservas-reactivacion.service';
+import { LinksPagoService } from '../src/reservas/services/links-pago.service';
 import {
   Reserva,
   ReservaSchema,
@@ -32,6 +35,7 @@ import { ValidPaymentStatus } from '../src/reservas/interfaces/validPaymentStatu
 import { CancellationTasksQueueService } from '../src/reservas/cancellation-tasks-queue.service';
 import { HttpCustomService } from '../src/common/services/http-custom.service';
 import { SendEmailCustomService } from '../src/common/services/send-email.service';
+import { AutocoreClient } from '../src/autocore/autocore.client';
 import { AuthGuard } from '@nestjs/passport';
 import { UserRoleGuard } from '../src/auth/guards/user-role.guard';
 
@@ -108,6 +112,12 @@ const mockMyToolBookingService = {
 };
 
 const mockHttpCustomService = {
+  cancelarReservas: jest.fn().mockResolvedValue({ msg: 'OK' }),
+};
+
+// ─── Mock AutocoreClient (PR-2.4: ReservasBookingService usa AutocoreClient
+// en lugar de HttpCustomService para el fallback a Autocore) ───
+const mockAutocoreClient = {
   createReservaAutocore: jest.fn().mockResolvedValue({
     chatbot_id: 'AUTOCORE-FALLBACK-001',
     msg: 'OK',
@@ -222,8 +232,12 @@ describe('MyTool Reservas (e2e)', () => {
         ReservasService,
         ReservasSearchService,
         ReservasCountCacheService,
+        ReservasBookingService,
+        { provide: ReservasReactivacionService, useValue: {} },
+        { provide: LinksPagoService, useValue: {} },
         { provide: MyToolBookingService, useValue: mockMyToolBookingService },
         { provide: HttpCustomService, useValue: mockHttpCustomService },
+        { provide: AutocoreClient, useValue: mockAutocoreClient },
         { provide: SendEmailCustomService, useValue: mockEmailService },
         {
           provide: CancellationTasksQueueService,
@@ -479,7 +493,7 @@ describe('MyTool Reservas (e2e)', () => {
 
       expect(res.body.reservaProvider).toBe('autocore');
       expect(res.body.usedFallback).toBe(true);
-      expect(mockHttpCustomService.createReservaAutocore).toHaveBeenCalled();
+      expect(mockAutocoreClient.createReservaAutocore).toHaveBeenCalled();
     });
 
     it('debe fallar sin fallback para hotel sin autocoreId (marques)', async () => {
