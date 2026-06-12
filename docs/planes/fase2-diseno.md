@@ -22,8 +22,8 @@
 | **2.1 búsquedas** | ✅ Mergeado | `49adada` |
 | **2.2 clientes** | ✅ Mergeado | `3d3d5ed` |
 | **2.3 filtro** | ✅ Mergeado | `1b26bff` |
-| 2.4 booking | ⏳ Pendiente — desbloqueada (2.1+2.2+2.3 ya mergeadas) | — |
-| 2.5 pagos | ⏳ Pendiente — requiere 2.4 | — |
+| **2.4 booking** | ✅ Mergeado | `543bb0e` |
+| 2.5 pagos | ⏳ Pendiente — desbloqueada (2.4 ya mergeada) | — |
 | 2.6 cancelación | ⏳ Pendiente — requiere 2.5 | — |
 | 2.7 plantillas | ⏳ Pendiente — puede arrancar en paralelo con 2.4–2.6 | — |
 | 2.8 mecánica final | ⏳ Pendiente — siempre la última | — |
