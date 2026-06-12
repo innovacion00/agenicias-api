@@ -311,9 +311,13 @@ async function seed() {
 
 // ---------------------------------------------------------------------------
 // Factory del servicio bajo prueba.
-// Antes del refactor: ReservasService con sus 8 dependencias actuales.
-// Después del refactor: se le añade ReservasSearchService (wrappers finos);
-// el try/catch hace que el MISMO spec corra verde en ambos estados.
+// PR-2.1: se añadió ReservasSearchService (wrappers finos) — el try/catch
+// hace que el MISMO spec corra verde tanto si existe como si no.
+// PR-2.4: ReservasService ya no recibe userModel/connection directamente
+// (se movieron a ReservasBookingService/ReservasReactivacionService) y suma
+// ReservasBookingService, ReservasReactivacionService y LinksPagoService al
+// final del constructor. Estos tres no se ejercitan en este spec (solo
+// búsquedas/listados), por lo que bastan mocks vacíos.
 // ---------------------------------------------------------------------------
 function crearMocks() {
   return {
@@ -321,6 +325,9 @@ function crearMocks() {
     httpCustomService: {},
     cancellationTasksQueueService: {},
     myToolBookingService: { searchBooking: jest.fn() },
+    reservasBookingService: {},
+    reservasReactivacionService: {},
+    linksPagoService: {},
   };
 }
 
@@ -348,14 +355,15 @@ function crearReservasService() {
 
   const service = new ReservasService(
     agenciaModel,
-    userModel,
     reservaModel,
     mocks.emailService,
     mocks.httpCustomService,
     mocks.cancellationTasksQueueService,
     mocks.myToolBookingService,
-    conexion,
     ...argsExtra,
+    mocks.reservasBookingService,
+    mocks.reservasReactivacionService,
+    mocks.linksPagoService,
   );
   return { service, mocks };
 }
