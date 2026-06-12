@@ -1465,7 +1465,11 @@ export const notificacionReactivacionPagoFallido = (data: {
   expiraEn: Date;
 }) => {
   const montoFormateado = convertidorMoneda(data.monto);
-  const plazoLimite = format(data.expiraEn, 'DD/MM/YYYY [a las] h:mm a', 'es');
+  const plazoLimite = `${format(data.expiraEn, 'DD/MM/YYYY', 'es-Co')} a las ${format(
+    data.expiraEn,
+    'h:mm a',
+    'es-Co',
+  )}`;
 
   return `<!DOCTYPE html>
 <html>
