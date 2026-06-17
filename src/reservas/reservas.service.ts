@@ -950,146 +950,353 @@ export class ReservasService {
   }
 
   // #region Cambiar estado de la reserva autocore
+  // #region Webhook de cambio de estado de pago (Autocore)
+
+  /**
+   * IDs de reservas legadas excluidas del webhook (residuo de incidentes
+   * previos). Antes se descartaban en silencio; ahora se registran.
+   */
+  private static readonly RESERVAS_EXCLUIDAS_WEBHOOK = new Set<string>([
+    '67ab755cedb19b9bad39f22d',
+    '67ab7863edb19b9bad3a4471',
+    '67cefa09a0c53ce8c5e1fb9b',
+    '67bf4b1a7b358f891dce8926',
+    '67c084a87b358f891dd07448',
+    '67c761d2be7b7404574c2513',
+  ]);
+
+  /**
+   * Sinónimos tolerados de `payment_status` (normalizados: minúsculas, sin
+   * acentos, espacios colapsados). Evitan perder pagos si Autocore cambia el
+   * texto exacto del estado. Ver MANUAL_INTEGRACION_PAGOS_AUTOCORE.md §3.
+   */
+  private static readonly STATUS_PENDIENTE = new Set<string>([
+    'en proceso',
+    'en_proceso',
+    'proceso',
+    'pendiente',
+    'pending',
+    'processing',
+    'in process',
+    'in_process',
+  ]);
+  private static readonly STATUS_RECHAZADO = new Set<string>([
+    'rechazado',
+    'rechazada',
+    'cancelado',
+    'cancelada',
+    'tarjeta no valida',
+    'rejected',
+    'declined',
+    'failed',
+    'error',
+    'canceled',
+    'cancelled',
+    'denegado',
+    'denegada',
+  ]);
+  private static readonly STATUS_APLICADO = new Set<string>([
+    'aplicado',
+    'aplicada',
+    'aprobado',
+    'aprobada',
+    'approved',
+    'paid',
+    'payment_success',
+    'success',
+    'successful',
+    'completed',
+    'complete',
+    'confirmed',
+    'ok',
+  ]);
+
+  private normalizarStatusPago(raw: string): string {
+    return String(raw || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // elimina acentos (válida === valida)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  private clasificarStatusPago(
+    normalized: string,
+  ): 'PENDIENTE' | 'RECHAZADO' | 'APLICADO' | 'VACIO' | 'DESCONOCIDO' {
+    if (!normalized) return 'VACIO';
+    if (ReservasService.STATUS_APLICADO.has(normalized)) return 'APLICADO';
+    if (ReservasService.STATUS_RECHAZADO.has(normalized)) return 'RECHAZADO';
+    if (ReservasService.STATUS_PENDIENTE.has(normalized)) return 'PENDIENTE';
+    return 'DESCONOCIDO';
+  }
+
+  /**
+   * Webhook Autocore → API. Endurecido para tolerar reintentos, eventos
+   * duplicados y entregas fuera de orden:
+   * - Idempotencia por `transaction_id`/`details.id` + estado (clave en `paymenIds`).
+   * - Actualizaciones atómicas (`findOneAndUpdate`) con guardias de transición:
+   *   nunca se degrada `total`/`mitad` a `espera`/`rejected` por un evento tardío.
+   * - Estados de texto desconocidos generan ALERTA en lugar de ignorarse en silencio.
+   */
   async cambiarEstadoPagoAutocore(payload: {
     external_ref_id: string;
     transaction_id?: string;
     payment_status: string;
-    details: {
-      id: string;
+    details?: {
+      id?: string;
       pay_platform?: string;
     };
   }) {
-    if (!payload.external_ref_id) {
-      this.logger.error('external_ref_id no proporcionado en payload');
-      return true;
-    }
+    // El webhook responde 200 (ack) salvo error transitorio (ver catch).
+    const ack = true;
+    try {
+      if (!payload?.external_ref_id) {
+        this.logger.error(
+          `[webhook-pago] external_ref_id ausente: ${JSON.stringify(payload)}`,
+        );
+        return ack;
+      }
 
-    const valores = payload.external_ref_id.split(' ') as string[];
-    const problemas = [
-      '67ab755cedb19b9bad39f22d',
-      '67ab7863edb19b9bad3a4471',
-      '67cefa09a0c53ce8c5e1fb9b',
-      '67bf4b1a7b358f891dce8926',
-      '67c084a87b358f891dd07448',
-      '67c761d2be7b7404574c2513',
-    ];
+      const valores = payload.external_ref_id.split(' ');
+      const reservaId = valores[0]?.trim();
+      const pagoValidator = valores[1]?.trim() || null;
 
-    const firstValue = valores[0]?.trim();
-    if (!firstValue) {
-      this.logger.error(
-        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
+      if (!reservaId) {
+        this.logger.error(
+          `[webhook-pago] reservaId vacío en external_ref_id: ${JSON.stringify(payload)}`,
+        );
+        return ack;
+      }
+
+      if (!Types.ObjectId.isValid(reservaId)) {
+        this.logger.error(
+          `[webhook-pago] reservaId inválido "${reservaId}"; evento descartado`,
+        );
+        return ack;
+      }
+
+      if (ReservasService.RESERVAS_EXCLUIDAS_WEBHOOK.has(reservaId)) {
+        this.logger.warn(
+          `[webhook-pago] reserva ${reservaId} excluida (lista legada); evento ignorado`,
+        );
+        return ack;
+      }
+
+      const rawStatus = payload.payment_status;
+      const statusNorm = this.normalizarStatusPago(rawStatus);
+      const clase = this.clasificarStatusPago(statusNorm);
+
+      const eventId =
+        payload.transaction_id?.trim() || payload.details?.id?.trim() || '';
+      const dedupKey = eventId ? `${eventId}:${statusNorm}` : null;
+
+      this.logger.log(
+        `[webhook-pago] reserva=${reservaId} status="${rawStatus}" clase=${clase} ` +
+          `eventId=${eventId || 'N/A'} pagoTotal=${pagoValidator ? 'si' : 'no'}`,
       );
-      return true;
-    }
 
-    if (problemas.includes(firstValue)) {
-      return true;
-    }
+      if (clase === 'VACIO') {
+        this.logger.warn(
+          `[webhook-pago] payment_status vacío para reserva=${reservaId}; evento ignorado`,
+        );
+        return ack;
+      }
 
-    const autocoreId = payload.transaction_id?.trim();
-    this.logger.log(payload);
+      if (clase === 'DESCONOCIDO') {
+        // ALERTA: no se ignora en silencio para no perder pagos cuando Autocore
+        // cambia el texto del estado. Revisar y agregar a los sets si procede.
+        this.logger.error(
+          `[webhook-pago][ALERTA] payment_status NO reconocido "${rawStatus}" ` +
+            `(norm="${statusNorm}") reserva=${reservaId}. Payload: ${JSON.stringify(payload)}`,
+        );
+        return ack;
+      }
 
-    const id = firstValue;
+      const existe = await this.reservasModel.exists({ _id: reservaId });
+      if (!existe) {
+        this.logger.error(
+          `[webhook-pago] reserva ${reservaId} no encontrada; evento descartado`,
+        );
+        return ack;
+      }
 
-    let pagoValidator: string | null = null;
-    if (valores[1]) {
-      pagoValidator = valores[1].trim();
-    }
+      const T = ValidPaymentStatus;
+      const linkBase = {
+        id: payload.details?.id,
+        typeOfPayment: payload.details?.pay_platform || 'No identificado',
+        fecha: new Date(),
+      };
+      const dedupFilter = dedupKey ? { paymenIds: { $ne: dedupKey } } : {};
+      const dedupUpdate = dedupKey
+        ? { $addToSet: { paymenIds: dedupKey } }
+        : {};
 
-    const reserva = await this.reservasModel.findById(id);
+      if (!dedupKey) {
+        this.logger.warn(
+          `[webhook-pago] sin transaction_id/details.id: idempotencia no disponible reserva=${reservaId}`,
+        );
+      }
 
-    if (!reserva) {
-      throw new NotFoundException(`Reserva con id: ${id}`);
-    }
+      // ---- PENDIENTE (en proceso): solo desde espera/proceso; nunca degrada ----
+      if (clase === 'PENDIENTE') {
+        const actualizada = await this.reservasModel.findOneAndUpdate(
+          {
+            _id: reservaId,
+            status: { $in: [T.espera, T.proceso] },
+            ...dedupFilter,
+          },
+          { $set: { status: T.espera }, ...dedupUpdate },
+          { new: true },
+        );
+        if (actualizada) {
+          this.logger.log(
+            `[webhook-pago] reserva=${reservaId} -> espera (en proceso)`,
+          );
+        } else {
+          await this.logNoOpWebhook(reservaId, 'PENDIENTE', dedupKey);
+        }
+        return ack;
+      }
 
-    if (!reserva.paymenIds) {
-      reserva.paymenIds = [];
-    }
-
-    if (
-      reserva.status === ValidPaymentStatus.total ||
-      reserva.status === ValidPaymentStatus.cancelado
-    ) {
-      return true;
-    }
-
-    const status = String(payload.payment_status || '')
-      .trim()
-      .toLowerCase();
-    if (!status) {
-      return true;
-    }
-    const paymentEventKey = autocoreId ? `${autocoreId}:${status}` : null;
-    if (paymentEventKey && reserva.paymenIds.includes(paymentEventKey)) {
-      return true;
-    } else if (paymentEventKey) {
-      reserva.paymenIds.push(paymentEventKey);
-    }
-    const linkDetails: LinksHistory = {
-      id: payload.details.id,
-      typeOfPayment: payload.details.pay_platform
-        ? payload.details.pay_platform
-        : 'No identificado',
-      state: undefined,
-      fecha: new Date(),
-    };
-    switch (status) {
-      case 'en proceso':
-        reserva.status = ValidPaymentStatus.espera;
-        await reserva.save();
-        return true;
-
-      case 'rechazado':
-      case 'cancelado':
-      case 'tarjeta no válida':
-        linkDetails.state = ValidPaymentStatus.rejected;
-        reserva.linksHistory.push(linkDetails);
+      // ---- RECHAZADO: no sobreescribe mitad/total/cancelado (rechazos tardíos) ----
+      if (clase === 'RECHAZADO') {
+        const set: Record<string, unknown> = { status: T.rejected };
         if (pagoValidator) {
-          reserva.pagadoPrimeraMitad = false;
-
-          reserva.status = ValidPaymentStatus.rejected;
-          await reserva.save();
-          if (reserva.esReactivacion) {
-            await this.handleReactivacionPagoFallido(reserva);
-          }
-          return true;
+          set.pagadoPrimeraMitad = false;
         }
-
-        reserva.status = ValidPaymentStatus.rejected;
-        await reserva.save();
-        if (reserva.esReactivacion) {
-          await this.handleReactivacionPagoFallido(reserva);
+        const actualizada = await this.reservasModel.findOneAndUpdate(
+          {
+            _id: reservaId,
+            status: { $nin: [T.total, T.cancelado, T.mitad] },
+            ...dedupFilter,
+          },
+          {
+            $set: set,
+            $push: { linksHistory: { ...linkBase, state: T.rejected } },
+            ...dedupUpdate,
+          },
+          { new: true },
+        );
+        if (!actualizada) {
+          await this.logNoOpWebhook(reservaId, 'RECHAZADO', dedupKey);
+          return ack;
         }
-        return true;
-
-      case 'aplicado':
-        if (!reserva.pagadoPrimeraMitad) {
-          linkDetails.state = ValidPaymentStatus.mitad;
-          reserva.linksHistory.push(linkDetails);
-          reserva.status = ValidPaymentStatus.mitad;
-          reserva.pagadoPrimeraMitad = true;
-          await reserva.save();
-          return true;
+        this.logger.log(`[webhook-pago] reserva=${reservaId} -> rejected`);
+        if (actualizada.esReactivacion) {
+          await this.ejecutarEfectoReactivacion(
+            () => this.handleReactivacionPagoFallido(actualizada),
+            reservaId,
+            'fallido',
+          );
         }
-        linkDetails.state = pagoValidator
-          ? ValidPaymentStatus.total
-          : ValidPaymentStatus.mitad;
+        return ack;
+      }
 
-        reserva.linksHistory.push(linkDetails);
-        reserva.status = ValidPaymentStatus.total;
-        await reserva.save();
-        if (
-          reserva.esReactivacion &&
-          reserva.status === ValidPaymentStatus.total
-        ) {
-          await this.handleReactivacionPagoExitoso(reserva);
+      // ---- APLICADO: primera mitad -> mitad ; segunda -> total ----
+      // Paso A: registrar primera mitad (si aún no estaba pagada).
+      const primeraMitad = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: reservaId,
+          status: { $nin: [T.total, T.cancelado] },
+          pagadoPrimeraMitad: false,
+          ...dedupFilter,
+        },
+        {
+          $set: { status: T.mitad, pagadoPrimeraMitad: true },
+          $push: { linksHistory: { ...linkBase, state: T.mitad } },
+          ...dedupUpdate,
+        },
+        { new: true },
+      );
+      if (primeraMitad) {
+        this.logger.log(
+          `[webhook-pago] reserva=${reservaId} -> mitad (primera mitad)`,
+        );
+        return ack;
+      }
+
+      // Paso B: completar pago total (primera mitad ya estaba pagada).
+      const totalReserva = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: reservaId,
+          status: { $nin: [T.total, T.cancelado] },
+          pagadoPrimeraMitad: true,
+          ...dedupFilter,
+        },
+        {
+          $set: { status: T.total },
+          $push: {
+            linksHistory: {
+              ...linkBase,
+              state: pagoValidator ? T.total : T.mitad,
+            },
+          },
+          ...dedupUpdate,
+        },
+        { new: true },
+      );
+      if (totalReserva) {
+        this.logger.log(`[webhook-pago] reserva=${reservaId} -> total`);
+        if (totalReserva.esReactivacion) {
+          await this.ejecutarEfectoReactivacion(
+            () => this.handleReactivacionPagoExitoso(totalReserva),
+            reservaId,
+            'exitoso',
+          );
         }
-        return true;
+        return ack;
+      }
 
-      default:
-        return true;
+      // Ni A ni B aplicaron: estado terminal, duplicado o transición bloqueada.
+      await this.logNoOpWebhook(reservaId, 'APLICADO', dedupKey);
+      return ack;
+    } catch (error) {
+      this.logger.error(
+        `[webhook-pago] error procesando webhook: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      // Propagar para que Autocore reintente ante fallos transitorios (DB, etc.).
+      throw error;
     }
   }
+
+  /** Registra por qué un evento de webhook no produjo cambios (duplicado vs. tardío). */
+  private async logNoOpWebhook(
+    reservaId: string,
+    clase: string,
+    dedupKey: string | null,
+  ): Promise<void> {
+    const reserva = await this.reservasModel
+      .findById(reservaId)
+      .select('status paymenIds')
+      .lean();
+    const yaProcesado = !!dedupKey && !!reserva?.paymenIds?.includes(dedupKey);
+    this.logger.log(
+      `[webhook-pago] evento ${clase} sin efecto para reserva=${reservaId} ` +
+        `(status actual=${reserva?.status ?? 'N/A'}, ` +
+        `${yaProcesado ? 'duplicado' : 'transición no permitida / evento tardío'})`,
+    );
+  }
+
+  /** Ejecuta efectos secundarios de reactivación sin romper el ack del webhook. */
+  private async ejecutarEfectoReactivacion(
+    fn: () => Promise<void>,
+    reservaId: string,
+    tipo: 'exitoso' | 'fallido',
+  ): Promise<void> {
+    try {
+      await fn();
+    } catch (error) {
+      this.logger.error(
+        `[webhook-pago] error en efecto reactivación (${tipo}) reserva=${reservaId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+  // #endregion Webhook de cambio de estado de pago (Autocore)
 
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId | string, page = 1) {

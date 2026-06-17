@@ -72,7 +72,20 @@ Usados en la colección `Reserva` cuando el webhook de agencias actualiza el est
 |--------------------------|---------------------------|
 | `en proceso` | `status` → espera (0) |
 | `rechazado`, `cancelado`, `tarjeta no válida` | `status` → rejected (2) |
-| `aplicado` | Si no había primera mitad → `mitad` (5) + `pagadoPrimeraMitad: true`; si ya había mitad o viene `pagoTotal` en `external_ref_id` → `total` (3) |
+| `aplicado` | Si no había primera mitad → `mitad` (5) + `pagadoPrimeraMitad: true`; si ya había mitad → `total` (3) |
+
+> **Coincidencia tolerante:** el webhook normaliza el texto (minúsculas, sin
+> acentos, espacios colapsados) y acepta **sinónimos** de cada estado
+> (p. ej. `aprobado`/`approved`/`paid` cuentan como `aplicado`;
+> `rejected`/`failed`/`declined` como `rechazado`). Un `payment_status` que no
+> encaje en ningún grupo **no se ignora en silencio**: se registra como
+> `[webhook-pago][ALERTA]` para revisión. Ver los sets en `reservas.service.ts`.
+
+> **Transiciones monótonas (robustez):** un evento tardío o fuera de orden
+> **nunca degrada** un pago consolidado. `total`/`cancelado` son terminales;
+> `mitad` no se baja a `espera`/`rejected`; y `en proceso` solo aplica desde
+> `espera`/`proceso`. Esto evita que un `rechazado` o `en proceso` rezagado
+> deje una reserva 100% pagada como rechazada o pendiente.
 
 ---
 
@@ -223,9 +236,16 @@ Debe estar registrada en Autocore como `temp_webhook_url` al crear el link.
 | `details.id` | Identificador del evento de pago |
 | `details.pay_platform` | Plataforma (opcional) |
 
-**Respuesta:** `true` o error si la reserva no existe.
+**Respuesta:** `true` (ack 200) en todos los casos de negocio — incluso si la
+reserva no existe, el estado es desconocido o el evento es duplicado/tardío
+(se registra en logs). Solo devuelve error 5xx ante fallos transitorios
+(p. ej. base de datos), para que Autocore pueda **reintentar**.
 
-**Idempotencia:** si `transaction_id` + `payment_status` ya fue procesado, responde `true` sin duplicar.
+**Idempotencia:** la clave es `transaction_id` (o, si falta, `details.id`) +
+`payment_status` normalizado, persistida en `paymenIds`. Un evento ya procesado
+responde `true` sin duplicar efecto. El procesamiento usa actualizaciones
+atómicas (`findOneAndUpdate`), por lo que reintentos y entregas concurrentes no
+producen estados inconsistentes.
 
 ---
 
