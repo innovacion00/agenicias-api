@@ -256,7 +256,7 @@ export class CotizacionesService {
       this.cotizacionModel
         .find({ agenciaId })
         .populate('userId', 'firstName lastName email telephone')
-        .populate('agenciaId', 'nombre telefono email') 
+        .populate('agenciaId', 'nombre telefono email')
         .select('-landingHtml') //Excluir HTML pesado si no se necesita
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -565,7 +565,7 @@ export class CotizacionesService {
 
     //Consultar disponibilidad usando categoría de agencia
     const agenciaInfo = await this.agenciaModel
-      .findById(cotizacion.agenciaId) 
+      .findById(cotizacion.agenciaId)
       .populate('category');
 
     if (!agenciaInfo) {

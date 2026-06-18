@@ -50,6 +50,9 @@ import {
   obtenerCiudadPorNombre,
   obtenerHotelIdPorNombre,
   debeBloquearCancelacionPorPrimeraMitadPagada,
+  decidirMontoReactivacion,
+  sumarPagosEstadoCuenta,
+  DecisionMontoReactivacion,
 } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
@@ -524,6 +527,7 @@ export class ReservasService {
     reservaInfo: Reserva,
     agenciaInfo: Agencia,
     pagoTotal: boolean,
+    montoOverride?: number,
   ) {
     const hotel = reservaInfo.hotel;
     const external_id = `${reservaInfo._id}${pagoTotal ? ' pagoTotal' : ''}`;
@@ -531,7 +535,9 @@ export class ReservasService {
     const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
       currency: reservaInfo.reservation.currency,
       agency_id: agenciaInfo.autocoreInfo.id,
-      amount: pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
+      amount:
+        montoOverride ??
+        (pagoTotal ? reservaInfo.total : reservaInfo.totalMitad),
       available_hours: 0.1666,
       booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
       description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
@@ -3036,21 +3042,37 @@ export class ReservasService {
         throw new NotFoundException('Agencia no encontrada');
       }
 
-      if (reservaOrigen.reactivacionNuevaReservaId) {
-        const reutilizada = await this.reutilizarReactivacionPendiente(
-          reservaOrigen,
-          agenciaInfo,
-        );
-        if (reutilizada) {
-          return reutilizada;
-        }
-      }
-
       const hotelId = obtenerHotelIdPorNombre(reservaOrigen.hotel);
       if (!hotelId) {
         throw new BadRequestException(
           `No se pudo mapear el hotel "${reservaOrigen.hotel}" a un hotelId de Autocore`,
         );
+      }
+
+      const decisionMonto = await this.resolverMontoReactivacion(
+        reservaOrigen,
+        hotelId,
+      );
+
+      if (decisionMonto.accion === 'cancelar') {
+        throw new ConflictException({
+          code: 'REACTIVACION_YA_PAGADA',
+          message:
+            'La reserva ya registra el pago total; no requiere reactivación',
+        });
+      }
+
+      const montoReactivacion = decisionMonto.monto;
+
+      if (reservaOrigen.reactivacionNuevaReservaId) {
+        const reutilizada = await this.reutilizarReactivacionPendiente(
+          reservaOrigen,
+          agenciaInfo,
+          montoReactivacion,
+        );
+        if (reutilizada) {
+          return reutilizada;
+        }
       }
 
       const reservaInfoAutocore = this.buildReservaInfoAutocoreFromReserva(
@@ -3165,6 +3187,7 @@ export class ReservasService {
         nuevaReserva,
         agenciaInfo,
         true,
+        montoReactivacion,
       );
 
       await nuevaReserva.updateOne({
@@ -3198,6 +3221,7 @@ export class ReservasService {
   private async reutilizarReactivacionPendiente(
     reservaOrigen: Reserva,
     agenciaInfo: Agencia,
+    montoReactivacion: number,
   ): Promise<{
     linkInfo: { link: string; expirationDate: Date; idLinkPago: string };
   } | null> {
@@ -3225,6 +3249,7 @@ export class ReservasService {
       nuevaPendiente,
       agenciaInfo,
       true,
+      montoReactivacion,
     );
 
     await nuevaPendiente.updateOne({
@@ -3240,6 +3265,44 @@ export class ReservasService {
     );
 
     return { linkInfo };
+  }
+
+  private async resolverMontoReactivacion(
+    reservaOrigen: Reserva,
+    hotelId: string,
+  ): Promise<DecisionMontoReactivacion> {
+    if (reservaOrigen.pagadoPrimeraMitad) {
+      return decidirMontoReactivacion({
+        pagadoPrimeraMitad: true,
+        total: reservaOrigen.total,
+        totalMitad: reservaOrigen.totalMitad,
+        montoPagado: 0,
+      });
+    }
+
+    const slug =
+      this.myToolBookingService.findSlugByAutocoreId(hotelId) ??
+      this.myToolBookingService.findSlugByHotelName(reservaOrigen.hotel);
+
+    if (!slug) {
+      throw new BadRequestException('Hotel no configurado en My Tool');
+    }
+
+    const estadoCuenta = await this.myToolBookingService.getEstadoCuentaReserva(
+      slug,
+      reservaOrigen.reservaChatbotId,
+      reservaOrigen.reservation.checkin,
+      reservaOrigen.reservation.checkout,
+    );
+
+    const montoPagado = sumarPagosEstadoCuenta(estadoCuenta);
+
+    return decidirMontoReactivacion({
+      pagadoPrimeraMitad: false,
+      total: reservaOrigen.total,
+      totalMitad: reservaOrigen.totalMitad,
+      montoPagado,
+    });
   }
 
   private buildReservaInfoAutocoreFromReserva(

@@ -336,7 +336,9 @@ td {
         ...userData,
         role: agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'],
         agencia: new Types.ObjectId(id),
-        encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
+        encuesta: this.getInitialEncuestaValue(
+          agenciaDoc._id as Types.ObjectId,
+        ),
         firstLog: false,
         loginCount: 0,
         password: bcrypt.hashSync(password, 10),
@@ -399,7 +401,9 @@ td {
         ...userData,
         role: adminRole ? ['admin'] : ['user'],
         agencia: new Types.ObjectId(id),
-        encuesta: this.getInitialEncuestaValue(agenciaDoc._id as Types.ObjectId),
+        encuesta: this.getInitialEncuestaValue(
+          agenciaDoc._id as Types.ObjectId,
+        ),
         firstLog: false,
         loginCount: 0,
         password: bcrypt.hashSync(password, 10),

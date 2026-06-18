@@ -158,11 +158,18 @@ export class ReservasController {
   @ApiOperation({
     summary: 'Reactivar reserva cancelada (Autocore)',
     description:
-      'Clona una reserva cancelada en Autocore, genera link de pago total y programa expiración a 24h.',
+      'Clona una reserva cancelada en Autocore y genera link de pago según saldo previo: ' +
+      'si pagadoPrimeraMitad=true usa totalMitad; si no, consulta el PMS My Tool (GetEstadoCuentaReserva) ' +
+      'para calcular el monto (totalMitad, total - abonos, o rechaza si ya está pagada). ' +
+      'Programa expiración a 24h.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Link de pago generado' })
-  @ApiResponse({ status: 409, description: 'Sin disponibilidad en Autocore' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Sin disponibilidad (REACTIVACION_SIN_DISPONIBILIDAD) o reserva ya pagada (REACTIVACION_YA_PAGADA)',
+  })
   reactivarReservaCancelada(
     @Body() reactivarReservaDto: ReactivarReservaDto,
     @GetUser() user: User,

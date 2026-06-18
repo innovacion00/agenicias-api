@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { ErrorManager } from 'src/common/helpers';
-import { hotelesIps, envs } from 'src/config'; 
+import { hotelesIps, envs } from 'src/config';
 import { ReservaInfoDto } from './dto';
 
 @Injectable()

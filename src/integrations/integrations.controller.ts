@@ -10,11 +10,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IntegrationsService } from './integrations.service';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
 import { ChatBridgeDto } from './dto';
-import {
-  ApiKeyProtected,
-  Auth,
-  GetIntegration,
-} from 'src/auth/decorators';
+import { ApiKeyProtected, Auth, GetIntegration } from 'src/auth/decorators';
 import { ValidIntegrationsRoles } from 'src/auth/interfaces';
 import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 
@@ -69,9 +65,7 @@ export class IntegrationsController {
   ) {
     const b2bToken = authorization?.replace(/^Bearer\s+/i, '').trim();
     if (!b2bToken) {
-      throw new UnauthorizedException(
-        'Authorization Bearer token requerido',
-      );
+      throw new UnauthorizedException('Authorization Bearer token requerido');
     }
 
     return this.integrationsService.chat(chatBridgeDto, b2bToken);
