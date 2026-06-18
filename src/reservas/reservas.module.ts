@@ -17,6 +17,7 @@ import { ReservasReactivacionService } from './services/reservas-reactivacion.se
 import { LinksPagoService } from './services/links-pago.service';
 import { ReservasPagosService } from './services/reservas-pagos.service';
 import { ReservasEmailsService } from './services/reservas-emails.service';
+import { ReservasCancelacionService } from './services/reservas-cancelacion.service';
 import { AutocoreModule } from 'src/autocore/autocore.module';
 
 @Module({
@@ -33,6 +34,7 @@ import { AutocoreModule } from 'src/autocore/autocore.module';
     LinksPagoService,
     ReservasPagosService,
     ReservasEmailsService,
+    ReservasCancelacionService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),
