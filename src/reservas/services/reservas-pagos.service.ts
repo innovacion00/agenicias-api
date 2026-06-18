@@ -11,11 +11,13 @@ import { format } from '@formkit/tempo';
 
 import { AutocoreClient } from 'src/autocore/autocore.client';
 import { HttpCustomService } from 'src/common/services';
+import { AUTOCORE_WEBHOOK_RESERVAS_IGNORADAS } from 'src/config/constants/autocoreWebhookProblemas';
 import { Agencia } from 'src/agencias/entities';
 import { Reserva } from '../entities';
 import { GenerateLinkDto, PagoReservaBilleteraDto } from '../dto';
 import { ValidPaymentStatus, LinksHistory } from '../interfaces';
 import { debeBloquearCancelacionPorPrimeraMitadPagada } from '../utils';
+import { parseYyyyMmDdOrThrow } from '../utils/fecha.utils';
 import { LinksPagoService } from './links-pago.service';
 import { ReservasReactivacionService } from './reservas-reactivacion.service';
 import { ReservasEmailsService } from './reservas-emails.service';
@@ -58,14 +60,21 @@ export class ReservasPagosService {
       pagoTotal,
     );
 
+    let updateResult;
     if (pagoTotal) {
-      await reservaInfo.updateOne({
+      updateResult = await reservaInfo.updateOne({
         $set: { linkInfo, pagadoPrimeraMitad: pagoTotal },
       });
     } else {
-      await reservaInfo.updateOne({
+      updateResult = await reservaInfo.updateOne({
         $set: { linkInfo },
       });
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      throw new BadRequestException(
+        'No se pudo actualizar la reserva con el link de pago',
+      );
     }
 
     reservaInfo.status = 1;
@@ -111,15 +120,6 @@ export class ReservasPagosService {
     }
 
     const valores = payload.external_ref_id.split(' ') as string[];
-    const problemas = [
-      '67ab755cedb19b9bad39f22d',
-      '67ab7863edb19b9bad3a4471',
-      '67cefa09a0c53ce8c5e1fb9b',
-      '67bf4b1a7b358f891dce8926',
-      '67c084a87b358f891dd07448',
-      '67c761d2be7b7404574c2513',
-    ];
-
     const firstValue = valores[0]?.trim();
     if (!firstValue) {
       this.logger.error(
@@ -128,7 +128,7 @@ export class ReservasPagosService {
       return true;
     }
 
-    if (problemas.includes(firstValue)) {
+    if (AUTOCORE_WEBHOOK_RESERVAS_IGNORADAS.includes(firstValue)) {
       return true;
     }
 
@@ -145,7 +145,8 @@ export class ReservasPagosService {
     const reserva = await this.reservasModel.findById(id);
 
     if (!reserva) {
-      throw new NotFoundException(`Reserva con id: ${id}`);
+      this.logger.warn(`Webhook pago: Reserva no encontrada: ${id}`);
+      return true;
     }
 
     if (!reserva.paymenIds) {
@@ -170,6 +171,8 @@ export class ReservasPagosService {
       return true;
     } else if (paymentEventKey) {
       reserva.paymenIds.push(paymentEventKey);
+    } else {
+      return true;
     }
     const linkDetails: LinksHistory = {
       id: payload.details.id,
@@ -264,21 +267,7 @@ export class ReservasPagosService {
           );
         }
 
-        const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!match) {
-          throw new BadRequestException(
-            `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
-          );
-        }
-        const checkinDate = new Date(
-          `${match[1]}-${match[2]}-${match[3]}T00:00:00`,
-        );
-        if (Number.isNaN(checkinDate.getTime())) {
-          throw new BadRequestException(
-            `checkin inválido (no se pudo parsear): ${checkinRaw}`,
-          );
-        }
-
+        const checkinDate = parseYyyyMmDdOrThrow(checkinRaw, 'checkin');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
