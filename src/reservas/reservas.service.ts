@@ -45,6 +45,8 @@ import { ReservasSearchService } from './services/reservas-search.service';
 import { ReservasBookingService } from './services/reservas-booking.service';
 import { ReservasReactivacionService } from './services/reservas-reactivacion.service';
 import { LinksPagoService } from './services/links-pago.service';
+import { ReservasPagosService } from './services/reservas-pagos.service';
+import { ReservasEmailsService } from './services/reservas-emails.service';
 import {
   CancelReservaMyToolDto,
   CreateReservaMyToolDto,
@@ -66,6 +68,8 @@ export class ReservasService {
     private readonly reservasBookingService: ReservasBookingService,
     private readonly reservasReactivacionService: ReservasReactivacionService,
     private readonly linksPagoService: LinksPagoService,
+    private readonly pagosService: ReservasPagosService,
+    private readonly emailsService: ReservasEmailsService,
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
@@ -88,82 +92,24 @@ export class ReservasService {
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
   ) {
-    try {
-      const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
-      const reservaInfo = await this.reservasModel.findById(
-        generateLinkDto.reservaId,
-      );
-
-      if (
-        !reservaInfo ||
-        reservaInfo.status === 4 ||
-        reservaInfo.status === 3
-      ) {
-        throw new NotFoundException('Reserva no encontrada');
-      }
-
-      if (!agenciaInfo) {
-        throw new NotFoundException('Agencia no encontrada');
-      }
-
-      const pagoTotal = generateLinkDto.pagoTotal ?? false;
-      const linkInfo = await this.linksPagoService.buildLinkPagoForReserva(
-        reservaInfo,
-        agenciaInfo,
-        pagoTotal,
-      );
-
-      if (pagoTotal) {
-        await reservaInfo.updateOne({
-          $set: { linkInfo, pagadoPrimeraMitad: pagoTotal },
-        });
-      } else {
-        await reservaInfo.updateOne({
-          $set: { linkInfo },
-        });
-      }
-
-      reservaInfo.status = 1;
-      await reservaInfo.save();
-
-      return { linkInfo };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.pagosService.generarLinkPago(generateLinkDto, agencia);
   }
 
   // #region Pago billetera
   async realizarPagoBilletera(
     pagoReservaBilleteraDto: PagoReservaBilleteraDto,
   ) {
-    try {
-      const data = await this.httpCustomService.pagoBalanceAutocore(
-        pagoReservaBilleteraDto.code,
-      );
-      return data;
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.pagosService.realizarPagoBilletera(pagoReservaBilleteraDto);
   }
 
   async pagarAutocoreBalanceReserva(
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
   ) {
-    try {
-      const linkDoc = await this.generarLinkPago(generateLinkDto, agencia);
-
-      const pagoBalanceInfo = await this.realizarPagoBilletera({
-        code: linkDoc.linkInfo.idLinkPago,
-      });
-
-      return pagoBalanceInfo;
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.pagosService.pagarAutocoreBalanceReserva(
+      generateLinkDto,
+      agencia,
+    );
   }
 
   // #region editar reserva
@@ -246,24 +192,6 @@ export class ReservasService {
     }
   }
 
-  private async enviarCorreoSaldoPendienteIntentoCancelacion(
-    reserva: Reserva,
-    recipientEmail: string,
-  ): Promise<void> {
-    const checkin = reserva.reservation?.checkin ?? '';
-    const checkout = reserva.reservation?.checkout ?? '';
-    const html = notificacionSaldoPendienteIntentoCancelacion(
-      reserva.reservaChatbotId,
-      checkin,
-      checkout,
-    );
-    await this.emailService.sendEmail(
-      recipientEmail,
-      'Booking connect - Saldo pendiente de su reserva',
-      html,
-    );
-  }
-
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
@@ -310,7 +238,7 @@ export class ReservasService {
         debeBloquearCancelacionPorPrimeraMitadPagada(reserva) &&
         !user.role.includes('super-admin')
       ) {
-        await this.enviarCorreoSaldoPendienteIntentoCancelacion(
+        await this.emailsService.enviarCorreoSaldoPendienteIntentoCancelacion(
           reserva,
           user.email,
         );
@@ -406,142 +334,7 @@ export class ReservasService {
       pay_platform?: string;
     };
   }) {
-    if (!payload.external_ref_id) {
-      this.logger.error('external_ref_id no proporcionado en payload');
-      return true;
-    }
-
-    const valores = payload.external_ref_id.split(' ') as string[];
-    const problemas = [
-      '67ab755cedb19b9bad39f22d',
-      '67ab7863edb19b9bad3a4471',
-      '67cefa09a0c53ce8c5e1fb9b',
-      '67bf4b1a7b358f891dce8926',
-      '67c084a87b358f891dd07448',
-      '67c761d2be7b7404574c2513',
-    ];
-
-    const firstValue = valores[0]?.trim();
-    if (!firstValue) {
-      this.logger.error(
-        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
-      );
-      return true;
-    }
-
-    if (problemas.includes(firstValue)) {
-      return true;
-    }
-
-    const autocoreId = payload.transaction_id?.trim();
-    this.logger.log(payload);
-
-    const id = firstValue;
-
-    let pagoValidator: string | null = null;
-    if (valores[1]) {
-      pagoValidator = valores[1].trim();
-    }
-
-    const reserva = await this.reservasModel.findById(id);
-
-    if (!reserva) {
-      throw new NotFoundException(`Reserva con id: ${id}`);
-    }
-
-    if (!reserva.paymenIds) {
-      reserva.paymenIds = [];
-    }
-
-    if (
-      reserva.status === ValidPaymentStatus.total ||
-      reserva.status === ValidPaymentStatus.cancelado
-    ) {
-      return true;
-    }
-
-    const status = String(payload.payment_status || '')
-      .trim()
-      .toLowerCase();
-    if (!status) {
-      return true;
-    }
-    const paymentEventKey = autocoreId ? `${autocoreId}:${status}` : null;
-    if (paymentEventKey && reserva.paymenIds.includes(paymentEventKey)) {
-      return true;
-    } else if (paymentEventKey) {
-      reserva.paymenIds.push(paymentEventKey);
-    }
-    const linkDetails: LinksHistory = {
-      id: payload.details.id,
-      typeOfPayment: payload.details.pay_platform
-        ? payload.details.pay_platform
-        : 'No identificado',
-      state: undefined,
-      fecha: new Date(),
-    };
-    switch (status) {
-      case 'en proceso':
-        reserva.status = ValidPaymentStatus.espera;
-        await reserva.save();
-        return true;
-
-      case 'rechazado':
-      case 'cancelado':
-      case 'tarjeta no válida':
-        linkDetails.state = ValidPaymentStatus.rejected;
-        reserva.linksHistory.push(linkDetails);
-        if (pagoValidator) {
-          reserva.pagadoPrimeraMitad = false;
-
-          reserva.status = ValidPaymentStatus.rejected;
-          await reserva.save();
-          if (reserva.esReactivacion) {
-            await this.reservasReactivacionService.handleReactivacionPagoFallido(
-              reserva,
-            );
-          }
-          return true;
-        }
-
-        reserva.status = ValidPaymentStatus.rejected;
-        await reserva.save();
-        if (reserva.esReactivacion) {
-          await this.reservasReactivacionService.handleReactivacionPagoFallido(
-            reserva,
-          );
-        }
-        return true;
-
-      case 'aplicado':
-        if (!reserva.pagadoPrimeraMitad) {
-          linkDetails.state = ValidPaymentStatus.mitad;
-          reserva.linksHistory.push(linkDetails);
-          reserva.status = ValidPaymentStatus.mitad;
-          reserva.pagadoPrimeraMitad = true;
-          await reserva.save();
-          return true;
-        }
-        linkDetails.state = pagoValidator
-          ? ValidPaymentStatus.total
-          : ValidPaymentStatus.mitad;
-
-        reserva.linksHistory.push(linkDetails);
-        reserva.status = ValidPaymentStatus.total;
-        await reserva.save();
-        if (
-          reserva.esReactivacion &&
-          reserva.status === ValidPaymentStatus.total
-        ) {
-          await this.reservasReactivacionService.handleReactivacionPagoExitoso(
-            reserva,
-          );
-        }
-        return true;
-
-      default:
-        return true;
-    }
+    return this.pagosService.cambiarEstadoPagoAutocore(payload);
   }
 
   // #region Obtener reservas por usuario
@@ -704,109 +497,12 @@ export class ReservasService {
     saltarValidacionCheckin = false,
     forzarCancelacionConPagoMitad = false,
   ) {
-    try {
-      const _id =
-        reservaId instanceof Types.ObjectId
-          ? reservaId
-          : new Types.ObjectId(String(reservaId));
-
-      const reserva = await this.reservasModel.findById(_id).exec();
-      if (!reserva) {
-        throw new NotFoundException('Reserva no encontrada');
-      }
-
-      if (!saltarValidacionCheckin) {
-        const checkinRaw = reserva.reservation?.checkin;
-        if (!checkinRaw || typeof checkinRaw !== 'string') {
-          throw new BadRequestException(
-            'La reserva no tiene check-in válido para validar el cambio de estado',
-          );
-        }
-
-        const match = checkinRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!match) {
-          throw new BadRequestException(
-            `checkin inválido (se esperaba YYYY-MM-DD): ${checkinRaw}`,
-          );
-        }
-        const checkinDate = new Date(
-          `${match[1]}-${match[2]}-${match[3]}T00:00:00`,
-        );
-        if (Number.isNaN(checkinDate.getTime())) {
-          throw new BadRequestException(
-            `checkin inválido (no se pudo parsear): ${checkinRaw}`,
-          );
-        }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (today >= checkinDate) {
-          throw new ForbiddenException(
-            'No se puede modificar el estado: la reserva ya llegó a la fecha de check-in. Usa ?saltarValidacionCheckin=true si debes corregir datos como superAdmin.',
-          );
-        }
-      }
-
-      const statusNorm = Number(status);
-      if (
-        !Number.isInteger(statusNorm) ||
-        statusNorm < ValidPaymentStatus.espera ||
-        statusNorm > ValidPaymentStatus.reservaAbonada
-      ) {
-        throw new BadRequestException(
-          `status inválido: ${String(status)} (se esperaba entero 0–6)`,
-        );
-      }
-
-      if (statusNorm === ValidPaymentStatus.cancelado) {
-        if (
-          !forzarCancelacionConPagoMitad &&
-          debeBloquearCancelacionPorPrimeraMitadPagada(reserva)
-        ) {
-          const destino =
-            reserva.reservation?.email?.trim() || 'reservas@gehsuites.com';
-          await this.enviarCorreoSaldoPendienteIntentoCancelacion(
-            reserva,
-            destino,
-          );
-          throw new BadRequestException(
-            'No es posible cancelar esta reserva porque ya registra el pago de la primera mitad con saldo pendiente. Se envió un correo con los pasos para gestionar el pago restante. Use forzarCancelacionConPagoMitad=true si debe cancelar de forma excepcional.',
-          );
-        }
-        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
-      }
-
-      const pagadoPrimeraMitad =
-        statusNorm === ValidPaymentStatus.mitad ||
-        statusNorm === ValidPaymentStatus.reservaAbonada ||
-        statusNorm === ValidPaymentStatus.total;
-
-      const updateResult = await this.reservasModel.updateOne(
-        { _id },
-        { $set: { status: statusNorm, pagadoPrimeraMitad } },
-      );
-
-      if (updateResult.matchedCount === 0) {
-        throw new NotFoundException(
-          'Reserva no encontrada al aplicar el cambio de estado',
-        );
-      }
-
-      this.logger.log(
-        `actualizarStatusReservaManual _id=${String(_id)} status=${statusNorm} pagadoPrimeraMitad=${pagadoPrimeraMitad} matched=${updateResult.matchedCount} modified=${updateResult.modifiedCount}`,
-      );
-
-      const actualizada = await this.reservasModel.findById(_id).exec();
-      if (!actualizada) {
-        throw new NotFoundException('Reserva no encontrada tras actualizar');
-      }
-
-      return actualizada;
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
+    return this.pagosService.actualizarStatusReservaManual(
+      reservaId,
+      status,
+      saltarValidacionCheckin,
+      forzarCancelacionConPagoMitad,
+    );
   }
 
   async actualizarFechasPagoReserva(
@@ -950,7 +646,7 @@ export class ReservasService {
         debeBloquearCancelacionPorPrimeraMitadPagada(reserva) &&
         !user.role.includes('super-admin')
       ) {
-        await this.enviarCorreoSaldoPendienteIntentoCancelacion(
+        await this.emailsService.enviarCorreoSaldoPendienteIntentoCancelacion(
           reserva,
           user.email,
         );

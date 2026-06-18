@@ -15,6 +15,8 @@ import { ReservasCountCacheService } from './services/reservas-count-cache.servi
 import { ReservasBookingService } from './services/reservas-booking.service';
 import { ReservasReactivacionService } from './services/reservas-reactivacion.service';
 import { LinksPagoService } from './services/links-pago.service';
+import { ReservasPagosService } from './services/reservas-pagos.service';
+import { ReservasEmailsService } from './services/reservas-emails.service';
 import { AutocoreModule } from 'src/autocore/autocore.module';
 
 @Module({
@@ -29,6 +31,8 @@ import { AutocoreModule } from 'src/autocore/autocore.module';
     ReservasBookingService,
     ReservasReactivacionService,
     LinksPagoService,
+    ReservasPagosService,
+    ReservasEmailsService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),
