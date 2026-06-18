@@ -1,5 +1,9 @@
 import { format } from '@formkit/tempo';
 import { convertidorMoneda } from 'src/common/helpers';
+import { renderTemplate, registerHelpers } from 'src/notificaciones/templates/render.helper';
+
+// Inicializar helpers personalizados (fecha, moneda, año)
+registerHelpers();
 
 // #region Notificaciones reservas
 
