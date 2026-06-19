@@ -27,6 +27,7 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
 import { HealthModule } from './health/health.module';
 import { RedisModule } from './redis/redis.module';
 import { RedisThrottlerStorage } from './redis/redis-throttler-storage.service';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { RedisThrottlerStorage } from './redis/redis-throttler-storage.service';
         ],
       }),
     }),
+    ObservabilityModule,
     MyToolModule,
     NotificacionesModule,
     ReservasModule,
