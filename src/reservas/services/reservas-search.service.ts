@@ -14,6 +14,7 @@ import { ReservasCountCacheService } from './reservas-count-cache.service';
 const PAGE_SIZE = 15;
 // OPTIMIZACIÓN: Limitar skip máximo para evitar queries muy lentas
 const MAX_SKIP = 10000;
+const HARD_LIMIT_ALL = 500;
 
 @Injectable()
 export class ReservasSearchService {
@@ -149,6 +150,7 @@ export class ReservasSearchService {
       pageSize?: number;
       totalPages?: number;
       sumaTotales?: number;
+      deprecationWarning?: string;
     };
   }> {
     try {
@@ -214,7 +216,7 @@ export class ReservasSearchService {
       const sumaTotales =
         await this.countCache.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
-      // Si all=true, retornar TODAS las reservas sin límite
+      // Si all=true, retornar con límite duro (deprecado)
       if (all) {
         const [reservas, total] = await Promise.all([
           this.reservasModel
@@ -222,6 +224,7 @@ export class ReservasSearchService {
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
+            .limit(HARD_LIMIT_ALL)
             .lean(),
           this.countCache.getCachedCount(filtroBusqueda),
         ]);
@@ -231,6 +234,7 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
+            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -283,6 +287,7 @@ export class ReservasSearchService {
       pageSize?: number;
       totalPages?: number;
       sumaTotales?: number;
+      deprecationWarning?: string;
     };
   }> {
     try {
@@ -343,7 +348,7 @@ export class ReservasSearchService {
       const sumaTotales =
         await this.countCache.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
-      // Si all=true, retornar TODAS las reservas sin límite
+      // Si all=true, retornar con límite duro (deprecado)
       if (all) {
         const [reservas, total] = await Promise.all([
           this.reservasModel
@@ -351,6 +356,7 @@ export class ReservasSearchService {
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
+            .limit(HARD_LIMIT_ALL)
             .lean(),
           this.countCache.getCachedCount(filtroBusqueda),
         ]);
@@ -360,6 +366,7 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
+            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -412,6 +419,7 @@ export class ReservasSearchService {
       pageSize?: number;
       totalPages?: number;
       sumaTotales?: number;
+      deprecationWarning?: string;
     };
   }> {
     try {
@@ -494,7 +502,7 @@ export class ReservasSearchService {
       const sumaTotales =
         await this.countCache.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
-      // Si all=true, retornar TODAS las reservas sin límite
+      // Si all=true, retornar con límite duro (deprecado)
       if (all) {
         const [reservas, total] = await Promise.all([
           this.reservasModel
@@ -502,6 +510,7 @@ export class ReservasSearchService {
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
+            .limit(HARD_LIMIT_ALL)
             .lean(),
           this.countCache.getCachedCount(filtroBusqueda),
         ]);
@@ -511,6 +520,7 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
+            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -563,6 +573,7 @@ export class ReservasSearchService {
       pageSize?: number;
       totalPages?: number;
       sumaTotales?: number;
+      deprecationWarning?: string;
     };
   }> {
     try {
@@ -577,8 +588,7 @@ export class ReservasSearchService {
       const sumaTotales =
         await this.countCache.calcularSumaTotalesPorFiltro(filtroBusqueda);
 
-      // Si all=true, retornar TODAS las reservas sin límite
-      // ADVERTENCIA: Esto puede ser lento si hay muchas reservas (miles o millones)
+      // Si all=true, retornar con límite duro (deprecado)
       if (all) {
         const [reservas, total] = await Promise.all([
           this.reservasModel
@@ -586,7 +596,7 @@ export class ReservasSearchService {
             .populate('agenciaId', 'fullName _id emailContacto')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
-            // Sin límite - retorna todas las reservas que cumplan el filtro
+            .limit(HARD_LIMIT_ALL)
             .lean(),
           this.countCache.getCachedCount(filtroBusqueda),
         ]);
@@ -596,6 +606,7 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
+            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -734,14 +745,14 @@ export class ReservasSearchService {
       // Si se proporciona el parámetro hotel, agregarlo al filtro
       if (hotel && hotel.trim()) {
         // Búsqueda case-insensitive y parcial del nombre del hotel
-        filter.hotel = { $regex: hotel.trim(), $options: 'i' };
+        filter.hotel = { $regex: this.escapeRegex(hotel.trim()), $options: 'i' };
       }
 
       // Filtro por nombre de agencia (solo para superAdmin)
       if (nombreAgencia && nombreAgencia.trim()) {
         // Buscar agencias que coincidan con el nombre
         const filtroAgencia: any = {
-          fullName: { $regex: nombreAgencia.trim(), $options: 'i' },
+          fullName: { $regex: this.escapeRegex(nombreAgencia.trim()), $options: 'i' },
         };
 
         const agencias = await this.agenciaModel
@@ -792,7 +803,7 @@ export class ReservasSearchService {
       // Obtener la suma de totales de reservas no canceladas (con caché)
       const totalSuma = await this.countCache.getSumaTotalesNoCanceladas();
 
-      // Si all=true, retornar TODAS las reservas sin límite
+      // Si all=true, retornar con límite duro (deprecado)
       if (all) {
         const [allReservas, total] = await Promise.all([
           this.reservasModel
@@ -800,6 +811,7 @@ export class ReservasSearchService {
             .populate('agenciaId', 'fullName _id')
             .populate('userId', 'fullName email')
             .sort({ createdAt: -1 })
+            .limit(HARD_LIMIT_ALL)
             .lean(),
           this.countCache.getCachedCount(filter),
         ]);
@@ -813,6 +825,7 @@ export class ReservasSearchService {
             ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
             ...(fechaDesde && { fechaDesde }),
             ...(fechaHasta && { fechaHasta }),
+            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
           },
         };
       }

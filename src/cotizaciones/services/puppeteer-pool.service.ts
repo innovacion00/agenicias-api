@@ -11,12 +11,12 @@ export class PuppeteerPoolService implements OnModuleDestroy {
   private browser: puppeteer.Browser | null = null;
   private readonly MAX_CONCURRENT = 2; // Máximo de PDFs simultáneos
   private activeRequests = 0;
-  private queue: Array<() => Promise<void>> = [];
+  private queue: Array<() => void> = [];
 
   async generatePdf(html: string): Promise<Buffer> {
     // Adquirir semáforo
     const releasePromise = this.acquireLock();
-    let releaseLock: () => void;
+    let releaseLock: () => void = () => {};
 
     try {
       releaseLock = await releasePromise;
