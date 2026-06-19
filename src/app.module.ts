@@ -89,8 +89,8 @@ import { HealthModule } from './health/health.module';
     FilesModule,
     IntegrationsModule,
     MongooseModule.forRoot(envs.mongoUrl, {
-      maxPoolSize: 10, // Número máximo de conexiones en el pool
-      minPoolSize: 2, // Número mínimo de conexiones en el pool
+      maxPoolSize: 30,
+      minPoolSize: 5,
       serverSelectionTimeoutMS: 5000, // Timeout para seleccionar servidor
       socketTimeoutMS: 45000, // Timeout para operaciones de socket
       heartbeatFrequencyMS: 10000, // Frecuencia de heartbeat
