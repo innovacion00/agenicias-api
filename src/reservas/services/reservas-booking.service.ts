@@ -39,6 +39,7 @@ import { CreateReservaMyToolDto } from '../dto/create-reserva-mytool.dto';
 import { Reserva } from '../entities';
 import { calcularFechaLimitePago } from '../utils';
 import { MyToolBookingService } from './my-tool-booking.service';
+import { ReservasCountCacheService } from './reservas-count-cache.service';
 
 /**
  * Creación y edición de reservas (Autocore y My Tool), y consulta de
@@ -61,6 +62,7 @@ export class ReservasBookingService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly myToolBookingService: MyToolBookingService,
+    private readonly countCache: ReservasCountCacheService,
   ) {
     this.errorManager = new ErrorManager(ReservasBookingService.name);
   }
@@ -203,6 +205,7 @@ export class ReservasBookingService {
         await userInfo.save({ session });
 
         await session.commitTransaction();
+        this.countCache.invalidateAll();
       } catch (error) {
         await session.abortTransaction();
         throw error;
@@ -439,6 +442,7 @@ export class ReservasBookingService {
             : reserva.notasagencias,
         },
       });
+      this.countCache.invalidateAll();
 
       return data;
     } catch (error) {
@@ -815,6 +819,7 @@ export class ReservasBookingService {
         await userInfo.save({ session });
 
         await session.commitTransaction();
+        this.countCache.invalidateAll();
 
         if (dto.infoTransporte) {
           this.sendTransportNotification(

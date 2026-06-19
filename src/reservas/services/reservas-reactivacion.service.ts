@@ -27,6 +27,7 @@ import { calcularFechaLimitePago, obtenerHotelIdPorNombre } from '../utils';
 import { ValidPaymentStatus } from '../interfaces';
 import { CancellationTasksQueueService } from '../cancellation-tasks-queue.service';
 import { LinksPagoService } from './links-pago.service';
+import { ReservasCountCacheService } from './reservas-count-cache.service';
 
 /**
  * Reactivación de reservas canceladas y manejo de los desenlaces de pago de
@@ -57,6 +58,7 @@ export class ReservasReactivacionService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
+    private readonly countCache: ReservasCountCacheService,
   ) {
     this.errorManager = new ErrorManager(ReservasReactivacionService.name);
   }
@@ -223,6 +225,7 @@ export class ReservasReactivacionService {
         }
 
         await session.commitTransaction();
+        this.countCache.invalidateAll();
       } catch (error) {
         await session.abortTransaction();
         throw error;
@@ -243,6 +246,7 @@ export class ReservasReactivacionService {
           status: ValidPaymentStatus.proceso,
         },
       });
+      this.countCache.invalidateAll();
 
       this.cancellationTasksQueueService.enqueueReactivationExpiryJob(
         nuevaReserva._id.toString(),
@@ -303,6 +307,7 @@ export class ReservasReactivacionService {
         status: ValidPaymentStatus.proceso,
       },
     });
+    this.countCache.invalidateAll();
 
     this.logger.log(
       `Reactivacion pendiente reutilizada: origen=${reservaOrigen.reservaChatbotId} nueva=${nuevaPendiente.reservaChatbotId}`,
@@ -379,6 +384,7 @@ export class ReservasReactivacionService {
         $set: { esReactivacion: false },
       },
     );
+    this.countCache.invalidateAll();
 
     this.logger.log(
       `Reactivacion completada: nueva=${reservaNueva.reservaChatbotId} origen eliminada`,

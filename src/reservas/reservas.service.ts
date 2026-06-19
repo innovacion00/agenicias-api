@@ -48,6 +48,7 @@ import { LinksPagoService } from './services/links-pago.service';
 import { ReservasPagosService } from './services/reservas-pagos.service';
 import { ReservasEmailsService } from './services/reservas-emails.service';
 import { ReservasCancelacionService } from './services/reservas-cancelacion.service';
+import { ReservasCountCacheService } from './services/reservas-count-cache.service';
 import {
   CancelReservaMyToolDto,
   CreateReservaMyToolDto,
@@ -71,6 +72,7 @@ export class ReservasService {
     private readonly pagosService: ReservasPagosService,
     private readonly emailsService: ReservasEmailsService,
     private readonly cancelacionService: ReservasCancelacionService,
+    private readonly countCache: ReservasCountCacheService,
   ) {
     this.errorManager = new ErrorManager(ReservasService.name);
   }
@@ -356,6 +358,7 @@ export class ReservasService {
       reserva.fechaLimitePago = updateFechasPagoDto.fechaLimitePago.trim();
       reserva.fechaLimitePago2 = updateFechasPagoDto.fechaLimitePago2.trim();
       await reserva.save();
+      this.countCache.invalidateAll();
 
       return {
         reservaId: reserva._id,

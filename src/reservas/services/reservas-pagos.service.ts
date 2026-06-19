@@ -20,6 +20,7 @@ import { parseYyyyMmDdOrThrow } from '../utils/fecha.utils';
 import { LinksPagoService } from './links-pago.service';
 import { ReservasReactivacionService } from './reservas-reactivacion.service';
 import { ReservasEmailsService } from './reservas-emails.service';
+import { ReservasCountCacheService } from './reservas-count-cache.service';
 
 @Injectable()
 export class ReservasPagosService {
@@ -32,6 +33,7 @@ export class ReservasPagosService {
     private readonly linksPagoService: LinksPagoService,
     private readonly reactivacionService: ReservasReactivacionService,
     private readonly emailsService: ReservasEmailsService,
+    private readonly countCache: ReservasCountCacheService,
   ) {}
 
   async generarLinkPago(
@@ -77,6 +79,7 @@ export class ReservasPagosService {
 
     reservaInfo.status = 1;
     await reservaInfo.save();
+    this.countCache.invalidateAll();
 
     return { linkInfo };
   }
@@ -184,6 +187,7 @@ export class ReservasPagosService {
       case 'en proceso':
         reserva.status = ValidPaymentStatus.espera;
         await reserva.save();
+        this.countCache.invalidateAll();
         return true;
 
       case 'rechazado':
@@ -196,6 +200,7 @@ export class ReservasPagosService {
 
           reserva.status = ValidPaymentStatus.rejected;
           await reserva.save();
+          this.countCache.invalidateAll();
           if (reserva.esReactivacion) {
             await this.reactivacionService.handleReactivacionPagoFallido(
               reserva,
@@ -206,6 +211,7 @@ export class ReservasPagosService {
 
         reserva.status = ValidPaymentStatus.rejected;
         await reserva.save();
+        this.countCache.invalidateAll();
         if (reserva.esReactivacion) {
           await this.reactivacionService.handleReactivacionPagoFallido(reserva);
         }
@@ -218,6 +224,7 @@ export class ReservasPagosService {
           reserva.status = ValidPaymentStatus.mitad;
           reserva.pagadoPrimeraMitad = true;
           await reserva.save();
+          this.countCache.invalidateAll();
           return true;
         }
         linkDetails.state = pagoValidator
@@ -227,6 +234,7 @@ export class ReservasPagosService {
         reserva.linksHistory.push(linkDetails);
         reserva.status = ValidPaymentStatus.total;
         await reserva.save();
+        this.countCache.invalidateAll();
         if (
           reserva.esReactivacion &&
           reserva.status === ValidPaymentStatus.total
@@ -314,6 +322,7 @@ export class ReservasPagosService {
         { _id },
         { $set: { status: statusNorm, pagadoPrimeraMitad } },
       );
+      this.countCache.invalidateAll();
 
       if (updateResult.matchedCount === 0) {
         throw new NotFoundException(

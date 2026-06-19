@@ -11,72 +11,88 @@ export interface ICountCache {
   ): Promise<number>;
   getSumaTotalesNoCanceladas(useCache?: boolean): Promise<number>;
   calcularSumaTotalesPorFiltro(filter: Record<string, any>): Promise<number>;
+  invalidateAll(): void;
+  invalidateByFilter(filter: Record<string, any>): void;
 }
 
 @Injectable()
 export class ReservasCountCacheService implements ICountCache {
   private readonly logger = new Logger(ReservasCountCacheService.name);
 
-  // Caché para totales de documentos (evita recalcular en cada request)
   private countCache: Map<string, { count: number; timestamp: number }> =
     new Map();
-  private readonly CACHE_TTL = 60000; // 1 minuto en milisegundos
+  private readonly CACHE_TTL = 60000;
+  private readonly MAX_CACHE_SIZE = 1000;
 
-  // Caché para suma de totales de reservas no canceladas
   private sumaTotalesCache: { value: number; timestamp: number } | null = null;
-  private readonly SUMA_CACHE_TTL = 60000; // 1 minuto en milisegundos
+  private readonly SUMA_CACHE_TTL = 60000;
+
+  private sumaTotalesPorFiltroCache: Map<
+    string,
+    { value: number; timestamp: number }
+  > = new Map();
 
   constructor(
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
   ) {}
 
-  /**
-   * Obtiene el total de documentos con caché
-   * @param filter Filtro de búsqueda para generar clave de caché
-   * @param useCache Si es false, fuerza recalcular
-   */
+  private buildCacheKey(filter: Record<string, any>): string {
+    const sorted = Object.keys(filter)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = filter[key];
+        return acc;
+      }, {} as Record<string, any>);
+    return JSON.stringify(sorted);
+  }
+
+  private setWithLRUEviction(
+    key: string,
+    value: { count: number; timestamp: number },
+  ): void {
+    if (this.countCache.has(key)) {
+      this.countCache.delete(key);
+    }
+    this.countCache.set(key, value);
+
+    if (this.countCache.size > this.MAX_CACHE_SIZE) {
+      const firstKey = this.countCache.keys().next().value;
+      if (firstKey) {
+        this.countCache.delete(firstKey);
+      }
+    }
+  }
+
   async getCachedCount(filter: any, useCache = true): Promise<number> {
-    const cacheKey = JSON.stringify(filter);
+    const cacheKey = this.buildCacheKey(filter);
     const cached = this.countCache.get(cacheKey);
 
     if (useCache && cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      this.logger.debug(`Usando total en caché: ${cached.count}`);
       return cached.count;
     }
 
-    // OPTIMIZACIÓN: Para queries sin filtros, usar estimatedDocumentCount (más rápido)
     const isEmptyFilter = !filter || Object.keys(filter).length === 0;
     let count: number;
 
     if (isEmptyFilter) {
       try {
         count = await this.reservasModel.estimatedDocumentCount();
-        this.logger.debug(`Total estimado (sin filtros): ${count}`);
-      } catch (error) {
-        this.logger.warn(
-          'Error al obtener estimatedDocumentCount, usando countDocuments',
-        );
+      } catch {
         count = await this.reservasModel.countDocuments(filter);
       }
     } else {
       count = await this.reservasModel.countDocuments(filter);
     }
 
-    // Guardar en caché
-    this.countCache.set(cacheKey, { count, timestamp: Date.now() });
-
-    // Limpiar caché antiguo (más de 5 minutos)
+    this.setWithLRUEviction(cacheKey, { count, timestamp: Date.now() });
     this.cleanOldCache();
 
     return count;
   }
 
-  /**
-   * Limpia entradas de caché antiguas
-   */
   private cleanOldCache(): void {
     const now = Date.now();
-    const maxAge = this.CACHE_TTL * 5; // 5 minutos
+    const maxAge = this.CACHE_TTL * 5;
 
     for (const [key, value] of this.countCache.entries()) {
       if (now - value.timestamp > maxAge) {
@@ -84,44 +100,32 @@ export class ReservasCountCacheService implements ICountCache {
       }
     }
 
-    // Limpiar caché de suma de totales si es antiguo
     if (
       this.sumaTotalesCache &&
       now - this.sumaTotalesCache.timestamp > this.SUMA_CACHE_TTL * 5
     ) {
       this.sumaTotalesCache = null;
     }
+
+    for (const [key, value] of this.sumaTotalesPorFiltroCache.entries()) {
+      if (now - value.timestamp > this.SUMA_CACHE_TTL * 5) {
+        this.sumaTotalesPorFiltroCache.delete(key);
+      }
+    }
   }
 
-  /**
-   * Obtiene la suma de totales de reservas no canceladas con caché
-   */
   async getSumaTotalesNoCanceladas(useCache = true): Promise<number> {
-    // Verificar caché
     if (
       useCache &&
       this.sumaTotalesCache &&
       Date.now() - this.sumaTotalesCache.timestamp < this.SUMA_CACHE_TTL
     ) {
-      this.logger.debug(
-        `Usando suma de totales en caché: ${this.sumaTotalesCache.value}`,
-      );
       return this.sumaTotalesCache.value;
     }
 
-    // Calcular la suma usando agregación
     const sumaTotalesNoCanceladas = await this.reservasModel.aggregate([
-      {
-        $match: {
-          status: { $ne: 4 }, // Excluir reservas canceladas (status = 4)
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalSum: { $sum: '$total' },
-        },
-      },
+      { $match: { status: { $ne: 4 } } },
+      { $group: { _id: null, totalSum: { $sum: '$total' } } },
     ]);
 
     const totalSuma =
@@ -129,38 +133,59 @@ export class ReservasCountCacheService implements ICountCache {
         ? sumaTotalesNoCanceladas[0].totalSum
         : 0;
 
-    // Guardar en caché
-    this.sumaTotalesCache = {
-      value: totalSuma,
-      timestamp: Date.now(),
-    };
-
-    this.logger.debug(`Suma de totales calculada: ${totalSuma}`);
+    this.sumaTotalesCache = { value: totalSuma, timestamp: Date.now() };
     return totalSuma;
   }
 
-  /**
-   * Calcula la suma de totales de reservas que coinciden con un filtro
-   * @param filter Filtro de búsqueda
-   */
-  async calcularSumaTotalesPorFiltro(filter: any): Promise<number> {
+  async calcularSumaTotalesPorFiltro(
+    filter: any,
+    useCache = true,
+  ): Promise<number> {
+    const cacheKey = this.buildCacheKey(filter);
+    const cached = this.sumaTotalesPorFiltroCache.get(cacheKey);
+
+    if (
+      useCache &&
+      cached &&
+      Date.now() - cached.timestamp < this.SUMA_CACHE_TTL
+    ) {
+      return cached.value;
+    }
+
     try {
       const resultado = await this.reservasModel.aggregate([
-        {
-          $match: filter,
-        },
-        {
-          $group: {
-            _id: null,
-            totalSum: { $sum: '$total' },
-          },
-        },
+        { $match: filter },
+        { $group: { _id: null, totalSum: { $sum: '$total' } } },
       ]);
 
-      return resultado.length > 0 ? resultado[0].totalSum : 0;
+      const totalSuma = resultado.length > 0 ? resultado[0].totalSum : 0;
+
+      if (this.sumaTotalesPorFiltroCache.size > this.MAX_CACHE_SIZE) {
+        const firstKey = this.sumaTotalesPorFiltroCache.keys().next().value;
+        if (firstKey) this.sumaTotalesPorFiltroCache.delete(firstKey);
+      }
+
+      this.sumaTotalesPorFiltroCache.set(cacheKey, {
+        value: totalSuma,
+        timestamp: Date.now(),
+      });
+
+      return totalSuma;
     } catch (error) {
       this.logger.error('Error al calcular suma de totales:', error);
       return 0;
     }
+  }
+
+  invalidateAll(): void {
+    this.countCache.clear();
+    this.sumaTotalesCache = null;
+    this.sumaTotalesPorFiltroCache.clear();
+  }
+
+  invalidateByFilter(filter: Record<string, any>): void {
+    const key = this.buildCacheKey(filter);
+    this.countCache.delete(key);
+    this.sumaTotalesPorFiltroCache.delete(key);
   }
 }

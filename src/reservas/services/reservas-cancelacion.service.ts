@@ -28,6 +28,7 @@ import { ValidPaymentStatus } from '../interfaces';
 import { CancellationTasksQueueService } from '../cancellation-tasks-queue.service';
 import { MyToolBookingService } from './my-tool-booking.service';
 import { ReservasEmailsService } from './reservas-emails.service';
+import { ReservasCountCacheService } from './reservas-count-cache.service';
 
 @Injectable()
 export class ReservasCancelacionService {
@@ -40,9 +41,8 @@ export class ReservasCancelacionService {
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     private readonly myToolBookingService: MyToolBookingService,
     private readonly emailsService: ReservasEmailsService,
-  ) {
-
-  }
+    private readonly countCache: ReservasCountCacheService,
+  ) {}
 
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
     try {
@@ -148,6 +148,7 @@ export class ReservasCancelacionService {
             },
           },
         );
+        this.countCache.invalidateAll();
 
         lockedReserva.status = ValidPaymentStatus.cancelado;
         this.enqueuePostCancellationTasks(lockedReserva, agenciaDoc);
@@ -186,6 +187,7 @@ export class ReservasCancelacionService {
       await this.autocoreClient.cancelarReservas(reserva.reservaChatbotId);
       reserva.status = 4;
       await reserva.save();
+      this.countCache.invalidateAll();
       return reserva;
     } catch (error) {
       this.logger.error(error);
@@ -259,6 +261,7 @@ export class ReservasCancelacionService {
 
       reserva.status = ValidPaymentStatus.cancelado;
       await reserva.save();
+      this.countCache.invalidateAll();
 
       return {
         msg: `Reserva ${reserva.reservaChatbotId} cancelada correctamente`,
