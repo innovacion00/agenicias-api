@@ -23,7 +23,8 @@
     "script:register-agencias-maarlab": "ts-node scripts/register-agencias-maarlab.ts",
     "seed:airports": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts",
     "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only",
-    "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts"
+    "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts",
+    "migrate:normalize-fields": "ts-node -r tsconfig-paths/register scripts/migracion-campos-normalizados.ts"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.2",

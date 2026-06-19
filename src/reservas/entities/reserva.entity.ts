@@ -458,6 +458,15 @@ export class Reserva extends Document {
     default: false,
   })
   reactivacionCorreoFalloEnviado: boolean;
+
+  @Prop({ type: String, index: true })
+  hotelLower: string;
+
+  @Prop({ type: String, index: true })
+  titularFirstNameLower: string;
+
+  @Prop({ type: String, index: true })
+  titularLastNameLower: string;
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);
