@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  ThrottlerModule,
+  ThrottlerGuard,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
@@ -25,7 +29,7 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
 import { HealthModule } from './health/health.module';
-import { RedisModule } from './redis/redis.module';
+import { RedisModule, REDIS_CLIENT } from './redis/redis.module';
 import { RedisThrottlerStorage } from './redis/redis-throttler-storage.service';
 import { ObservabilityModule } from './observability/observability.module';
 
@@ -103,18 +107,11 @@ import { ObservabilityModule } from './observability/observability.module';
       // Para producción con réplicas, descomentar:
       // readPreference: 'secondaryPreferred', // Leer de réplicas secundarias cuando sea posible
     }),
-    ThrottlerModule.forRootAsync({
-      imports: [RedisModule],
-      inject: [RedisThrottlerStorage],
-      useFactory: (storage: RedisThrottlerStorage) => ({
-        storage,
-        throttlers: [
-          { name: 'short', ttl: 60000, limit: 100 },
-          { name: 'medium', ttl: 600000, limit: 500 },
-          { name: 'long', ttl: 3600000, limit: 2000 },
-        ],
-      }),
-    }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 60000, limit: 100 },
+      { name: 'medium', ttl: 600000, limit: 500 },
+      { name: 'long', ttl: 3600000, limit: 2000 },
+    ]),
     ObservabilityModule,
     MyToolModule,
     NotificacionesModule,
@@ -129,6 +126,10 @@ import { ObservabilityModule } from './observability/observability.module';
   controllers: [],
   providers: [
     RedisThrottlerStorage,
+    {
+      provide: ThrottlerStorage,
+      useExisting: RedisThrottlerStorage,
+    },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
