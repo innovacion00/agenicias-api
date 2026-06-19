@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { CotizacionesService } from './cotizaciones.service';
 import { CotizacionesController } from './cotizaciones.controller';
 import { CotizacionesPublicController } from './cotizaciones-public.controller';
+import { PuppeteerPoolService } from './services/puppeteer-pool.service';
 
 import { Cotizacion, CotizacionSchema } from './entities/cotizacion.entity';
 import { Reserva, ReservaSchema } from 'src/reservas/entities';
@@ -16,7 +17,6 @@ import { CommonModule } from 'src/common/common.module';
 import { AutocoreModule } from 'src/autocore/autocore.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { ReservasModule } from 'src/reservas/reservas.module';
-import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -34,7 +34,7 @@ import { forwardRef } from '@nestjs/common';
     forwardRef(() => ReservasModule),
   ],
   controllers: [CotizacionesController, CotizacionesPublicController],
-  providers: [CotizacionesService],
+  providers: [CotizacionesService, PuppeteerPoolService],
   exports: [CotizacionesService],
 })
 export class CotizacionesModule {}

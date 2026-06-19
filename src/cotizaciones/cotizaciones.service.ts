@@ -11,7 +11,6 @@ import {
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Types, Connection } from 'mongoose';
 import { v4 as uuid } from 'uuid';
-import * as puppeteer from 'puppeteer';
 
 import { Cotizacion, CotizacionStatus } from './entities/cotizacion.entity';
 import {
@@ -30,6 +29,7 @@ import { calcularFechaLimitePago } from 'src/reservas/utils';
 import { ReservasService } from 'src/reservas/reservas.service';
 import { VueloMaarLabEntry } from 'src/cotizaciones/interfaces';
 import { CotizacionVueloItemDto } from './dto/create-cotizacion.dto';
+import { PuppeteerPoolService } from './services/puppeteer-pool.service';
 
 @Injectable()
 export class CotizacionesService {
@@ -51,6 +51,7 @@ export class CotizacionesService {
     private cloudinaryService: CloudinaryService,
     private agenciasService: AgenciasService,
     private autocoreClient: AutocoreClient,
+    private puppeteerPoolService: PuppeteerPoolService,
     @Inject(forwardRef(() => ReservasService))
     private reservasService: ReservasService,
     @InjectConnection()
@@ -423,42 +424,14 @@ export class CotizacionesService {
     //Modificar el HTML para ocultar botones antes de generar el PDF
     const htmlSinBotones = this.removerBotonesDelHTML(cotizacion.landingHtml);
 
-    const browser = await puppeteer.launch({
-      executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-      ],
-    });
-
-    const page = await browser.newPage();
-
-    //#Cargar el HTML modificado
-    await page.setContent(htmlSinBotones, { waitUntil: 'networkidle0' });
-
-    //#Generar PDF
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px',
-      },
-    });
-
-    await browser.close();
+    //Generar PDF usando PuppeteerPoolService (con try/finally y semáforo)
+    const pdfBuffer = await this.puppeteerPoolService.generatePdf(
+      htmlSinBotones,
+    );
 
     //Subir a Cloudinary
     const uploadResult = await this.uploadPdfToCloudinary(
-      Buffer.from(pdfBuffer),
+      pdfBuffer,
       `cotizaciones/${cotizacionId}`,
     );
 
