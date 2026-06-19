@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AutocoreClient } from 'src/autocore/autocore.client';
+import { DistributedLockService } from 'src/common/services';
 import { ValidPaymentStatus } from './interfaces';
 import { Reserva } from './entities';
 import { debeBloquearCancelacionPorPrimeraMitadPagada } from './utils';
@@ -25,6 +26,7 @@ export class CancellationLockReconciliationService
   constructor(
     @InjectModel(Reserva.name) private readonly reservaModel: Model<Reserva>,
     private readonly autocoreClient: AutocoreClient,
+    private readonly distributedLock: DistributedLockService,
   ) {}
 
   onModuleInit() {
@@ -41,16 +43,22 @@ export class CancellationLockReconciliationService
   }
 
   private async reconcileStaleCancellationLocks() {
-    const thresholdDate = new Date(Date.now() - this.staleLockMs);
-    const stuckReservations = await this.reservaModel.find({
-      cancelInProgress: true,
-      status: { $ne: ValidPaymentStatus.cancelado },
-      cancelRequestedAt: { $lte: thresholdDate },
-    });
+    await this.distributedLock.tryLock(
+      'cron:reconcile-stale-locks',
+      async () => {
+        const thresholdDate = new Date(Date.now() - this.staleLockMs);
+        const stuckReservations = await this.reservaModel.find({
+          cancelInProgress: true,
+          status: { $ne: ValidPaymentStatus.cancelado },
+          cancelRequestedAt: { $lte: thresholdDate },
+        });
 
-    for (const reserva of stuckReservations) {
-      await this.reconcileSingleReservation(reserva);
-    }
+        for (const reserva of stuckReservations) {
+          await this.reconcileSingleReservation(reserva);
+        }
+      },
+      this.intervalMs,
+    );
   }
 
   private async reconcileSingleReservation(reserva: Reserva) {

@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model, Types } from 'mongoose';
 
 import { ErrorManager } from 'src/common/helpers';
-import { SendEmailCustomService } from 'src/common/services';
+import { DistributedLockService, SendEmailCustomService } from 'src/common/services';
 import { AutocoreClient } from 'src/autocore/autocore.client';
 import { Reserva } from 'src/reservas/entities';
 import { User } from 'src/auth/entities';
@@ -25,6 +25,7 @@ export class NotificacionesService {
 
     private readonly emailService: SendEmailCustomService,
     private readonly autocoreClient: AutocoreClient,
+    private readonly distributedLock: DistributedLockService,
   ) {
     this.errorManager = new ErrorManager(NotificacionesService.name);
   }
@@ -67,6 +68,14 @@ export class NotificacionesService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async cancelarReservasVencidasAutomatico() {
+    await this.distributedLock.tryLock(
+      'cron:cancelar-reservas-vencidas',
+      () => this.ejecutarCancelacionVencidas(),
+      3600000,
+    );
+  }
+
+  private async ejecutarCancelacionVencidas() {
     try {
       const today = this.getTodayDateString();
 
