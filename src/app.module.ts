@@ -24,6 +24,7 @@ import { VuelosModule } from './vuelos/vuelos.module';
 import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
     BotReservasPendientesModule,
     CommonModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    HealthModule,
     // Logging estructurado con Pino
     LoggerModule.forRoot({
       pinoHttp: {

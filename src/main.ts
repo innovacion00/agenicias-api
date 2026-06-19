@@ -14,6 +14,9 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   const logger = app.get(Logger);
 
+  // Habilitar lifecycle hooks para graceful shutdown
+  app.enableShutdownHooks();
+
   app.setGlobalPrefix('agencias/v1/');
 
   app.enableCors({
