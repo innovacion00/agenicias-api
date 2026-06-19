@@ -3,84 +3,130 @@ import * as joi from 'joi';
 
 // API_1525: string;
 interface EnvVars {
+  /** CONFIG: Puerto en el que escucha la aplicación */
   PORT: number;
 
+  /** CONFIG: URL de conexión a MongoDB */
   MONGO_URL: string;
 
+  /** SECRET: Clave secreta para firmar JWT tokens */
   JWT_SECRET: string;
 
   //? Cobre
+  /** CONFIG: URL base del API de Cobre */
   COBRE_API_URL: string;
+  /** SECRET: ID de usuario en Cobre */
   COBRE_USER_ID: string;
+  /** SECRET: Clave secreta de Cobre */
   COBRE_SECRET: string;
+  /** SECRET: String de autenticación para Cobre */
   COBRE_AUTH_STRING: string;
+  /** SECRET: Clave API de Cobre */
   COBRE_API_KEY: string;
 
   //? Cloudinary
+  /** CONFIG: Nombre de la cuenta Cloudinary */
   CLOUDINARY_NAME: string;
+  /** SECRET: Clave de API de Cloudinary */
   CLOUDINARY_API_KEY: string;
+  /** SECRET: Clave secreta de Cloudinary */
   CLOUDINARY_API_SECRET: string;
 
   //? Node_Mailer
+  /** CONFIG: Email remitente para envíos vía Nodemailer */
   SENDER_EMAIL: string;
+  /** SECRET: Contraseña de aplicación de Gmail */
   EMAIL_APP_PASSWORD: string;
 
   //? SEND GRID
+  /** SECRET: Clave API de SendGrid */
   SENDGRID_API_KEY: string;
 
   //? Google Gmail API
-  GOOGLE_GMAIL_API_KEY: string; // Access Token (se refresca automáticamente)
+  /** SECRET: Access Token del API de Google Gmail (se refresca automáticamente) */
+  GOOGLE_GMAIL_API_KEY: string;
+  /** CONFIG: URL del API de Google Gmail */
   GOOGLE_GMAIL_URL: string;
+  /** SECRET: ID de cliente de Google */
   GOOGLE_GMAIL_CLIENT_ID: string;
+  /** SECRET: Clave secreta de cliente de Google */
   GOOGLE_GMAIL_CLIENT_SECRET: string;
-  GOOGLE_GMAIL_REFRESH_TOKEN: string; // Refresh Token para obtener nuevos access tokens
+  /** SECRET: Refresh Token para obtener nuevos access tokens */
+  GOOGLE_GMAIL_REFRESH_TOKEN: string;
 
   //? Autocore
+  /** CONFIG: URL base del API de Autocore */
   AUTOCORE_URL: string;
+  /** SECRET: Clave de acceso para Autocore */
   AUTOCORE_ACCESS_KEY: string;
+  /** SECRET: Clave secreta para Autocore */
   AUTOCORE_SECRET_KEY: string;
 
   //? Autocore dev
+  /** CONFIG: URL base del API de Autocore (development) - opcional */
   AUTOCORE_URL_DEV?: string;
+  /** SECRET: Clave de acceso para Autocore (development) - opcional */
   AUTOCORE_ACCESS_KEY_DEV?: string;
+  /** SECRET: Clave secreta para Autocore (development) - opcional */
   AUTOCORE_SECRET_KEY_DEV?: string;
 
   //? My Tool
+  /** CONFIG: Email de cuenta My Tool */
   MY_TOOL_EMAIL: string;
+  /** SECRET: Contraseña de acceso My Tool */
   MY_TOOL_CLAVE: string;
 
+  /** SECRET: URL de API para hotel Aixo (My Tool) */
   API_AIXO: string;
+  /** SECRET: URL de API para hotel Azuán (My Tool) */
   API_AZUAN: string;
+  /** SECRET: URL de API para hotel Rodadero (My Tool) */
   API_RODADERO: string;
+  /** SECRET: URL de API para hotel Avexi (My Tool) */
   API_AVEXI: string;
+  /** SECRET: URL de API para hotel Bocagrande (My Tool) */
   API_BOCAGRANADE: string;
+  /** SECRET: URL de API para hotel Abí (My Tool) */
   API_ABI: string;
+  /** SECRET: URL de API para hotel Madisson (My Tool) */
   API_MADISSON: string;
+  /** SECRET: URL de API para hotel Windsor (My Tool) */
   API_WINDSOR: string;
+  /** SECRET: URL de API para hotel Marina (My Tool) */
   API_MARINA: string;
+  /** SECRET: URL de API para hotel Axis (My Tool) */
   API_AXIS: string;
+  /** SECRET: URL de API para hotel Marqués (My Tool) */
   API_MARQUES: string;
+  /** SECRET: URL de API para hotel Sansiraka (My Tool) */
   API_SANSIRAKA: string;
+  /** SECRET: URL de API para hotel Playa Salguero (My Tool) */
   API_PLAYASALGUERO: string;
 
   //? Amadeus
+  /** SECRET: Clave de API de Amadeus */
   AMADEUS_API_KEY: string;
+  /** SECRET: Clave secreta de Amadeus */
   AMADEUS_API_SECRET: string;
+  /** CONFIG: URL base del API de Amadeus */
   AMADEUS_BASE_URL: string;
 
   //? Booking Personas
+  /** SECRET: Token de autenticación para Booking Personas */
   BOOKING_PERSONAS_TOKEN: string;
 
   //? MaarLab
+  /** CONFIG: URL base del API de MaarLab */
   MAARLAB_BASE_URL: string;
   /** @deprecated El Bearer por solicitud sale de Agencia.maarlabApiKey */
   MAARLAB_AUTH_TOKEN?: string;
-  /** Bearer de nivel partner para script `sync:maarlab-keys` (listar api_keys_by_partner). */
+  /** SECRET: Bearer de nivel partner para script `sync:maarlab-keys` (listar api_keys_by_partner) - opcional */
   MAARLAB_PARTNER_SYNC_BEARER?: string;
-  /** UUID cadena MaarLab (`id_chain_search_engine`) para el script de sincronización. */
+  /** CONFIG: UUID cadena MaarLab (`id_chain_search_engine`) para el script de sincronización - opcional */
   MAARLAB_CHAIN_SEARCH_ENGINE_ID?: string;
 
   //? Bridge Chat
+  /** CONFIG: URL del host Bridge Chat */
   HOST_BRIDGE: string;
 }
 
