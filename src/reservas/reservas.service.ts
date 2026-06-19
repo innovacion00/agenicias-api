@@ -53,6 +53,7 @@ import {
   decidirMontoReactivacion,
   sumarPagosEstadoCuenta,
   DecisionMontoReactivacion,
+  validarCheckinNoEsMismoDia,
 } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
@@ -235,6 +236,10 @@ export class ReservasService {
     const cantidadHabitacion =
       createReservaDto.reservaInfo.reservation.roomsData.length;
     try {
+      validarCheckinNoEsMismoDia(
+        createReservaDto.reservaInfo.reservation.checkin,
+      );
+
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
           ? tiposAgencia.mayorista
@@ -2420,6 +2425,8 @@ export class ReservasService {
     userId: string,
   ) {
     try {
+      validarCheckinNoEsMismoDia(dto.checkIn);
+
       const hotelConfig = hotelMyToolConfig[hotelSlug];
       if (!hotelConfig) {
         throw new BadRequestException(`Hotel '${hotelSlug}' no configurado`);
