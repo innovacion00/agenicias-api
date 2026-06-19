@@ -10,7 +10,7 @@ import { ErrorManager } from 'src/common/helpers';
 import { InjectModel } from '@nestjs/mongoose';
 import { Integration } from './entities';
 import { Model } from 'mongoose';
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { DisponibilidadAutocoreDto } from 'src/reservas/dto';
 import { ValidIntegrationsRoles } from 'src/auth/interfaces';
 import { envs } from 'src/config';
@@ -23,7 +23,7 @@ export class IntegrationsService {
     @InjectModel(Integration.name)
     private readonly integrationModel: Model<Integration>,
 
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
   ) {
     this.errorManager = new ErrorManager(IntegrationsService.name);
   }
@@ -61,7 +61,7 @@ export class IntegrationsService {
         disponibilidadAutoCoreDto.category === 0 ||
         disponibilidadAutoCoreDto.category === 1
       ) {
-        const data = await this.httpCustomService.getDisponibilidadAutocore(
+        const data = await this.autocoreClient.getDisponibilidadAutocore(
           layout,
           checkingDate,
           nights,
@@ -72,7 +72,7 @@ export class IntegrationsService {
 
         return data;
       } else {
-        const data = await this.httpCustomService.getDisponibilidadAutocore(
+        const data = await this.autocoreClient.getDisponibilidadAutocore(
           layout,
           checkingDate,
           nights,

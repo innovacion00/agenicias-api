@@ -15,7 +15,8 @@ import { Agencia } from './entities';
 import { CreateAgenciaDto } from './dto/create-agencia.dto';
 import { ErrorManager } from 'src/common/helpers';
 import { UpdateAgenciaDto } from './dto/update-agencia.dto';
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
+import { CobreClient } from 'src/cobre/cobre.client';
 import { agenciaRecargaLimit } from 'src/config';
 import { RechargeWalletDto } from './dto';
 import { Reserva } from 'src/reservas/entities';
@@ -32,7 +33,8 @@ export class AgenciasService {
 
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
 
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
+    private readonly cobreClient: CobreClient,
 
     private readonly maarlabCredentialsService: MaarlabCredentialsService,
   ) {
@@ -57,7 +59,7 @@ export class AgenciasService {
         counter++;
       }
       //? Cobre
-      const bolsilloInfo = await this.httpCustomService.createBolcillo(
+      const bolsilloInfo = await this.cobreClient.createBolcillo(
         createAgenciaDto.fullName,
       );
 
@@ -76,7 +78,7 @@ export class AgenciasService {
       }
 
       const autocoreAgenciaInfo =
-        await this.httpCustomService.crearAgenciaAutocore({
+        await this.autocoreClient.crearAgenciaAutocore({
           cobre_account_id: bolsilloInfo.id,
           country_code: formattedNumber.countryCallingCode,
           phone: formattedNumber.nationalNumber,
@@ -97,7 +99,7 @@ export class AgenciasService {
       }
 
       //? Set limites de recarga en autocore
-      await this.httpCustomService.setLimiteRecargaAgencia(
+      await this.autocoreClient.setLimiteRecargaAgencia(
         autocoreAgenciaInfo.id,
         agenciaRecargaLimit.minLimitValue,
         agenciaRecargaLimit.maxLimitValue,
@@ -144,7 +146,7 @@ export class AgenciasService {
       }
 
       const linkRecargaInfo =
-        await this.httpCustomService.recargarCarteraAutocore(
+        await this.autocoreClient.recargarCarteraAutocore(
           amount,
           currency,
           agenciaInfo.autocoreInfo.id,
@@ -165,7 +167,7 @@ export class AgenciasService {
         throw new NotFoundException('Agencia no encontrada');
       }
 
-      const agenciaSaldo = await this.httpCustomService.obtenerSaldoCartera(
+      const agenciaSaldo = await this.autocoreClient.obtenerSaldoCartera(
         agenciaInfo.autocoreInfo.id,
       );
 

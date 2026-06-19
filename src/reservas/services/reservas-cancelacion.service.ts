@@ -8,7 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 
 import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
@@ -36,7 +36,7 @@ export class ReservasCancelacionService {
   constructor(
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     private readonly myToolBookingService: MyToolBookingService,
     private readonly emailsService: ReservasEmailsService,
@@ -131,7 +131,7 @@ export class ReservasCancelacionService {
       }
 
       try {
-        const autocoreResponse = await this.httpCustomService.cancelarReservas(
+        const autocoreResponse = await this.autocoreClient.cancelarReservas(
           lockedReserva.reservaChatbotId,
         );
 
@@ -183,7 +183,7 @@ export class ReservasCancelacionService {
         throw new NotFoundException('Reserva no encontrada');
       }
 
-      await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+      await this.autocoreClient.cancelarReservas(reserva.reservaChatbotId);
       reserva.status = 4;
       await reserva.save();
       return reserva;
@@ -254,7 +254,7 @@ export class ReservasCancelacionService {
           dto.maquinaId,
         );
       } else {
-        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+        await this.autocoreClient.cancelarReservas(reserva.reservaChatbotId);
       }
 
       reserva.status = ValidPaymentStatus.cancelado;

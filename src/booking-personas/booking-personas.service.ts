@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { ErrorManager } from 'src/common/helpers';
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { hotelesAutocore, hotelesAutocorePaymenLink } from 'src/config';
 import { calcularFechaLimitePago } from 'src/reservas/utils';
 import { ValidPaymentStatus } from 'src/reservas/interfaces';
@@ -33,7 +33,7 @@ export class BookingPersonasService {
     private readonly bookingPersonaModel: Model<BookingPersona>,
     @InjectModel(PaymentPending.name)
     private readonly paymentPendingModel: Model<PaymentPending>,
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
   ) {
     this.errorManager = new ErrorManager(BookingPersonasService.name);
   }
@@ -73,7 +73,7 @@ export class BookingPersonasService {
 
       const consultasDisponibilidad = await Promise.allSettled(
         hotelesDeLaCiudad.map((hotel) =>
-          this.httpCustomService
+          this.autocoreClient
             .getDisponibilidadPersonas(
               hotel.id,
               checkin,
@@ -666,7 +666,7 @@ export class BookingPersonasService {
       const externalRefId = `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const linkPago =
-        await this.httpCustomService.createLinkPagoPersonasAutocore(
+        await this.autocoreClient.createLinkPagoPersonasAutocore(
           hotelPaymentId,
           generatePaymentLinkDto.guest_name,
           generatePaymentLinkDto.email,
@@ -792,7 +792,7 @@ export class BookingPersonasService {
 
       // PASO 2: Crear reserva en Autocore
       const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaPersonasAutocore(
+        await this.autocoreClient.createReservaPersonasAutocore(
           hotelId,
           createBookingPersonaDto.reservation,
         );
@@ -997,7 +997,7 @@ export class BookingPersonasService {
 
       // Crear reserva en Autocore
       const reservaAutocoreInfo =
-        await this.httpCustomService.createReservaPersonasAutocore(
+        await this.autocoreClient.createReservaPersonasAutocore(
           hotelId,
           createBookingPersonaDto.reservation,
         );

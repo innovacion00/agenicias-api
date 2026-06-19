@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { IreservaInfoBd } from 'src/common/interface';
+import { IreservaInfoBd } from 'src/autocore/interfaces';
 import {
   IAsistente,
   ITitularInfo,
   ValidTipoRecogida,
 } from 'src/reservas/interfaces';
 import { InfoTouresDto, InfoTransporteDto } from 'src/reservas/dto';
-import { VueloMaarLabEntry } from 'src/common/interface';
+import { VueloMaarLabEntry } from 'src/cotizaciones/interfaces';
 
 export enum CotizacionStatus {
   EN_ESPERA = 0,

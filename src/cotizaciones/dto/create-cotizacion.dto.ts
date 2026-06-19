@@ -27,7 +27,7 @@ import {
   IreservaInfoBd,
   RoomsDatum,
   ValidCities,
-} from 'src/common/interface';
+} from 'src/autocore/interfaces';
 import { ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
 import { IsNotFutureDate } from 'src/reservas/decorators';
 

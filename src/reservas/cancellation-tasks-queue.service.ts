@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SendEmailCustomService, HttpCustomService } from 'src/common/services';
+import { SendEmailCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { Reserva } from './entities';
 import { ValidPaymentStatus } from './interfaces';
 
@@ -69,7 +70,7 @@ export class CancellationTasksQueueService
 
   constructor(
     private readonly emailService: SendEmailCustomService,
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
   ) {}
 
@@ -222,7 +223,7 @@ export class CancellationTasksQueueService
       job.attempt += 1;
 
       if (job.type === 'refund-link') {
-        await this.httpCustomService.reembolsoCartera(
+        await this.autocoreClient.reembolsoCartera(
           job.payload.idLink,
           job.payload.agenciaId,
           job.payload.chatbotId,
@@ -279,7 +280,7 @@ export class CancellationTasksQueueService
     }
 
     try {
-      await this.httpCustomService.cancelarReservas(nueva.reservaChatbotId);
+      await this.autocoreClient.cancelarReservas(nueva.reservaChatbotId);
     } catch (error) {
       this.logger.warn(
         `Error al cancelar reserva reactivada ${nueva.reservaChatbotId} en Autocore: ${

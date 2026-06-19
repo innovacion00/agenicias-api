@@ -12,7 +12,7 @@ import { Model, Types } from 'mongoose';
 import { format } from '@formkit/tempo';
 
 import { ErrorManager } from 'src/common/helpers';
-import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
+import { SendEmailCustomService } from 'src/common/services';
 
 import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
@@ -62,7 +62,6 @@ export class ReservasService {
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
     private readonly emailService: SendEmailCustomService,
-    private readonly httpCustomService: HttpCustomService,
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     private readonly myToolBookingService: MyToolBookingService,
     private readonly reservasSearchService: ReservasSearchService,

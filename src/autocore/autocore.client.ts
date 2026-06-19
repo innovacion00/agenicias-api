@@ -19,7 +19,7 @@ import { axiosError } from 'src/common/helpers';
 import {
   Iavailability,
   ICreateAgenciaBody,
-  ICreateAgenciaResponce,
+  ICreateAgenciaResponse,
   ICreateLinkRecarga,
   ICreatePaymentLinkBody,
   ICreatePaymentLinkResponse,
@@ -370,7 +370,7 @@ export class AutocoreClient {
   //? Crear agencia autocore
   public async crearAgenciaAutocore(createAgenciaBody: ICreateAgenciaBody) {
     try {
-      const { data } = await axios.post<ICreateAgenciaResponce>(
+      const { data } = await axios.post<ICreateAgenciaResponse>(
         envs.autocoreUrl.concat('/v2/agencies'),
         createAgenciaBody,
         autocoreHeaders,

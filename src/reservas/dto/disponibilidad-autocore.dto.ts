@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { IdisponibilidadLayout, ValidCities } from 'src/common/interface';
+import { IdisponibilidadLayout, ValidCities } from 'src/autocore/interfaces';
 import { IsNotFutureDate } from '../decorators';
 
 class DisponibilidadLayoutDto {

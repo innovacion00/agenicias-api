@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { IreservaInfoBd } from 'src/common/interface';
+import { IreservaInfoBd } from 'src/autocore/interfaces';
 import {
   IAsistente,
   ITitularInfo,

@@ -21,14 +21,14 @@ import {
 } from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { AgenciasService } from '../agencias/agencias.service';
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { hotelesAutocore, tiposAgencia } from 'src/config';
 import { Reserva } from 'src/reservas/entities';
 import { User } from 'src/auth/entities';
 import { Agencia } from 'src/agencias/entities';
 import { calcularFechaLimitePago } from 'src/reservas/utils';
 import { ReservasService } from 'src/reservas/reservas.service';
-import { VueloMaarLabEntry } from 'src/common/interface';
+import { VueloMaarLabEntry } from 'src/cotizaciones/interfaces';
 import { CotizacionVueloItemDto } from './dto/create-cotizacion.dto';
 
 @Injectable()
@@ -50,7 +50,7 @@ export class CotizacionesService {
 
     private cloudinaryService: CloudinaryService,
     private agenciasService: AgenciasService,
-    private httpCustomService: HttpCustomService,
+    private autocoreClient: AutocoreClient,
     @Inject(forwardRef(() => ReservasService))
     private reservasService: ReservasService,
     @InjectConnection()
@@ -738,7 +738,7 @@ export class CotizacionesService {
 
     //Crear reserva en Autocore
     const reservaAutocoreInfo =
-      await this.httpCustomService.createReservaAutocore(hotelId, reservaInfo);
+      await this.autocoreClient.createReservaAutocore(hotelId, reservaInfo);
 
     if (!reservaAutocoreInfo) {
       throw new InternalServerErrorException(

@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { BookingPersonasController } from './booking-personas.controller';
 import { BookingPersonasService } from './booking-personas.service';
 import { CommonModule } from 'src/common/common.module';
+import { AutocoreModule } from 'src/autocore/autocore.module';
 import { StaticTokenGuard } from 'src/auth/guards';
 import {
   BookingPersona,
@@ -19,6 +20,7 @@ import {
   providers: [BookingPersonasService, StaticTokenGuard],
   imports: [
     CommonModule,
+    AutocoreModule,
     MongooseModule.forFeature([
       {
         name: BookingPersona.name,

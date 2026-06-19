@@ -5,7 +5,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model, Types } from 'mongoose';
 
 import { ErrorManager } from 'src/common/helpers';
-import { HttpCustomService, SendEmailCustomService } from 'src/common/services';
+import { SendEmailCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { Reserva } from 'src/reservas/entities';
 import { User } from 'src/auth/entities';
 import { selectorNotificacion } from './utils';
@@ -23,7 +24,7 @@ export class NotificacionesService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
 
     private readonly emailService: SendEmailCustomService,
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
   ) {
     this.errorManager = new ErrorManager(NotificacionesService.name);
   }
@@ -41,7 +42,7 @@ export class NotificacionesService {
     motivo: 'primer-pago-vencido' | 'segundo-pago-vencido',
   ) {
     try {
-      await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+      await this.autocoreClient.cancelarReservas(reserva.reservaChatbotId);
     } finally {
       // Sincroniza estado local aunque Autocore responda "already canceled"
       await this.reservaModel.updateOne(
@@ -231,7 +232,7 @@ export class NotificacionesService {
 
         if (!notiFields.noValid) {
           if (notiFields.vencida) {
-            await this.httpCustomService.cancelarReservas(
+            await this.autocoreClient.cancelarReservas(
               reserva.reservaChatbotId,
             );
 

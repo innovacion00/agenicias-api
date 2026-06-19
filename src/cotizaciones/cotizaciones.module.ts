@@ -13,6 +13,7 @@ import { Agencia, AgenciaSchema } from 'src/agencias/entities';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AgenciasModule } from '../agencias/agencias.module';
 import { CommonModule } from 'src/common/common.module';
+import { AutocoreModule } from 'src/autocore/autocore.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { ReservasModule } from 'src/reservas/reservas.module';
 import { forwardRef } from '@nestjs/common';
@@ -28,6 +29,7 @@ import { forwardRef } from '@nestjs/common';
     CloudinaryModule,
     AgenciasModule,
     CommonModule,
+    AutocoreModule,
     AuthModule,
     forwardRef(() => ReservasModule),
   ],

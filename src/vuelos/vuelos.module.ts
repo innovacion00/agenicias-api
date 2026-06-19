@@ -21,7 +21,7 @@ import { AuthModule } from 'src/auth/auth.module';
 @Module({
   imports: [
     ConfigModule,
-    CommonModule, // Para acceder a HttpCustomService
+    CommonModule,
     MongooseModule.forFeature([
       { name: Reserva.name, schema: ReservaSchema },
       { name: Agencia.name, schema: AgenciaSchema },

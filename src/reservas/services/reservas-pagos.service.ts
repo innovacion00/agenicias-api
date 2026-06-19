@@ -10,7 +10,6 @@ import { Model, Types } from 'mongoose';
 import { format } from '@formkit/tempo';
 
 import { AutocoreClient } from 'src/autocore/autocore.client';
-import { HttpCustomService } from 'src/common/services';
 import { AUTOCORE_WEBHOOK_RESERVAS_IGNORADAS } from 'src/config/constants/autocoreWebhookProblemas';
 import { Agencia } from 'src/agencias/entities';
 import { Reserva } from '../entities';
@@ -30,7 +29,6 @@ export class ReservasPagosService {
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
     private readonly autocoreClient: AutocoreClient,
-    private readonly httpCustomService: HttpCustomService,
     private readonly linksPagoService: LinksPagoService,
     private readonly reactivacionService: ReservasReactivacionService,
     private readonly emailsService: ReservasEmailsService,
@@ -304,7 +302,7 @@ export class ReservasPagosService {
             'No es posible cancelar esta reserva porque ya registra el pago de la primera mitad con saldo pendiente. Se envió un correo con los pasos para gestionar el pago restante. Use forzarCancelacionConPagoMitad=true si debe cancelar de forma excepcional.',
           );
         }
-        await this.httpCustomService.cancelarReservas(reserva.reservaChatbotId);
+        await this.autocoreClient.cancelarReservas(reserva.reservaChatbotId);
       }
 
       const pagadoPrimeraMitad =

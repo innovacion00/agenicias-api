@@ -28,7 +28,7 @@ export interface ICreateAgenciaBody {
   cobre_account_id: string;
 }
 
-export interface ICreateAgenciaResponce {
+export interface ICreateAgenciaResponse {
   msg: string;
   id: number;
   agency: Agency;

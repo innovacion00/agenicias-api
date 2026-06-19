@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { HttpCustomService } from 'src/common/services';
+import { AutocoreClient } from 'src/autocore/autocore.client';
 import { ValidPaymentStatus } from './interfaces';
 import { Reserva } from './entities';
 import { debeBloquearCancelacionPorPrimeraMitadPagada } from './utils';
@@ -24,7 +24,7 @@ export class CancellationLockReconciliationService
 
   constructor(
     @InjectModel(Reserva.name) private readonly reservaModel: Model<Reserva>,
-    private readonly httpCustomService: HttpCustomService,
+    private readonly autocoreClient: AutocoreClient,
   ) {}
 
   onModuleInit() {
@@ -69,7 +69,7 @@ export class CancellationLockReconciliationService
         return;
       }
 
-      const cancellationResult = await this.httpCustomService.cancelarReservas(
+      const cancellationResult = await this.autocoreClient.cancelarReservas(
         reserva.reservaChatbotId,
       );
 

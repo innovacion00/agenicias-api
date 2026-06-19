@@ -322,7 +322,6 @@ async function seed() {
 function crearMocks() {
   return {
     emailService: { sendEmail: jest.fn() },
-    httpCustomService: {},
     cancellationTasksQueueService: {},
     myToolBookingService: { searchBooking: jest.fn() },
     reservasBookingService: {},
@@ -357,7 +356,6 @@ function crearReservasService() {
     agenciaModel,
     reservaModel,
     mocks.emailService,
-    mocks.httpCustomService,
     mocks.cancellationTasksQueueService,
     mocks.myToolBookingService,
     ...argsExtra,

@@ -24,7 +24,7 @@ import {
   hotelesAutocore,
   notificacionToures,
   notificacionTransporte,
-  notificaiconReservaGrupo,
+  notificacionReservaGrupo,
   tiposAgencia,
 } from 'src/config';
 import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
@@ -333,7 +333,7 @@ export class ReservasBookingService {
                 ? userInfo.agencia.fullName
                 : 'Agencia desconocida'
             }`,
-            notificaiconReservaGrupo(
+            notificacionReservaGrupo(
               userInfo.agencia &&
                 typeof userInfo.agencia === 'object' &&
                 'fullName' in userInfo.agencia
@@ -1004,7 +1004,7 @@ export class ReservasBookingService {
     await this.emailService.sendEmail(
       'reservas@gehsuites.com',
       `Reserva para grupo de ${dto.rooms.length} para agencia ${agenciaName}`,
-      notificaiconReservaGrupo(
+      notificacionReservaGrupo(
         agenciaName,
         dto.rooms.length,
         hotelConfig.name,
