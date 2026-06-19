@@ -1,2 +1,77 @@
 <!DOCTYPE html>
-<html><body><p>Notificación tours - {{nombre}} - {{checkin}} a {{checkout}} - {{contact}}</p></body></html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Solicitud de toures</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .email-header {
+      background-color: #cc8831;
+      color: #ffffff;
+      padding: 20px;
+      text-align: center;
+    }
+    .email-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .email-body {
+      padding: 20px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .email-body p {
+      margin: 0 0 10px;
+    }
+    .email-footer {
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #888888;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h2>Solicitud de toures</h2>
+    </div>
+    <div class="email-body">
+      <p>Hola,</p>
+      <p>Se ha solicitado una o varias actividades de tour con los siguientes detalles:</p>
+
+      <ul>
+        <li><strong>Titular de la reserva:</strong> {{titular}}</li>
+        <li><strong>Toures solicitados:</strong> {{tourNames}}</li>
+        <li><strong>Cantidad de personas:</strong> {{cantidadPersonas}}</li>
+        <li><strong>Hotel:</strong> {{nombreHotel}}</li>
+        <li><strong>Número de contacto principal:</strong> {{firstContactNumber}}</li>
+        <li><strong>Segundo número de contacto:</strong> {{default secondContacNumber "no incluyó"}}</li>
+      </ul>
+
+      <p>Por favor, proceder con la validación y confirmación del servicio.</p>
+
+      <p><strong>Ante cualquier duda o inconveniente, contactar a <a href="mailto:reservas@gehsuites.com">reservas@gehsuites.com</a>.</strong></p>
+
+      <p>Gracias,<br>Equipo Geh Suites</p>
+    </div>
+    <div class="email-footer">
+      <p>©{{currentYear}} Geh Suites. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>

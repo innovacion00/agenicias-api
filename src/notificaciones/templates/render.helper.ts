@@ -18,6 +18,14 @@ export function registerHelpers(): void {
   Handlebars.registerHelper('currentYear', () => {
     return new Date().getFullYear().toString();
   });
+
+  Handlebars.registerHelper('pluralize', (count: number, singular: string, plural: string) => {
+    return count > 1 ? plural : singular;
+  });
+
+  Handlebars.registerHelper('default', (value: unknown, fallback: string) => {
+    return value || fallback;
+  });
 }
 
 export function renderTemplate(templateName: string, context: object): string {
