@@ -128,6 +128,10 @@ interface EnvVars {
   //? Bridge Chat
   /** CONFIG: URL del host Bridge Chat */
   HOST_BRIDGE: string;
+
+  //? Redis
+  /** CONFIG: URL de conexión a Redis (opcional, sin Redis se usa memoria local) */
+  REDIS_URL?: string;
 }
 
 // API_1525: joi.string().required(),
@@ -212,6 +216,9 @@ const envSchema = joi
 
     //? Bridge Chat
     HOST_BRIDGE: joi.string().required(),
+
+    //? Redis
+    REDIS_URL: joi.string().uri().optional().allow('').default(''),
   })
   .unknown(true);
 
@@ -303,4 +310,7 @@ export const envs = {
 
   //? Bridge Chat
   hostBridge: envVars.HOST_BRIDGE,
+
+  //? Redis
+  redisUrl: envVars.REDIS_URL || '',
 };

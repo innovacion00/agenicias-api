@@ -25,6 +25,8 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
 import { HealthModule } from './health/health.module';
+import { RedisModule } from './redis/redis.module';
+import { RedisThrottlerStorage } from './redis/redis-throttler-storage.service';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { HealthModule } from './health/health.module';
     CommonModule,
     ConfigModule.forRoot({ isGlobal: true }),
     HealthModule,
+    RedisModule,
     // Logging estructurado con Pino
     LoggerModule.forRoot({
       pinoHttp: {
@@ -99,24 +102,18 @@ import { HealthModule } from './health/health.module';
       // Para producción con réplicas, descomentar:
       // readPreference: 'secondaryPreferred', // Leer de réplicas secundarias cuando sea posible
     }),
-    // Rate Limiting: 100 requests por 60 segundos por IP
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 60000, // 60 segundos
-        limit: 100, // 100 requests
-      },
-      {
-        name: 'medium',
-        ttl: 600000, // 10 minutos
-        limit: 500, // 500 requests
-      },
-      {
-        name: 'long',
-        ttl: 3600000, // 1 hora
-        limit: 2000, // 2000 requests
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisThrottlerStorage],
+      useFactory: (storage: RedisThrottlerStorage) => ({
+        storage,
+        throttlers: [
+          { name: 'short', ttl: 60000, limit: 100 },
+          { name: 'medium', ttl: 600000, limit: 500 },
+          { name: 'long', ttl: 3600000, limit: 2000 },
+        ],
+      }),
+    }),
     MyToolModule,
     NotificacionesModule,
     ReservasModule,
@@ -129,7 +126,7 @@ import { HealthModule } from './health/health.module';
   ],
   controllers: [],
   providers: [
-    // Aplicar rate limiting globalmente
+    RedisThrottlerStorage,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
