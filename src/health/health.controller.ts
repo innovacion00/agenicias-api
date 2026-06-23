@@ -25,7 +25,9 @@ export class HealthController {
 
   @Get('ready')
   @HealthCheck()
-  @ApiOperation({ summary: 'Verificar si la aplicación está lista (dependencies)' })
+  @ApiOperation({
+    summary: 'Verificar si la aplicación está lista (dependencies)',
+  })
   checkReady() {
     return this.health.check([
       () => this.mongo.pingCheck('mongodb', { timeout: 5000 }),

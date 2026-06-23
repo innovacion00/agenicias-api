@@ -234,7 +234,8 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
-            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
+            deprecationWarning:
+              'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -366,7 +367,8 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
-            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
+            deprecationWarning:
+              'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -520,7 +522,8 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
-            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
+            deprecationWarning:
+              'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -606,7 +609,8 @@ export class ReservasSearchService {
           meta: {
             total,
             sumaTotales,
-            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
+            deprecationWarning:
+              'all=true será eliminado en v2. Use paginación.',
           },
         };
       }
@@ -745,14 +749,20 @@ export class ReservasSearchService {
       // Si se proporciona el parámetro hotel, agregarlo al filtro
       if (hotel && hotel.trim()) {
         // Búsqueda case-insensitive y parcial del nombre del hotel
-        filter.hotel = { $regex: this.escapeRegex(hotel.trim()), $options: 'i' };
+        filter.hotel = {
+          $regex: this.escapeRegex(hotel.trim()),
+          $options: 'i',
+        };
       }
 
       // Filtro por nombre de agencia (solo para superAdmin)
       if (nombreAgencia && nombreAgencia.trim()) {
         // Buscar agencias que coincidan con el nombre
         const filtroAgencia: any = {
-          fullName: { $regex: this.escapeRegex(nombreAgencia.trim()), $options: 'i' },
+          fullName: {
+            $regex: this.escapeRegex(nombreAgencia.trim()),
+            $options: 'i',
+          },
         };
 
         const agencias = await this.agenciaModel
@@ -825,7 +835,8 @@ export class ReservasSearchService {
             ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
             ...(fechaDesde && { fechaDesde }),
             ...(fechaHasta && { fechaHasta }),
-            deprecationWarning: 'all=true será eliminado en v2. Use paginación.',
+            deprecationWarning:
+              'all=true será eliminado en v2. Use paginación.',
           },
         };
       }

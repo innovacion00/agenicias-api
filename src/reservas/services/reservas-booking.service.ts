@@ -37,7 +37,7 @@ import {
 } from '../dto';
 import { CreateReservaMyToolDto } from '../dto/create-reserva-mytool.dto';
 import { Reserva } from '../entities';
-import { calcularFechaLimitePago } from '../utils';
+import { calcularFechaLimitePago, validarCheckinNoEsMismoDia } from '../utils';
 import { MyToolBookingService } from './my-tool-booking.service';
 import { ReservasCountCacheService } from './reservas-count-cache.service';
 
@@ -76,6 +76,10 @@ export class ReservasBookingService {
     const cantidadHabitacion =
       createReservaDto.reservaInfo.reservation.roomsData.length;
     try {
+      validarCheckinNoEsMismoDia(
+        createReservaDto.reservaInfo.reservation.checkin,
+      );
+
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
           ? tiposAgencia.mayorista
@@ -537,6 +541,8 @@ export class ReservasBookingService {
     userId: string,
   ) {
     try {
+      validarCheckinNoEsMismoDia(dto.checkIn);
+
       const hotelConfig = hotelMyToolConfig[hotelSlug];
       if (!hotelConfig) {
         throw new BadRequestException(`Hotel '${hotelSlug}' no configurado`);

@@ -40,4 +40,22 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      files: ['src/common/**/*.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['src/reservas/*', 'src/agencias/*', 'src/cotizaciones/*', 'src/vuelos/*', 'src/eventos/*', 'src/my-tool/*', 'src/notificaciones/*', 'src/booking-personas/*', 'src/bot-reservas-pendientes/*', 'src/integrations/*', 'src/files/*'],
+                message: 'common/ no debe importar de módulos de features. Mueve el contrato compartido a common/ o al módulo del proveedor (autocore/, cobre/).',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
 };

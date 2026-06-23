@@ -1,6 +1,6 @@
-import Handlebars from 'handlebars';
-import fs from 'fs';
-import path from 'path';
+import * as Handlebars from 'handlebars';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const cache = new Map<string, HandlebarsTemplateDelegate>();
 
@@ -19,9 +19,12 @@ export function registerHelpers(): void {
     return new Date().getFullYear().toString();
   });
 
-  Handlebars.registerHelper('pluralize', (count: number, singular: string, plural: string) => {
-    return count > 1 ? plural : singular;
-  });
+  Handlebars.registerHelper(
+    'pluralize',
+    (count: number, singular: string, plural: string) => {
+      return count > 1 ? plural : singular;
+    },
+  );
 
   Handlebars.registerHelper('default', (value: unknown, fallback: string) => {
     return value || fallback;

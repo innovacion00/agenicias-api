@@ -11,6 +11,7 @@ import { DistributedLockService } from 'src/common/services';
 import { ValidPaymentStatus } from './interfaces';
 import { Reserva } from './entities';
 import { debeBloquearCancelacionPorPrimeraMitadPagada } from './utils';
+import { ReservasCountCacheService } from './services/reservas-count-cache.service';
 
 @Injectable()
 export class CancellationLockReconciliationService
@@ -27,6 +28,7 @@ export class CancellationLockReconciliationService
     @InjectModel(Reserva.name) private readonly reservaModel: Model<Reserva>,
     private readonly autocoreClient: AutocoreClient,
     private readonly distributedLock: DistributedLockService,
+    private readonly countCache: ReservasCountCacheService,
   ) {}
 
   onModuleInit() {
@@ -71,6 +73,7 @@ export class CancellationLockReconciliationService
             $unset: { cancelOpId: '' },
           },
         );
+        this.countCache.invalidateAll();
         this.logger.warn(
           `Reconciliacion cancelada: reserva ${reserva.reservaChatbotId} tiene primera mitad pagada; no se completa cancelacion en Autocore.`,
         );
@@ -92,6 +95,7 @@ export class CancellationLockReconciliationService
             },
           },
         );
+        this.countCache.invalidateAll();
       }
     } catch (error) {
       await this.reservaModel.updateOne(
@@ -102,6 +106,7 @@ export class CancellationLockReconciliationService
           },
         },
       );
+      this.countCache.invalidateAll();
 
       this.logger.error(
         `No se pudo reconciliar lock de cancelacion reservaId=${String(

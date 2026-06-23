@@ -665,18 +665,17 @@ export class BookingPersonasService {
       // Generar external_ref_id único antes de crear el link
       const externalRefId = `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const linkPago =
-        await this.autocoreClient.createLinkPagoPersonasAutocore(
-          hotelPaymentId,
-          generatePaymentLinkDto.guest_name,
-          generatePaymentLinkDto.email,
-          generatePaymentLinkDto.phone,
-          generatePaymentLinkDto.amount,
-          generatePaymentLinkDto.booking_dates,
-          generatePaymentLinkDto.description,
-          generatePaymentLinkDto.currency || 'COP',
-          externalRefId,
-        );
+      const linkPago = await this.autocoreClient.createLinkPagoPersonasAutocore(
+        hotelPaymentId,
+        generatePaymentLinkDto.guest_name,
+        generatePaymentLinkDto.email,
+        generatePaymentLinkDto.phone,
+        generatePaymentLinkDto.amount,
+        generatePaymentLinkDto.booking_dates,
+        generatePaymentLinkDto.description,
+        generatePaymentLinkDto.currency || 'COP',
+        externalRefId,
+      );
 
       if (!linkPago) {
         throw new InternalServerErrorException('Error al generar link de pago');

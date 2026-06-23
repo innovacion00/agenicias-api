@@ -1,27 +1,8 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Injectable, Logger } from '@nestjs/common';
 
-import { Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
-import { format } from '@formkit/tempo';
-
-import { ErrorManager } from 'src/common/helpers';
-import { SendEmailCustomService } from 'src/common/services';
-
-import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
-
-import {
-  notificacionCancelacionToures,
-  notificacionCancelacionVoluntariaReservas,
-  notificacionSaldoPendienteIntentoCancelacion,
-} from 'src/config';
 
 import {
   CancelReservaDto,
@@ -33,22 +14,12 @@ import {
   UpdateFechasPagoDto,
   UpdateReservaDto,
 } from './dto';
-import { Reserva } from './entities';
-import {
-  obtenerCiudadPorNombre,
-  debeBloquearCancelacionPorPrimeraMitadPagada,
-} from './utils';
-import { LinksHistory, ValidPaymentStatus } from './interfaces';
-import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
-import { MyToolBookingService } from './services/my-tool-booking.service';
+import { ValidPaymentStatus } from './interfaces';
 import { ReservasSearchService } from './services/reservas-search.service';
 import { ReservasBookingService } from './services/reservas-booking.service';
 import { ReservasReactivacionService } from './services/reservas-reactivacion.service';
-import { LinksPagoService } from './services/links-pago.service';
 import { ReservasPagosService } from './services/reservas-pagos.service';
-import { ReservasEmailsService } from './services/reservas-emails.service';
 import { ReservasCancelacionService } from './services/reservas-cancelacion.service';
-import { ReservasCountCacheService } from './services/reservas-count-cache.service';
 import {
   CancelReservaMyToolDto,
   CreateReservaMyToolDto,
@@ -56,26 +27,15 @@ import {
 
 @Injectable()
 export class ReservasService {
-  private readonly errorManager: ErrorManager;
   private readonly logger = new Logger(ReservasService.name);
 
   constructor(
-    @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
-    @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
-    private readonly emailService: SendEmailCustomService,
-    private readonly cancellationTasksQueueService: CancellationTasksQueueService,
-    private readonly myToolBookingService: MyToolBookingService,
     private readonly reservasSearchService: ReservasSearchService,
     private readonly reservasBookingService: ReservasBookingService,
     private readonly reservasReactivacionService: ReservasReactivacionService,
-    private readonly linksPagoService: LinksPagoService,
     private readonly pagosService: ReservasPagosService,
-    private readonly emailsService: ReservasEmailsService,
     private readonly cancelacionService: ReservasCancelacionService,
-    private readonly countCache: ReservasCountCacheService,
-  ) {
-    this.errorManager = new ErrorManager(ReservasService.name);
-  }
+  ) {}
 
   // #region Crear reserva
   async createReserva(
@@ -127,7 +87,6 @@ export class ReservasService {
       user,
     );
   }
-
 
   // #region Cancelar reserva agencia
   async cancelarReserva(cancelReservaDto: CancelReservaDto, user: User) {
@@ -306,89 +265,11 @@ export class ReservasService {
     updateFechasPagoDto: UpdateFechasPagoDto,
     user: User,
   ) {
-    try {
-      const reserva = await this.reservasModel.findById(reservaId).exec();
-      if (!reserva) {
-        throw new NotFoundException('Reserva no encontrada');
-      }
-      if (reserva.status === ValidPaymentStatus.cancelado) {
-        throw new BadRequestException(
-          'No se pueden actualizar fechas de pago en una reserva cancelada',
-        );
-      }
-
-      const isSuperAdmin = user.role.includes('super-admin');
-      if (
-        !isSuperAdmin &&
-        reserva.agenciaId.toString() !== user.agencia.toString()
-      ) {
-        throw new ForbiddenException(
-          'No cuentas con permisos para modificar las fechas de pago de esta reserva',
-        );
-      }
-
-      const checkinRaw = reserva.reservation?.checkin;
-      if (!checkinRaw || typeof checkinRaw !== 'string') {
-        throw new BadRequestException(
-          'La reserva no tiene check-in válido para validar las fechas de pago',
-        );
-      }
-
-      const checkinDate = this.parseYyyyMmDdOrThrow(checkinRaw, 'checkin');
-      const fechaLimitePago = this.parseYyyyMmDdOrThrow(
-        updateFechasPagoDto.fechaLimitePago,
-        'fechaLimitePago',
-      );
-      const fechaLimitePago2 = this.parseYyyyMmDdOrThrow(
-        updateFechasPagoDto.fechaLimitePago2,
-        'fechaLimitePago2',
-      );
-
-      if (fechaLimitePago > checkinDate) {
-        throw new BadRequestException(
-          'fechaLimitePago no puede ser mayor a la fecha de check-in de la reserva',
-        );
-      }
-      if (fechaLimitePago2 > checkinDate) {
-        throw new BadRequestException(
-          'fechaLimitePago2 no puede ser mayor a la fecha de check-in de la reserva',
-        );
-      }
-
-      reserva.fechaLimitePago = updateFechasPagoDto.fechaLimitePago.trim();
-      reserva.fechaLimitePago2 = updateFechasPagoDto.fechaLimitePago2.trim();
-      await reserva.save();
-      this.countCache.invalidateAll();
-
-      return {
-        reservaId: reserva._id,
-        reservaChatbotId: reserva.reservaChatbotId,
-        fechaLimitePago: reserva.fechaLimitePago,
-        fechaLimitePago2: reserva.fechaLimitePago2,
-        checkin: reserva.reservation.checkin,
-      };
-    } catch (error) {
-      this.logger.error(error);
-      this.errorManager.handle(error);
-    }
-  }
-
-  private parseYyyyMmDdOrThrow(value: string, fieldName: string): Date {
-    const raw = value.trim();
-    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) {
-      throw new BadRequestException(
-        `${fieldName} inválido (se esperaba YYYY-MM-DD): ${value}`,
-      );
-    }
-
-    const parsed = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) {
-      throw new BadRequestException(
-        `${fieldName} inválido (no se pudo parsear): ${value}`,
-      );
-    }
-    return parsed;
+    return this.pagosService.actualizarFechasPagoReserva(
+      reservaId,
+      updateFechasPagoDto,
+      user,
+    );
   }
 
   // #region MyTool Booking

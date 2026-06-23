@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { envs } from './config';
@@ -17,7 +17,12 @@ async function bootstrap() {
   // Habilitar lifecycle hooks para graceful shutdown
   app.enableShutdownHooks();
 
-  app.setGlobalPrefix('agencias/v1/');
+  app.setGlobalPrefix('agencias');
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
   app.enableCors({
     origin: true,

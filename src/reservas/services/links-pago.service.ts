@@ -24,6 +24,7 @@ export class LinksPagoService {
     reservaInfo: Reserva,
     agenciaInfo: Agencia,
     pagoTotal: boolean,
+    montoOverride?: number,
   ) {
     const hotel = reservaInfo.hotel;
     const external_id = `${reservaInfo._id}${pagoTotal ? ' pagoTotal' : ''}`;
@@ -31,7 +32,9 @@ export class LinksPagoService {
     const linkAutocore = await this.autocoreClient.createLinkPagoAutocore({
       currency: reservaInfo.reservation.currency,
       agency_id: agenciaInfo.autocoreInfo.id,
-      amount: pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
+      amount:
+        montoOverride ??
+        (pagoTotal ? reservaInfo.total : reservaInfo.totalMitad),
       available_hours: 0.1666,
       booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
       description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,

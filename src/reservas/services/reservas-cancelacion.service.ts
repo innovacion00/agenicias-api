@@ -135,6 +135,8 @@ export class ReservasCancelacionService {
           lockedReserva.reservaChatbotId,
         );
 
+        const statusOriginal = lockedReserva.status;
+
         await this.reservasModel.updateOne(
           { _id: lockedReserva._id },
           {
@@ -151,7 +153,11 @@ export class ReservasCancelacionService {
         this.countCache.invalidateAll();
 
         lockedReserva.status = ValidPaymentStatus.cancelado;
-        this.enqueuePostCancellationTasks(lockedReserva, agenciaDoc);
+        this.enqueuePostCancellationTasks(
+          lockedReserva,
+          agenciaDoc,
+          statusOriginal,
+        );
 
         if (autocoreResponse?.alreadyCanceled) {
           return {
@@ -276,6 +282,7 @@ export class ReservasCancelacionService {
   private enqueuePostCancellationTasks(
     reserva: Reserva,
     agenciaDoc: Agencia,
+    statusOriginal: ValidPaymentStatus,
   ): void {
     const reservaId = String(reserva._id);
 
@@ -296,7 +303,7 @@ export class ReservasCancelacionService {
     }
 
     const saldoFavor =
-      reserva.status !== ValidPaymentStatus.total
+      statusOriginal !== ValidPaymentStatus.total
         ? reserva.totalMitad
         : reserva.total;
 

@@ -9,6 +9,10 @@ import { REDIS_CLIENT } from './redis.module';
 export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleInit {
   private readonly logger = new Logger(RedisThrottlerStorage.name);
   private useRedis = false;
+  private redisFailures = 0;
+  private static readonly MAX_FAILURES = 3;
+  private redisRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly RECOVERY_MS = 30_000; // 30 segundos
   private memoryStorage = new Map<
     string,
     { totalHits: number; expiresAt: number; blockedUntil: number }
@@ -81,6 +85,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleInit {
         };
       }
 
+      this.redisFailures = 0;
       return {
         totalHits,
         timeToExpire: remainingTtl * 1000,
@@ -91,7 +96,15 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleInit {
       this.logger.error(
         `Redis throttle error, fallback a memoria: ${error instanceof Error ? error.message : String(error)}`,
       );
-      this.useRedis = false;
+      this.redisFailures++;
+      if (this.redisFailures >= RedisThrottlerStorage.MAX_FAILURES) {
+        this.useRedis = false;
+        this.logger.warn(
+          `Redis throttle: ${this.redisFailures} errores consecutivos, ` +
+            `fallback a memoria por ${RedisThrottlerStorage.RECOVERY_MS / 1000}s`,
+        );
+        this.scheduleRecovery();
+      }
       return this.incrementMemory(key, ttl, limit, blockDuration);
     }
   }
@@ -149,6 +162,20 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleInit {
       isBlocked: false,
       timeToBlockExpire: 0,
     };
+  }
+
+  private scheduleRecovery(): void {
+    if (this.redisRecoveryTimer) return;
+    this.redisRecoveryTimer = setTimeout(() => {
+      this.redisRecoveryTimer = null;
+      if (this.redis) {
+        this.useRedis = true;
+        this.redisFailures = 0;
+        this.logger.log(
+          'Redis throttle: recuperación programada, reintentando Redis',
+        );
+      }
+    }, RedisThrottlerStorage.RECOVERY_MS);
   }
 
   private cleanExpiredEntries(now: number) {

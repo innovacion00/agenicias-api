@@ -1,6 +1,8 @@
 import { Global, Module, Logger } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 
+import { envs } from 'src/config';
+
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
 @Global()
@@ -10,7 +12,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
       provide: REDIS_CLIENT,
       useFactory: async (): Promise<RedisClientType | null> => {
         const logger = new Logger('RedisModule');
-        const url = process.env.REDIS_URL;
+        const url = envs.redisUrl;
 
         if (!url) {
           logger.warn(

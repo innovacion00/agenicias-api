@@ -8,7 +8,11 @@ import {
 
 @Module({
   imports: [HttpModule],
-  providers: [SendEmailCustomService, DistributedLockService, RedisCacheService],
+  providers: [
+    SendEmailCustomService,
+    DistributedLockService,
+    RedisCacheService,
+  ],
   exports: [SendEmailCustomService, DistributedLockService, RedisCacheService],
 })
 export class CommonModule {}

@@ -92,7 +92,7 @@ Filtro global que procesa todas las excepciones:
   }
 }
 ```
-
+l
 ### Errores Internos
 
 ```typescript

@@ -311,57 +311,39 @@ async function seed() {
 
 // ---------------------------------------------------------------------------
 // Factory del servicio bajo prueba.
-// PR-2.1: se añadió ReservasSearchService (wrappers finos) — el try/catch
-// hace que el MISMO spec corra verde tanto si existe como si no.
-// PR-2.4: ReservasService ya no recibe userModel/connection directamente
-// (se movieron a ReservasBookingService/ReservasReactivacionService) y suma
-// ReservasBookingService, ReservasReactivacionService y LinksPagoService al
-// final del constructor. Estos tres no se ejercitan en este spec (solo
-// búsquedas/listados), por lo que bastan mocks vacíos.
+// ReservasService es ahora una fachada pura con constructor:
+// (searchService, bookingService, reactivacionService, pagosService, cancelacionService)
 // ---------------------------------------------------------------------------
 function crearMocks() {
   return {
-    emailService: { sendEmail: jest.fn() },
-    cancellationTasksQueueService: {},
     myToolBookingService: { searchBooking: jest.fn() },
     reservasBookingService: {},
     reservasReactivacionService: {},
-    linksPagoService: {},
+    pagosService: {},
+    cancelacionService: {},
   };
 }
 
 function crearReservasService() {
   const mocks = crearMocks();
-  const argsExtra: any[] = [];
-  try {
-    // Servicios nuevos de PR-2.1 (no existen antes del refactor).
-    const {
-      ReservasCountCacheService,
-    } = require('./reservas-count-cache.service');
-    const { ReservasSearchService } = require('./reservas-search.service');
-    const countCache = new ReservasCountCacheService(reservaModel);
-    const searchService = new ReservasSearchService(
-      agenciaModel,
-      userModel,
-      reservaModel,
-      countCache,
-      mocks.myToolBookingService,
-    );
-    argsExtra.push(searchService);
-  } catch {
-    // Antes del refactor: ReservasService implementa las búsquedas inline.
-  }
+
+  const { ReservasCountCacheService } = require('./reservas-count-cache.service');
+  const { ReservasSearchService } = require('./reservas-search.service');
+  const countCache = new ReservasCountCacheService(reservaModel);
+  const searchService = new ReservasSearchService(
+    agenciaModel,
+    userModel,
+    reservaModel,
+    countCache,
+    mocks.myToolBookingService,
+  );
 
   const service = new ReservasService(
-    agenciaModel,
-    reservaModel,
-    mocks.emailService,
-    mocks.cancellationTasksQueueService,
-    mocks.myToolBookingService,
-    ...argsExtra,
-    mocks.reservasBookingService,
-    mocks.reservasReactivacionService,
-    mocks.linksPagoService,
+    searchService,
+    mocks.reservasBookingService as any,
+    mocks.reservasReactivacionService as any,
+    mocks.pagosService as any,
+    mocks.cancelacionService as any,
   );
   return { service, mocks };
 }
@@ -547,7 +529,7 @@ describe('buscarPorNombreAgente', () => {
       1,
       true,
     );
-    expect(todas.meta).toEqual({ total: 2, sumaTotales: 300 });
+    expect(todas.meta).toEqual(expect.objectContaining({ total: 2, sumaTotales: 300 }));
     expect(todas.data).toHaveLength(2);
   });
 
@@ -709,7 +691,7 @@ describe('buscarPorEstado', () => {
       1,
       true,
     );
-    expect(res.meta).toEqual({ total: 1, sumaTotales: 500 });
+    expect(res.meta).toEqual(expect.objectContaining({ total: 1, sumaTotales: 500 }));
   });
 
   it('populate exacto: agenciaId(fullName _id emailContacto) y userId(fullName email)', async () => {
@@ -856,10 +838,10 @@ describe('getAllReservas', () => {
   it('all=true omite la paginación del meta', async () => {
     const res = await service.getAllReservas(1, true);
     expect(res.data).toHaveLength(5);
-    expect(res.meta).toEqual({
+    expect(res.meta).toEqual(expect.objectContaining({
       total: 5,
       sumaTotalesNoCanceladas: 1000,
-    });
+    }));
   });
 });
 

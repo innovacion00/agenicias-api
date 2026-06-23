@@ -145,12 +145,11 @@ export class AgenciasService {
         throw new NotFoundException('Agencia no encontrada');
       }
 
-      const linkRecargaInfo =
-        await this.autocoreClient.recargarCarteraAutocore(
-          amount,
-          currency,
-          agenciaInfo.autocoreInfo.id,
-        );
+      const linkRecargaInfo = await this.autocoreClient.recargarCarteraAutocore(
+        amount,
+        currency,
+        agenciaInfo.autocoreInfo.id,
+      );
 
       return linkRecargaInfo;
     } catch (error) {

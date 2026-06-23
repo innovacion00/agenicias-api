@@ -10,6 +10,7 @@ import { SendEmailCustomService } from 'src/common/services';
 import { AutocoreClient } from 'src/autocore/autocore.client';
 import { Reserva } from './entities';
 import { ValidPaymentStatus } from './interfaces';
+import { ReservasCountCacheService } from './services/reservas-count-cache.service';
 
 type CancellationJobType =
   | 'refund-link'
@@ -72,6 +73,7 @@ export class CancellationTasksQueueService
     private readonly emailService: SendEmailCustomService,
     private readonly autocoreClient: AutocoreClient,
     @InjectModel(Reserva.name) private readonly reservasModel: Model<Reserva>,
+    private readonly countCache: ReservasCountCacheService,
   ) {}
 
   onModuleInit() {
@@ -290,6 +292,7 @@ export class CancellationTasksQueueService
     }
 
     await this.reservasModel.findByIdAndDelete(nueva._id);
+    this.countCache.invalidateAll();
     await this.liberarReactivacionEnOrigen(payload.reservaOrigenId);
 
     this.logger.log(
@@ -305,6 +308,7 @@ export class CancellationTasksQueueService
         $set: { reactivacionEstado: 'expirada' },
       },
     );
+    this.countCache.invalidateAll();
   }
 
   private removeJob(jobId: string) {

@@ -257,7 +257,7 @@ export class CotizacionesService {
       this.cotizacionModel
         .find({ agenciaId })
         .populate('userId', 'firstName lastName email telephone')
-        .populate('agenciaId', 'nombre telefono email') 
+        .populate('agenciaId', 'nombre telefono email')
         .select('-landingHtml') //Excluir HTML pesado si no se necesita
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -425,9 +425,8 @@ export class CotizacionesService {
     const htmlSinBotones = this.removerBotonesDelHTML(cotizacion.landingHtml);
 
     //Generar PDF usando PuppeteerPoolService (con try/finally y semáforo)
-    const pdfBuffer = await this.puppeteerPoolService.generatePdf(
-      htmlSinBotones,
-    );
+    const pdfBuffer =
+      await this.puppeteerPoolService.generatePdf(htmlSinBotones);
 
     //Subir a Cloudinary
     const uploadResult = await this.uploadPdfToCloudinary(
@@ -538,7 +537,7 @@ export class CotizacionesService {
 
     //Consultar disponibilidad usando categoría de agencia
     const agenciaInfo = await this.agenciaModel
-      .findById(cotizacion.agenciaId) 
+      .findById(cotizacion.agenciaId)
       .populate('category');
 
     if (!agenciaInfo) {
@@ -710,8 +709,10 @@ export class CotizacionesService {
     this.logger.log('reservaInfo:', JSON.stringify(reservaInfo, null, 2));
 
     //Crear reserva en Autocore
-    const reservaAutocoreInfo =
-      await this.autocoreClient.createReservaAutocore(hotelId, reservaInfo);
+    const reservaAutocoreInfo = await this.autocoreClient.createReservaAutocore(
+      hotelId,
+      reservaInfo,
+    );
 
     if (!reservaAutocoreInfo) {
       throw new InternalServerErrorException(

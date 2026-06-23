@@ -52,8 +52,11 @@ export class PuppeteerPoolService implements OnModuleDestroy {
         await this.closeBrowser();
         throw error;
       } finally {
-        // Siempre cerrar la página
-        await page.close();
+        try {
+          await page.close();
+        } catch {
+          // El browser ya fue cerrado en el catch; ignorar TargetCloseError
+        }
       }
     } finally {
       // Liberar semáforo

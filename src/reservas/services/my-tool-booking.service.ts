@@ -6,6 +6,7 @@ import {
   hotelMyToolConfig,
   MyToolHotelConfig,
   MY_TOOL_CANAL_VENTA_ID,
+  MY_TOOL_ESTADO_CUENTA_PATH,
   MY_TOOL_MAQUINA_ID,
 } from 'src/config/constants/myToolBookingConstants';
 
@@ -38,6 +39,33 @@ export interface MyToolBookingResponse {
   localizador?: string;
   result?: any;
   json?: any;
+}
+
+export interface MyToolPagoItem {
+  reservaId: number;
+  rcId?: number;
+  evidenciaBase64?: string | null;
+  fecha: string;
+  formaPago: string;
+  monto: number;
+}
+
+export interface MyToolEstadoCuentaResult {
+  reservaId: number;
+  titular?: string;
+  checkIn?: string;
+  checkOut?: string;
+  codeReserva?: string;
+  localizador: string;
+  canalVentaId?: string;
+  pagos?: MyToolPagoItem[];
+}
+
+export interface MyToolEstadoCuentaResponse {
+  isSuccess: boolean;
+  message: string;
+  json: unknown;
+  result: MyToolEstadoCuentaResult[];
 }
 
 interface CachedItem<T> {
@@ -296,6 +324,44 @@ export class MyToolBookingService {
       const details = this.extractErrorDetails(error);
       this.logger.error(
         `[cancelBooking] ERROR ${details.status} | ${hotelSlug} | localizador=${localizador} | Response: ${JSON.stringify(details.responseData)} | ${details.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async getEstadoCuentaReserva(
+    hotelSlug: string,
+    localizador: string,
+    checkIn: string,
+    checkOut: string,
+  ): Promise<MyToolEstadoCuentaResponse> {
+    const config = this.getHotelConfig(hotelSlug);
+    const body = { localizador, checkIn, checkOut };
+
+    try {
+      const data = await this.authenticatedRequest<MyToolEstadoCuentaResponse>(
+        config.ip,
+        (token) =>
+          axios
+            .post<MyToolEstadoCuentaResponse>(
+              this.buildUrl(config.ip, MY_TOOL_ESTADO_CUENTA_PATH),
+              body,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 30000,
+              },
+            )
+            .then((res) => res.data),
+      );
+
+      this.logger.log(
+        `Estado de cuenta obtenido para ${hotelSlug}: localizador=${localizador}`,
+      );
+      return data;
+    } catch (error) {
+      const details = this.extractErrorDetails(error);
+      this.logger.error(
+        `[getEstadoCuentaReserva] ERROR ${details.status} | ${hotelSlug} | localizador=${localizador} | Response: ${JSON.stringify(details.responseData)} | ${details.message}`,
       );
       throw error;
     }

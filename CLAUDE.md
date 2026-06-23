@@ -19,7 +19,7 @@ npm run lint             # eslint --fix over {src,apps,libs,test}
 npm run format           # prettier --write
 
 npm run test:e2e         # the real test suite (test/*.e2e-spec.ts, in-memory Mongo replset)
-npm test                 # jest unit — finds ZERO tests (no src/**/*.spec.ts exist); do not use as a health check
+npm test                 # jest unit — runs src/**/*.spec.ts (unit tests added in PR-2.x); the e2e suite is the primary gate
 ```
 
 Run a single e2e test:

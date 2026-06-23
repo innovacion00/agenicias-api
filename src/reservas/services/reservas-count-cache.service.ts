@@ -39,10 +39,13 @@ export class ReservasCountCacheService implements ICountCache {
   private buildCacheKey(filter: Record<string, any>): string {
     const sorted = Object.keys(filter)
       .sort()
-      .reduce((acc, key) => {
-        acc[key] = filter[key];
-        return acc;
-      }, {} as Record<string, any>);
+      .reduce(
+        (acc, key) => {
+          acc[key] = filter[key];
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
     return JSON.stringify(sorted);
   }
 

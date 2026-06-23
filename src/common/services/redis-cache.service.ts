@@ -43,6 +43,11 @@ export class RedisCacheService {
     if (this.redis) {
       try {
         await this.redis.setEx(fullKey, Math.ceil(ttlMs / 1000), serialized);
+        this.localCache.set(fullKey, {
+          value: serialized,
+          expiresAt: Date.now() + ttlMs,
+        });
+        this.cleanLocalCache();
         return;
       } catch (error) {
         this.logger.error(`Redis SET error: ${error}`);
@@ -62,6 +67,7 @@ export class RedisCacheService {
     if (this.redis) {
       try {
         await this.redis.del(fullKey);
+        this.localCache.delete(fullKey);
         return;
       } catch (error) {
         this.logger.error(`Redis DEL error: ${error}`);
