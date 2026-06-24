@@ -33,6 +33,7 @@ import {
   UpdateReservaStatusDto,
   UpdateFechasPagoDto,
   ReactivarReservaDto,
+  ActualizarAbonoDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -481,6 +482,33 @@ export class ReservasController {
       reservaId,
       updateFechasPagoDto,
       user,
+    );
+  }
+
+  @Put('abono/:reservaChatbotId')
+  @Auth(ValidRoles.superAdmin)
+  @ApiOperation({
+    summary: 'Actualizar abono de reserva (solo superAdmin)',
+    description:
+      'Registra el monto abonado por fuera de la plataforma. Usado para reactivaciones y cálculo de saldos pendientes.',
+  })
+  @ApiParam({
+    name: 'reservaChatbotId',
+    description: 'ID del chatbot de la reserva (ej: CB88D9393D)',
+    example: 'CB88D9393D',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Abono actualizado' })
+  @ApiResponse({ status: 403, description: 'Solo superAdmin' })
+  @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
+  actualizarAbonoReserva(
+    @Param('reservaChatbotId') reservaChatbotId: string,
+    @Body(new ValidationPipe({ transform: true }))
+    actualizarAbonoDto: ActualizarAbonoDto,
+  ) {
+    return this.reservasService.actualizarAbonoReserva(
+      reservaChatbotId,
+      actualizarAbonoDto,
     );
   }
 

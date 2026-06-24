@@ -43,6 +43,7 @@ import {
   ReactivarReservaDto,
   UpdateFechasPagoDto,
   UpdateReservaDto,
+  ActualizarAbonoDto,
 } from './dto';
 import { Reserva } from './entities';
 import {
@@ -2385,6 +2386,35 @@ export class ReservasService {
     }
   }
 
+  async actualizarAbonoReserva(
+    reservaChatbotId: string,
+    actualizarAbonoDto: ActualizarAbonoDto,
+  ) {
+    try {
+      const reserva = await this.reservasModel
+        .findOne({ reservaChatbotId })
+        .exec();
+      if (!reserva) {
+        throw new NotFoundException(
+          `Reserva con chatbotId "${reservaChatbotId}" no encontrada`,
+        );
+      }
+
+      reserva.abono = actualizarAbonoDto.abono;
+      await reserva.save();
+
+      return {
+        reservaId: reserva._id,
+        reservaChatbotId: reserva.reservaChatbotId,
+        abono: reserva.abono,
+        total: reserva.total,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
   /** Mismo estilo que reservaChatbotId de Autocore (ej. CB88D9393D). */
   private generateMyToolLocalizador(): string {
     return `CB${randomBytes(4).toString('hex').toUpperCase()}`;
@@ -3278,37 +3308,11 @@ export class ReservasService {
     reservaOrigen: Reserva,
     hotelId: string,
   ): Promise<DecisionMontoReactivacion> {
-    if (reservaOrigen.pagadoPrimeraMitad) {
-      return decidirMontoReactivacion({
-        pagadoPrimeraMitad: true,
-        total: reservaOrigen.total,
-        totalMitad: reservaOrigen.totalMitad,
-        montoPagado: 0,
-      });
-    }
-
-    const slug =
-      this.myToolBookingService.findSlugByAutocoreId(hotelId) ??
-      this.myToolBookingService.findSlugByHotelName(reservaOrigen.hotel);
-
-    if (!slug) {
-      throw new BadRequestException('Hotel no configurado en My Tool');
-    }
-
-    const estadoCuenta = await this.myToolBookingService.getEstadoCuentaReserva(
-      slug,
-      reservaOrigen.reservaChatbotId,
-      reservaOrigen.reservation.checkin,
-      reservaOrigen.reservation.checkout,
-    );
-
-    const montoPagado = sumarPagosEstadoCuenta(estadoCuenta);
-
     return decidirMontoReactivacion({
-      pagadoPrimeraMitad: false,
+      pagadoPrimeraMitad: reservaOrigen.pagadoPrimeraMitad,
       total: reservaOrigen.total,
       totalMitad: reservaOrigen.totalMitad,
-      montoPagado,
+      abono: reservaOrigen.abono || 0,
     });
   }
 

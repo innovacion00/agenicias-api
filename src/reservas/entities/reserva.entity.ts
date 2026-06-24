@@ -458,6 +458,17 @@ export class Reserva extends Document {
     default: false,
   })
   reactivacionCorreoFalloEnviado: boolean;
+
+  @Prop({
+    type: Number,
+    default: 0,
+    min: 0,
+    validate: {
+      validator: (v: number) => v >= 0,
+      message: 'El abono no puede ser negativo',
+    },
+  })
+  abono: number;
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

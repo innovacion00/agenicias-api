@@ -21,21 +21,21 @@ export function decidirMontoReactivacion(args: {
   pagadoPrimeraMitad: boolean;
   total: number;
   totalMitad: number;
-  montoPagado: number;
+  abono: number;
 }): DecisionMontoReactivacion {
-  const { pagadoPrimeraMitad, total, totalMitad, montoPagado } = args;
+  const { pagadoPrimeraMitad, total, totalMitad, abono } = args;
 
   if (pagadoPrimeraMitad) {
     return { accion: 'generar', monto: totalMitad };
   }
 
-  if (montoPagado === totalMitad) {
-    return { accion: 'generar', monto: totalMitad };
+  if (abono > 0) {
+    const montoRestante = total - abono;
+    if (montoRestante <= 0) {
+      return { accion: 'cancelar' };
+    }
+    return { accion: 'generar', monto: montoRestante };
   }
 
-  if (montoPagado === total) {
-    return { accion: 'cancelar' };
-  }
-
-  return { accion: 'generar', monto: total - montoPagado };
+  return { accion: 'generar', monto: total };
 }
