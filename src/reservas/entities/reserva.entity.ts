@@ -354,18 +354,21 @@ export class Reserva extends Document {
       link: { type: String, default: '' },
       expirationDate: { type: Date, default: '' },
       idLinkPago: { type: String, default: '' },
+      pagoTotal: { type: Boolean, default: false },
     },
 
     default: {
       link: '',
       expirationDate: '',
       idLinkPago: '',
+      pagoTotal: false,
     },
   })
   linkInfo: {
     link: string;
     expirationDate: string;
     idLinkPago: Types.ObjectId;
+    pagoTotal?: boolean;
   };
 
   @Prop({

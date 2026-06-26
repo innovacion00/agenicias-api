@@ -6,6 +6,7 @@ import {
   HttpCode,
   Query,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BookingPersonasService } from './booking-personas.service';
 import { DisponibilidadPersonasDto } from './dto/disponibilidad-personas.dto';
@@ -99,6 +100,7 @@ export class BookingPersonasController {
   }
 
   @Post('change-status')
+  @SkipThrottle()
   @HttpCode(200)
   @ApiOperation({ summary: 'Webhook para cambio de estado de pago (Autocore)' })
   cambiarEstadoPagoReserva(

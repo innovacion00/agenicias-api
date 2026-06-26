@@ -24,6 +24,7 @@ import {
 } from '../src/agencias/entities/agencia.entity';
 import { ValidPaymentStatus } from '../src/reservas/interfaces/validPaymentStatus.interface';
 import { CancellationTasksQueueService } from '../src/reservas/cancellation-tasks-queue.service';
+import { AutocoreWebhookEventService } from '../src/reservas/services/autocore-webhook-event.service';
 import { HttpCustomService } from '../src/common/services/http-custom.service';
 import { SendEmailCustomService } from '../src/common/services/send-email.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -83,6 +84,11 @@ const mockEmailService = {
 
 const mockCancellationQueue = {
   enqueueReactivationExpiryJob: jest.fn().mockReturnValue(true),
+};
+
+const mockWebhookEventService = {
+  record: jest.fn().mockResolvedValue(undefined),
+  recordError: jest.fn().mockResolvedValue(undefined),
 };
 
 const REACTIVAR_URL = '/agencias/v1/reservas/reactivar';
@@ -175,6 +181,10 @@ describe('Reactivar reserva con saldo previo (e2e)', () => {
         {
           provide: CancellationTasksQueueService,
           useValue: mockCancellationQueue,
+        },
+        {
+          provide: AutocoreWebhookEventService,
+          useValue: mockWebhookEventService,
         },
       ],
     })

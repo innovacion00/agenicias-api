@@ -24,6 +24,7 @@ import {
 } from '../src/agencias/entities/agencia.entity';
 import { ValidPaymentStatus } from '../src/reservas/interfaces/validPaymentStatus.interface';
 import { CancellationTasksQueueService } from '../src/reservas/cancellation-tasks-queue.service';
+import { AutocoreWebhookEventService } from '../src/reservas/services/autocore-webhook-event.service';
 import { HttpCustomService } from '../src/common/services/http-custom.service';
 import { SendEmailCustomService } from '../src/common/services/send-email.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -49,6 +50,10 @@ const mockEmailService = {
   sendMail: jest.fn().mockResolvedValue(true),
 };
 const mockCancellationQueue = { enqueue: jest.fn() };
+const mockWebhookEventService = {
+  record: jest.fn().mockResolvedValue(undefined),
+  recordError: jest.fn().mockResolvedValue(undefined),
+};
 
 const WEBHOOK_URL = '/agencias/v1/reservas/change-status';
 
@@ -78,6 +83,10 @@ describe('Autocore Webhook change-status (e2e)', () => {
         {
           provide: CancellationTasksQueueService,
           useValue: mockCancellationQueue,
+        },
+        {
+          provide: AutocoreWebhookEventService,
+          useValue: mockWebhookEventService,
         },
       ],
     })
@@ -339,6 +348,32 @@ describe('Autocore Webhook change-status (e2e)', () => {
     expect((await reservaModel.findById(id))!.status).toBe(
       ValidPaymentStatus.cancelado,
     );
+  });
+
+  it('pagoTotal único: aplicado con sufijo pagoTotal va directo a total sin pagadoPrimeraMitad previo', async () => {
+    const r = await seedReserva({ pagadoPrimeraMitad: false });
+    const id = r._id.toString();
+
+    await post(evento(id, 'aplicado', { txn: 'PT1', pagoTotal: true })).expect(
+      200,
+    );
+
+    const db = await reservaModel.findById(id);
+    expect(db!.status).toBe(ValidPaymentStatus.total);
+    expect(db!.pagadoPrimeraMitad).toBe(true);
+    expect(db!.linksHistory).toHaveLength(1);
+    expect(db!.linksHistory![0].state).toBe(ValidPaymentStatus.total);
+  });
+
+  it('external_ref_id inválido: responde 200 y persiste auditoría skipped', async () => {
+    await post({
+      external_ref_id: 'no-es-un-objectid',
+      payment_status: 'aplicado',
+      transaction_id: 'INV1',
+      details: { id: 'INV1' },
+    }).expect(200);
+
+    expect(mockWebhookEventService.record).toHaveBeenCalled();
   });
 
   it('concurrencia: eventos simultáneos no producen estados inconsistentes', async () => {

@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -34,6 +35,7 @@ import {
   UpdateFechasPagoDto,
   ReactivarReservaDto,
   ActualizarAbonoDto,
+  ReprocessWebhookPagoDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -103,7 +105,9 @@ export class ReservasController {
   }
 
   @Post('/change-status')
+  @SkipThrottle()
   @HttpCode(200)
+  @ApiOperation({ summary: 'Webhook Autocore — cambio de estado de pago' })
   cambiarEstadoPagoReserva(
     @Body()
     payload: {
@@ -117,6 +121,23 @@ export class ReservasController {
     },
   ) {
     return this.reservasService.cambiarEstadoPagoAutocore(payload);
+  }
+
+  @Post('reprocess-webhook/:reservaId')
+  @Auth(ValidRoles.superAdmin)
+  @ApiOperation({
+    summary: 'Reprocesar webhook de pago (superAdmin)',
+    description:
+      'Aplica manualmente la lógica del webhook Autocore sobre una reserva. ' +
+      'Útil cuando el pago se confirmó pero el estado no se reflejó.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  reprocesarWebhookPago(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true }))
+    dto: ReprocessWebhookPagoDto,
+  ) {
+    return this.reservasService.reprocesarWebhookPago(reservaId, dto);
   }
 
   @ApiOperation({ summary: 'Obtener reservas del usuario autenticado' })

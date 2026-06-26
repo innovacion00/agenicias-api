@@ -10,3 +10,4 @@ export * from './update-reserva.dto';
 export * from './create-reserva-mytool.dto';
 export * from './reactivar-reserva.dto';
 export * from './actualizar-abono.dto';
+export * from './reprocess-webhook-pago.dto';
