@@ -64,12 +64,12 @@ describe('estado-cuenta-reserva.utils', () => {
   });
 
   describe('decidirMontoReactivacion', () => {
-    const base = { total: 1000000, totalMitad: 500000 };
+    const reserva: any = { total: 1000000, totalMitad: 500000 };
 
     it('pagadoPrimeraMitad true -> totalMitad', () => {
       expect(
         decidirMontoReactivacion({
-          ...base,
+          ...reserva,
           pagadoPrimeraMitad: true,
           montoPagado: 0,
         }),
