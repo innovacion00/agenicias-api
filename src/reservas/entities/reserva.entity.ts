@@ -381,6 +381,28 @@ export class Reserva extends Document {
   })
   linksHistory: LinksHistory[];
 
+  /**
+   * Rastro del comprobante de pago subido desde el motor. El archivo NO se
+   * almacena aquí: vive en la negociación de Bitrix referenciada por bitrixDealId.
+   */
+  @Prop({
+    type: {
+      bitrixDealId: { type: String, default: '' },
+      monto: { type: Number, default: 0 },
+      fechaConsignacion: { type: String, default: '' },
+      razonSocial: { type: String, default: '' },
+      enviadoEn: { type: Date, default: null },
+    },
+    default: null,
+  })
+  comprobantePago?: {
+    bitrixDealId: string;
+    monto: number;
+    fechaConsignacion: string;
+    razonSocial: string;
+    enviadoEn: Date;
+  };
+
   @Prop({
     type: String,
     enum: ['autocore', 'mytool'],

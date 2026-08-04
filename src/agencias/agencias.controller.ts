@@ -53,7 +53,7 @@ export class AgenciasController {
   @Get('obtener-saldo')
   @Auth()
   obtenerSaldoBilletera(@GetUser('agencia') agencia: Types.ObjectId) {
-    return this.agenciasService.obtenerSaldoBilletera(agencia);
+    return this.agenciasService.obtenerSaldoBilletera(agencia); 
   }
 
   //? Traer todas las agencias
@@ -79,7 +79,7 @@ export class AgenciasController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 50;
     return this.agenciasService.findAll(pageNum, limitNum);
-  }
+  } 
 
   //? Obtener agencias por propiedad
   @Get('getByProperty')

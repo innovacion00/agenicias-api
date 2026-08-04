@@ -28,6 +28,7 @@ import {
   GenerateLinkDto,
   CreateReservaDto,
   CancelReservaDto,
+  ComprobanteEnviadoDto,
   UpdateReservaDto,
   PagoReservaBilleteraDto,
   UpdateReservaStatusDto,
@@ -459,6 +460,28 @@ export class ReservasController {
       updateReservaStatusDto.status,
       saltar,
       forzarCancelMitad,
+    );
+  }
+
+  @Post('comprobante-enviado/:reservaId')
+  @Auth()
+  @ApiOperation({
+    summary: 'Registrar comprobante de pago enviado a Bitrix',
+    description:
+      'Deja la reserva en estado "En proceso" y guarda la referencia a la negociación creada en Bitrix. El archivo del comprobante no pasa por esta API: se sube desde el motor directamente a Bitrix.',
+  })
+  @ApiResponse({ status: 201, description: 'Comprobante registrado' })
+  @ApiResponse({ status: 403, description: 'La reserva no es de tu agencia' })
+  marcarComprobanteEnviado(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true }))
+    comprobanteEnviadoDto: ComprobanteEnviadoDto,
+    @GetUser() user: User,
+  ) {
+    return this.reservasService.marcarComprobanteEnviado(
+      reservaId,
+      comprobanteEnviadoDto,
+      user,
     );
   }
 
