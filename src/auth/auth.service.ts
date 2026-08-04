@@ -344,6 +344,7 @@ td {
         password: bcrypt.hashSync(password, 10),
       });
 
+
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
       await agenciaDoc.save();
 
@@ -408,6 +409,7 @@ td {
         loginCount: 0,
         password: bcrypt.hashSync(password, 10),
       });
+
 
       agenciaDoc.usuarios.push(user._id as Types.ObjectId);
       await agenciaDoc.save();

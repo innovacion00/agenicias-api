@@ -1,5 +1,6 @@
 export * from './cancel-reserva.dto';
 export * from './change-status.dto';
+export * from './comprobante-enviado.dto';
 export * from './create-reserva.dto';
 export * from './disponibilidad-autocore.dto';
 export * from './generate-link.dto';

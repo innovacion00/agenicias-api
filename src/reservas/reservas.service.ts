@@ -36,6 +36,7 @@ import {
 
 import {
   CancelReservaDto,
+  ComprobanteEnviadoDto,
   CreateReservaDto,
   DisponibilidadAutocoreDto,
   GenerateLinkDto,
@@ -2591,6 +2592,72 @@ export class ReservasService {
     }
   }
 
+  /**
+   * Registra que la agencia envió un comprobante de pago a Bitrix y deja la
+   * reserva "En proceso", igual que hace generarLinkPago al emitir un link.
+   * El archivo no se almacena aquí: solo la referencia a la negociación.
+   */
+  async marcarComprobanteEnviado(
+    reservaId: Types.ObjectId,
+    comprobanteEnviadoDto: ComprobanteEnviadoDto,
+    user: User,
+  ) {
+    try {
+      const reserva = await this.reservasModel.findById(reservaId).exec();
+      if (!reserva) {
+        throw new NotFoundException('Reserva no encontrada');
+      }
+
+      const isSuperAdmin = user.role.includes('super-admin');
+      if (
+        !isSuperAdmin &&
+        reserva.agenciaId.toString() !== user.agencia.toString()
+      ) {
+        throw new ForbiddenException(
+          'No cuentas con permisos para registrar comprobantes en esta reserva',
+        );
+      }
+
+      if (reserva.status === ValidPaymentStatus.cancelado) {
+        throw new BadRequestException(
+          'No se puede registrar un comprobante en una reserva cancelada',
+        );
+      }
+      if (reserva.status === ValidPaymentStatus.total) {
+        throw new BadRequestException(
+          'La reserva ya tiene el pago aprobado',
+        );
+      }
+      if (reserva.status === ValidPaymentStatus.proceso) {
+        throw new BadRequestException(
+          'La reserva ya tiene un pago en proceso. Espera a que se resuelva antes de enviar otro comprobante.',
+        );
+      }
+
+      const checkinRaw = reserva.reservation?.checkin;
+      if (!checkinRaw || typeof checkinRaw !== 'string') {
+        throw new BadRequestException(
+          'La reserva no tiene check-in válido para registrar el comprobante',
+        );
+      }
+
+      const checkinDate = this.parseYyyyMmDdOrThrow(checkinRaw, 'checkin');
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      if (hoy >= checkinDate) {
+        throw new ForbiddenException(
+          'No se puede registrar el comprobante: la reserva ya llegó a la fecha de check-in',
+        );
+      }
+
+      reserva.comprobantePago = {
+        bitrixDealId: comprobanteEnviadoDto.bitrixDealId.trim(),
+        monto: comprobanteEnviadoDto.monto,
+        fechaConsignacion: comprobanteEnviadoDto.fechaConsignacion.trim(),
+        razonSocial: comprobanteEnviadoDto.razonSocial.trim(),
+        enviadoEn: new Date(),
+      };
+      reserva.status = ValidPaymentStatus.proceso;
   async actualizarAbonoReserva(
     reservaChatbotId: string,
     actualizarAbonoDto: ActualizarAbonoDto,
@@ -2611,6 +2678,8 @@ export class ReservasService {
       return {
         reservaId: reserva._id,
         reservaChatbotId: reserva.reservaChatbotId,
+        status: reserva.status,
+        comprobantePago: reserva.comprobantePago,
         abono: reserva.abono,
         total: reserva.total,
       };
