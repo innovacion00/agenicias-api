@@ -21,6 +21,7 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { IAsistente, ITitularInfo } from '../interfaces';
 import { InfoTransporteDto, InfoTouresDto } from './create-reserva.dto';
+import { IsNotSameDayCheckin } from '../decorators';
 
 // ────────────────── Clases auxiliares internas ──────────────────
 
@@ -325,6 +326,7 @@ export class CreateReservaMyToolDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'checkIn debe estar en formato YYYY-MM-DD',
   })
+  @IsNotSameDayCheckin()
   checkIn: string;
 
   @IsString()

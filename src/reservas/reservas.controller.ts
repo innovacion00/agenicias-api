@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -34,6 +35,8 @@ import {
   UpdateReservaStatusDto,
   UpdateFechasPagoDto,
   ReactivarReservaDto,
+  ActualizarAbonoDto,
+  ReprocessWebhookPagoDto,
 } from './dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
@@ -103,7 +106,9 @@ export class ReservasController {
   }
 
   @Post('/change-status')
+  @SkipThrottle()
   @HttpCode(200)
+  @ApiOperation({ summary: 'Webhook Autocore — cambio de estado de pago' })
   cambiarEstadoPagoReserva(
     @Body()
     payload: {
@@ -117,6 +122,23 @@ export class ReservasController {
     },
   ) {
     return this.reservasService.cambiarEstadoPagoAutocore(payload);
+  }
+
+  @Post('reprocess-webhook/:reservaId')
+  @Auth(ValidRoles.superAdmin)
+  @ApiOperation({
+    summary: 'Reprocesar webhook de pago (superAdmin)',
+    description:
+      'Aplica manualmente la lógica del webhook Autocore sobre una reserva. ' +
+      'Útil cuando el pago se confirmó pero el estado no se reflejó.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  reprocesarWebhookPago(
+    @Param('reservaId', ParseMongoIdPipe) reservaId: Types.ObjectId,
+    @Body(new ValidationPipe({ transform: true }))
+    dto: ReprocessWebhookPagoDto,
+  ) {
+    return this.reservasService.reprocesarWebhookPago(reservaId, dto);
   }
 
   @ApiOperation({ summary: 'Obtener reservas del usuario autenticado' })
@@ -159,11 +181,18 @@ export class ReservasController {
   @ApiOperation({
     summary: 'Reactivar reserva cancelada (Autocore)',
     description:
-      'Clona una reserva cancelada en Autocore, genera link de pago total y programa expiración a 24h.',
+      'Clona una reserva cancelada en Autocore y genera link de pago según saldo previo: ' +
+      'si pagadoPrimeraMitad=true usa totalMitad; si no, consulta el PMS My Tool (GetEstadoCuentaReserva) ' +
+      'para calcular el monto (totalMitad, total - abonos, o rechaza si ya está pagada). ' +
+      'Programa expiración a 24h.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Link de pago generado' })
-  @ApiResponse({ status: 409, description: 'Sin disponibilidad en Autocore' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Sin disponibilidad (REACTIVACION_SIN_DISPONIBILIDAD) o reserva ya pagada (REACTIVACION_YA_PAGADA)',
+  })
   reactivarReservaCancelada(
     @Body() reactivarReservaDto: ReactivarReservaDto,
     @GetUser() user: User,
@@ -497,6 +526,33 @@ export class ReservasController {
       reservaId,
       updateFechasPagoDto,
       user,
+    );
+  }
+
+  @Put('abono/:reservaChatbotId')
+  @Auth(ValidRoles.superAdmin)
+  @ApiOperation({
+    summary: 'Actualizar abono de reserva (solo superAdmin)',
+    description:
+      'Registra el monto abonado por fuera de la plataforma. Usado para reactivaciones y cálculo de saldos pendientes.',
+  })
+  @ApiParam({
+    name: 'reservaChatbotId',
+    description: 'ID del chatbot de la reserva (ej: CB88D9393D)',
+    example: 'CB88D9393D',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Abono actualizado' })
+  @ApiResponse({ status: 403, description: 'Solo superAdmin' })
+  @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
+  actualizarAbonoReserva(
+    @Param('reservaChatbotId') reservaChatbotId: string,
+    @Body(new ValidationPipe({ transform: true }))
+    actualizarAbonoDto: ActualizarAbonoDto,
+  ) {
+    return this.reservasService.actualizarAbonoReserva(
+      reservaChatbotId,
+      actualizarAbonoDto,
     );
   }
 

@@ -64,9 +64,16 @@ export class User extends Document {
 
   @Prop({
     type: Boolean,
-    default: true,
+    default: false,
   })
   firstLog: boolean;
+
+  /** Contador interno de inicios de sesión exitosos (para firstLog en el 2.º login). */
+  @Prop({
+    type: Number,
+    default: 0,
+  })
+  loginCount: number;
 
   @Prop({
     type: Boolean,

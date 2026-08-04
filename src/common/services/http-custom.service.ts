@@ -362,7 +362,7 @@ export class HttpCustomService {
 
       // Log de respuesta
       this.logger.log(
-        `📡 Respuesta de Autocore (Personas) [Status: ${response.status}]:`,
+        ` Respuesta de Autocore (Personas) [Status: ${response.status}]:`,
         {
           status: response.status,
           statusText: response.statusText,
@@ -375,7 +375,7 @@ export class HttpCustomService {
 
       if (response.status !== 200 && response.status !== 201) {
         this.logger.error(
-          '❌ Autocore retornó un status no exitoso (Personas):',
+          ' Autocore retornó un status no exitoso (Personas):',
           {
             status: response.status,
             data: response.data,
@@ -386,10 +386,10 @@ export class HttpCustomService {
         );
       }
 
-      this.logger.log('✅ Respuesta Autocore exitosa (Personas)');
+      this.logger.log(' Respuesta Autocore exitosa (Personas)');
       return response.data;
     } catch (error) {
-      this.logger.error('❌ ERROR en getDisponibilidadPersonas:', {
+      this.logger.error(' ERROR en getDisponibilidadPersonas:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -616,7 +616,7 @@ export class HttpCustomService {
         paymentLinkBody.reservation_id = reservationId;
       }
 
-      this.logger.log('🌐 Creando link de pago para personas:', {
+      this.logger.log(' Creando link de pago para personas:', {
         hotelId,
         amount,
         guestName,

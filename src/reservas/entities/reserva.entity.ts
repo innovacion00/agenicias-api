@@ -354,18 +354,21 @@ export class Reserva extends Document {
       link: { type: String, default: '' },
       expirationDate: { type: Date, default: '' },
       idLinkPago: { type: String, default: '' },
+      pagoTotal: { type: Boolean, default: false },
     },
 
     default: {
       link: '',
       expirationDate: '',
       idLinkPago: '',
+      pagoTotal: false,
     },
   })
   linkInfo: {
     link: string;
     expirationDate: string;
     idLinkPago: Types.ObjectId;
+    pagoTotal?: boolean;
   };
 
   @Prop({
@@ -480,6 +483,17 @@ export class Reserva extends Document {
     default: false,
   })
   reactivacionCorreoFalloEnviado: boolean;
+
+  @Prop({
+    type: Number,
+    default: 0,
+    min: 0,
+    validate: {
+      validator: (v: number) => v >= 0,
+      message: 'El abono no puede ser negativo',
+    },
+  })
+  abono: number;
 }
 
 export const ReservaSchema = SchemaFactory.createForClass(Reserva);

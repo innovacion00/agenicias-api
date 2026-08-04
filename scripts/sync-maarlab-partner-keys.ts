@@ -1,8 +1,9 @@
 /**
  * Descarga todas las páginas de `api_keys_by_partner` de MaarLab y guarda/actualiza
  * la colección `maarlab_partner_credentials` (upsert por `id_search_engine`).
- * Vincula cada fila a una `Agencia` comparando nombres **normalizados**:
- *   `normHotelName` (MaarLab) ↔ `normalizeMaarlabName(agencia.fullName)` (y alias por `slug`).
+ * Vincula cada fila a una `Agencia` por:
+ *   1. `external_id` de MaarLab = `_id` hex de Mongo (si viene en la fila)
+ *   2. nombres normalizados: `normHotelName` ↔ `normalizeMaarlabName(agencia.fullName)` (+ slug)
  *
  * Variables en .env:
  *   MONGO_URL
@@ -31,6 +32,7 @@ type ApiKeysResponse = {
     id_search_engine: string;
     hotel_name: string;
     api_key: string;
+    external_id?: string;
   }>;
   total: number;
   page: number;
@@ -164,6 +166,12 @@ async function main(): Promise<void> {
       const apiKey = (row.api_key ?? '').trim();
       if (!apiKey) continue;
 
+      const externalIdRaw = String(row.external_id ?? '').trim().toLowerCase();
+      const agenciaIdFromExternal =
+        externalIdRaw && Types.ObjectId.isValid(externalIdRaw)
+          ? new Types.ObjectId(externalIdRaw)
+          : null;
+
       await Credential.updateOne(
         { idSearchEngine: idSe },
         {
@@ -172,6 +180,7 @@ async function main(): Promise<void> {
             normHotelName: normHotelName || hotelName.toLowerCase().trim(),
             apiKey,
             lastSyncedAt: now,
+            ...(agenciaIdFromExternal ? { agenciaId: agenciaIdFromExternal } : {}),
           },
         },
         { upsert: true },
@@ -196,9 +205,14 @@ async function main(): Promise<void> {
   let agenciesWithKeys = 0;
   let collisionReplacements = 0;
 
+  /** external_id hex → agenciaId */
+  const externalIdToAgencia = new Map<string, Types.ObjectId>();
+
   for (const a of agencias) {
     const fn = a.fullName;
     if (fn == null || fn === '') continue;
+
+    externalIdToAgencia.set(String(a._id), a._id as Types.ObjectId);
 
     const keys = agencyMatchKeys(fn, a.slug as string | undefined);
     if (keys.length === 0) continue;
@@ -224,22 +238,34 @@ async function main(): Promise<void> {
   }
 
   let linked = 0;
+  let linkedByExternal = 0;
   let unlinked = 0;
   const unlinkedSamples: string[] = [];
 
   const allCreds = await Credential.find({}).lean().exec();
   for (const c of allCreds) {
+    let aid: Types.ObjectId | undefined;
     const norm =
       (c.normHotelName && String(c.normHotelName).trim()) ||
       normalizeMaarlabName(c.hotelName as string);
 
-    const aid = norm ? normKeyToAgencia.get(norm) : undefined;
+    const credAgenciaId = c.agenciaId as Types.ObjectId | null | undefined;
+    if (credAgenciaId) {
+      aid = credAgenciaId;
+      linkedByExternal += 1;
+    }
+
+    if (!aid) {
+      aid = norm ? normKeyToAgencia.get(norm) : undefined;
+    }
 
     if (aid) {
-      await Credential.updateOne(
-        { _id: c._id },
-        { $set: { agenciaId: aid } },
-      );
+      if (!credAgenciaId) {
+        await Credential.updateOne(
+          { _id: c._id },
+          { $set: { agenciaId: aid } },
+        );
+      }
       linked++;
     } else {
       await Credential.updateOne(
@@ -256,10 +282,10 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Listo. Upserts: ${totalUpserts} | agencias indexadas: ${agenciesWithKeys}/${agencias.length} | vínculos por nombre normalizado: ${linked}/${allCreds.length} | sin match: ${unlinked}`,
+    `Listo. Upserts: ${totalUpserts} | agencias indexadas: ${agenciesWithKeys}/${agencias.length} | vínculos: ${linked}/${allCreds.length} (por external_id en fila: ${linkedByExternal}) | sin match: ${unlinked}`,
   );
   console.log(
-    `Comparación: MaarLab.normHotelName ↔ normalizeMaarlabName(Agencia.fullName) [+ alias desde slug]`,
+    `Comparación: external_id MaarLab ↔ Agencia._id | normHotelName ↔ normalizeMaarlabName(fullName)`,
   );
   if (unlinkedSamples.length > 0) {
     console.log('Ejemplos sin vínculo (revisar nombres en MaarLab vs fullName en Mongo):');

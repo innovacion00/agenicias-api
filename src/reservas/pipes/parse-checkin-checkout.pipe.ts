@@ -8,6 +8,7 @@ import {
 import { isAfter } from '@formkit/tempo';
 
 import { CreateReservaDto } from '../dto';
+import { validarCheckinNoEsMismoDia } from '../utils/checkin-reserva.utils';
 
 @Injectable()
 export class ParseCheckinCheckoutPipe implements PipeTransform {
@@ -17,6 +18,8 @@ export class ParseCheckinCheckoutPipe implements PipeTransform {
       checkout: primaryCheckout,
       roomsData,
     } = createReservaDto.reservaInfo.reservation;
+
+    validarCheckinNoEsMismoDia(primaryCheckin);
 
     if (isAfter(primaryCheckin, primaryCheckout)) {
       throw new BadRequestException(
@@ -32,6 +35,8 @@ export class ParseCheckinCheckoutPipe implements PipeTransform {
         );
       }
       const { checkin, checkout } = roomData;
+
+      validarCheckinNoEsMismoDia(checkin);
 
       if (isAfter(checkin, checkout)) {
         throw new BadRequestException(

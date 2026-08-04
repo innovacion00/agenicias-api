@@ -98,3 +98,4 @@ export const hotelMyToolSlugs = Object.keys(hotelMyToolConfig);
 
 export const MY_TOOL_CANAL_VENTA_ID = 41;
 export const MY_TOOL_MAQUINA_ID = 1;
+export const MY_TOOL_ESTADO_CUENTA_PATH = 'EstadoCuenta/GetEstadoCuentaReserva';

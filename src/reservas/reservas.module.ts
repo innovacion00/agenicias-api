@@ -10,6 +10,12 @@ import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { CancellationLockReconciliationService } from './cancellation-lock-reconciliation.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
+import { AutocoreWebhookEventService } from './services/autocore-webhook-event.service';
+import { PaymentWebhookReconciliationService } from './services/payment-webhook-reconciliation.service';
+import {
+  AutocoreWebhookEvent,
+  AutocoreWebhookEventSchema,
+} from './entities/autocore-webhook-event.entity';
 
 @Module({
   controllers: [ReservasController],
@@ -18,6 +24,8 @@ import { MyToolBookingService } from './services/my-tool-booking.service';
     CancellationTasksQueueService,
     CancellationLockReconciliationService,
     MyToolBookingService,
+    AutocoreWebhookEventService,
+    PaymentWebhookReconciliationService,
   ],
   imports: [
     forwardRef(() => AgenciasModule),
@@ -27,6 +35,10 @@ import { MyToolBookingService } from './services/my-tool-booking.service';
       {
         name: Reserva.name,
         schema: ReservaSchema,
+      },
+      {
+        name: AutocoreWebhookEvent.name,
+        schema: AutocoreWebhookEventSchema,
       },
     ]),
   ],

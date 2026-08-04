@@ -57,7 +57,7 @@ export class CotizacionesService {
     private readonly connection: Connection,
   ) {}
 
-  // #region Crear cotización
+  //#region Crear cotización
   async create(
     createCotizacionDto: CreateCotizacionDto,
     userId: string,
@@ -112,7 +112,7 @@ export class CotizacionesService {
     return await cotizacion.save();
   }
 
-  // #region Crear desde disponibilidad
+  //#region Crear desde disponibilidad
   async createFromDisponibilidad(
     createCotizacionDto: CreateCotizacionDto,
     userId: string,
@@ -202,7 +202,7 @@ export class CotizacionesService {
     }
   }
 
-  // #region Obtener todas por agencia
+  //#region Obtener todas por agencia
   async findAll(
     page = 1,
     limit = 15,
@@ -210,21 +210,21 @@ export class CotizacionesService {
     data: any[];
     meta: { total: number; page: number; pageSize: number; totalPages: number };
   }> {
-    const PAGE_SIZE = Math.min(limit, 100); // Máximo 100 por página
+    const PAGE_SIZE = Math.min(limit, 100); //Máximo 100 por página
     const currentPage = Math.max(1, page);
     const skip = (currentPage - 1) * PAGE_SIZE;
 
-    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    //OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
     const [data, total] = await Promise.all([
       this.cotizacionModel
         .find()
         .populate('userId', 'firstName lastName email telephone')
         .populate('agenciaId', 'nombre telefono email')
-        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .select('-landingHtml') //Excluir HTML pesado si no se necesita
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(PAGE_SIZE)
-        .lean(), // Mejor rendimiento al retornar objetos planos
+        .lean(), //Mejor rendimiento al retornar objetos planos
       this.cotizacionModel.countDocuments(),
     ]);
 
@@ -251,17 +251,17 @@ export class CotizacionesService {
     const currentPage = Math.max(1, page);
     const skip = (currentPage - 1) * PAGE_SIZE;
 
-    // OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
+    //OPTIMIZACIÓN: Agregar paginación, select y lean() para mejor rendimiento
     const [data, total] = await Promise.all([
       this.cotizacionModel
         .find({ agenciaId })
         .populate('userId', 'firstName lastName email telephone')
         .populate('agenciaId', 'nombre telefono email')
-        .select('-landingHtml') // Excluir HTML pesado si no se necesita
+        .select('-landingHtml') //Excluir HTML pesado si no se necesita
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(PAGE_SIZE)
-        .lean(), // Mejor rendimiento al retornar objetos planos
+        .lean(), //Mejor rendimiento al retornar objetos planos
       this.cotizacionModel.countDocuments({ agenciaId }),
     ]);
 
@@ -276,7 +276,7 @@ export class CotizacionesService {
     };
   }
 
-  // #region Obtener una por ID
+  //#region Obtener una por ID
   async findOne(id: string): Promise<Cotizacion> {
     const cotizacion = await this.cotizacionModel
       .findById(id)
@@ -291,7 +291,7 @@ export class CotizacionesService {
     return cotizacion;
   }
 
-  // #region Obtener por token
+  //#region Obtener por token
   async findByToken(tokenAcceso: string): Promise<Cotizacion> {
     const cotizacion = await this.cotizacionModel
       .findOne({ tokenAcceso })
@@ -306,7 +306,7 @@ export class CotizacionesService {
     return cotizacion;
   }
 
-  // #region Obtener por token (público)
+  //#region Obtener por token (público)
   async findByTokenPublic(tokenAcceso: string): Promise<Cotizacion> {
     const cotizacion = await this.cotizacionModel
       .findOne({ tokenAcceso })
@@ -321,7 +321,7 @@ export class CotizacionesService {
     return cotizacion;
   }
 
-  // #region Obtener por ID (público)
+  //#region Obtener por ID (público)
   async findByIdPublic(id: string): Promise<Cotizacion> {
     const cotizacion = await this.cotizacionModel
       .findById(id)
@@ -336,7 +336,7 @@ export class CotizacionesService {
     return cotizacion;
   }
 
-  // #region Responder cotización (Aceptar/Rechazar)
+  //#region Responder cotización (Aceptar/Rechazar)
   async responderCotizacion(
     tokenAcceso: string,
     responderCotizacionDto: ResponderCotizacionDto,
@@ -352,7 +352,7 @@ export class CotizacionesService {
       throw new BadRequestException('Esta cotización ha expirado');
     }
 
-    // Si se rechaza, simplemente actualizar estado
+    //Si se rechaza, simplemente actualizar estado
     if (responderCotizacionDto.status === CotizacionStatus.RECHAZADA) {
       cotizacion.status = CotizacionStatus.RECHAZADA;
       cotizacion.fechaRechazo = new Date();
@@ -365,13 +365,13 @@ export class CotizacionesService {
       };
     }
 
-    // Si se acepta, verificar disponibilidad y crear reserva
+    //Si se acepta, verificar disponibilidad y crear reserva
     if (responderCotizacionDto.status === CotizacionStatus.ACEPTADA) {
       cotizacion.status = CotizacionStatus.ACEPTADA;
       cotizacion.fechaAprobacion = new Date();
       await cotizacion.save();
 
-      // Intentar crear la reserva automáticamente
+      //Intentar crear la reserva automáticamente
       try {
         const resultadoReserva = await this.convertirAReservaAutomatica(
           (cotizacion._id as Types.ObjectId).toString(),
@@ -383,7 +383,7 @@ export class CotizacionesService {
           reserva: resultadoReserva,
         };
       } catch (error) {
-        // Si hay error al crear la reserva, devolver mensaje específico
+        //Si hay error al crear la reserva, devolver mensaje específico
         const detalleError = this.getErrorMessage(error);
         const stack = error instanceof Error ? error.stack : undefined;
         this.logger.error(
@@ -405,11 +405,11 @@ export class CotizacionesService {
     return await cotizacion.save();
   }
 
-  // #region Generar PDF (sin botones)
+  //#region Generar PDF (sin botones)
   async generatePdf(cotizacionId: string): Promise<string> {
     const cotizacion = await this.findOne(cotizacionId);
 
-    // Si ya existe el PDF, devolverlo
+    //Si ya existe el PDF, devolverlo
     if (cotizacion.pdfUrl) {
       return cotizacion.pdfUrl;
     }
@@ -420,7 +420,7 @@ export class CotizacionesService {
       );
     }
 
-    // Modificar el HTML para ocultar botones antes de generar el PDF
+    //Modificar el HTML para ocultar botones antes de generar el PDF
     const htmlSinBotones = this.removerBotonesDelHTML(cotizacion.landingHtml);
 
     const browser = await puppeteer.launch({
@@ -438,10 +438,10 @@ export class CotizacionesService {
 
     const page = await browser.newPage();
 
-    // Cargar el HTML modificado
+    //#Cargar el HTML modificado
     await page.setContent(htmlSinBotones, { waitUntil: 'networkidle0' });
 
-    // Generar PDF
+    //#Generar PDF
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -455,7 +455,7 @@ export class CotizacionesService {
 
     await browser.close();
 
-    // Subir a Cloudinary
+    //Subir a Cloudinary
     const uploadResult = await this.uploadPdfToCloudinary(
       Buffer.from(pdfBuffer),
       `cotizaciones/${cotizacionId}`,
@@ -468,9 +468,9 @@ export class CotizacionesService {
     return cotizacion.pdfUrl;
   }
 
-  // #region Remover botones del HTML
+  //#region Remover botones del HTML
   private removerBotonesDelHTML(html: string): string {
-    // Agregar CSS para ocultar los botones de aceptar/rechazar
+    //Agregar CSS para ocultar los botones de aceptar/rechazar
     const cssParaOcultarBotones = `
       <style>
         /* Ocultar botones de aceptar/rechazar para el PDF */
@@ -491,18 +491,18 @@ export class CotizacionesService {
       </style>
     `;
 
-    // Insertar el CSS antes del cierre del </head> o al inicio del <body>
+    //Insertar el CSS antes del cierre del </head> o al inicio del <body>
     if (html.includes('</head>')) {
       return html.replace('</head>', `${cssParaOcultarBotones}</head>`);
     } else if (html.includes('<body>')) {
       return html.replace('<body>', `<body>${cssParaOcultarBotones}`);
     } else {
-      // Si no hay head ni body, agregar al inicio
+      //Si no hay head ni body, agregar al inicio
       return `${cssParaOcultarBotones}${html}`;
     }
   }
 
-  // #region Convertir a reserva automáticamente
+  //#region Convertir a reserva automáticamente
   async convertirAReservaAutomatica(
     cotizacionId: string,
     actorUser?: User,
@@ -526,7 +526,7 @@ export class CotizacionesService {
       );
     }
 
-    // Encontrar el hotel ID basado en el nombre del hotel
+    //Encontrar el hotel ID basado en el nombre del hotel
     const hotelId = this.encontrarHotelIdPorNombre(cotizacion.hotel);
     if (!hotelId) {
       throw new BadRequestException(
@@ -534,12 +534,12 @@ export class CotizacionesService {
       );
     }
 
-    // Paso 1: Verificar disponibilidad actual
-    // Construir layout correctamente - OMITIR children_ages si está vacío
+    //Paso 1: Verificar disponibilidad actual
+    //Construir layout correctamente - OMITIR children_ages si está vacío
     const layout = cotizacion.reservation.roomsData.map((room) => {
       const adultsCount = parseInt(room.adults);
 
-      // Procesar children_ages correctamente
+      //Procesar children_ages correctamente
       const layoutRoom: {
         adults: number;
         children_ages?: number[];
@@ -553,7 +553,7 @@ export class CotizacionesService {
           .map((age) => parseInt(age.trim()))
           .filter((age) => !isNaN(age));
 
-        // Solo agregar children_ages si hay edades válidas
+        //Solo agregar children_ages si hay edades válidas
         if (ages.length > 0) {
           layoutRoom.children_ages = ages;
         }
@@ -562,16 +562,16 @@ export class CotizacionesService {
       return layoutRoom;
     });
 
-    // Consultar disponibilidad usando categoría de agencia
+    //Consultar disponibilidad usando categoría de agencia
     const agenciaInfo = await this.agenciaModel
-      .findById(cotizacion.agenciaId) 
+      .findById(cotizacion.agenciaId)
       .populate('category');
 
     if (!agenciaInfo) {
       throw new NotFoundException('Agencia no encontrada');
     }
 
-    // Log detallado de la agencia
+    //Log detallado de la agencia
     this.logger.log(' INFO AGENCIA:', {
       agenciaId: agenciaInfo._id,
       fullName: agenciaInfo['fullName'],
@@ -581,7 +581,7 @@ export class CotizacionesService {
       autocoreId: agenciaInfo['autocoreInfo']?.id,
     });
 
-    // Log detallado para debugging
+    //Log detallado para debugging
     this.logger.log(' DEBUG - Datos de cotización:', {
       hotel: cotizacion.hotel,
       roomsData: cotizacion.reservation.roomsData.map((r) => ({
@@ -611,7 +611,7 @@ export class CotizacionesService {
           : 'minorista (retailer)',
     });
 
-    // IMPORTANTE: Asegurar que nights sea un número entero
+    //IMPORTANTE: Asegurar que nights sea un número entero
     const nightsNumber = parseInt(cotizacion.reservation.nights, 10);
 
     if (isNaN(nightsNumber) || nightsNumber <= 0) {
@@ -624,9 +624,9 @@ export class CotizacionesService {
       ' Saltando verificación de disponibilidad - Creando reserva directamente',
     );
 
-    // NOTA: La verificación de disponibilidad de Autocore está presentando errores 500
-    // Por ahora se salta este paso y se procede directamente a crear la reserva
-    // TODO: Reactivar verificación cuando Autocore solucione el problema
+    //NOTA: La verificación de disponibilidad de Autocore está presentando errores 500
+    //Por ahora se salta este paso y se procede directamente a crear la reserva
+    //TODO: Reactivar verificación cuando Autocore solucione el problema
 
     const actorIsSuperAdmin = actorUser?.role?.includes('super-admin') ?? false;
     const cotizacionAgenciaId = this.extractObjectIdString(
@@ -634,8 +634,8 @@ export class CotizacionesService {
     );
     const actorAgenciaId = this.extractObjectIdString(actorUser?.agencia);
 
-    // Si la conversión es manual (con actor autenticado), la reserva debe quedar
-    // asociada al agente que ejecuta la acción, y restringida a su agencia.
+    //Si la conversión es manual (con actor autenticado), la reserva debe quedar
+    //asociada al agente que ejecuta la acción, y restringida a su agencia.
     if (
       actorUser &&
       !actorIsSuperAdmin &&
@@ -655,7 +655,7 @@ export class CotizacionesService {
       );
     }
 
-    // Paso 3: Si todo está bien, crear la reserva
+    //Paso 3: Si todo está bien, crear la reserva
     const user = await this.userModel
       .findById(ownerUserId)
       .populate('agencia', 'fullName autocoreInfo category cobreInfo');
@@ -664,8 +664,8 @@ export class CotizacionesService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Priorizar el bolsillo de Cobre de la agencia de la cotización.
-    // En algunos casos el populate de user.agencia puede venir incompleto.
+    //Priorizar el bolsillo de Cobre de la agencia de la cotización.
+    //En algunos casos el populate de user.agencia puede venir incompleto.
     const externalRefIdFromAgencia =
       agenciaInfo.cobreInfo?.bolcilloId != null
         ? String(agenciaInfo.cobreInfo.bolcilloId).trim()
@@ -690,22 +690,22 @@ export class CotizacionesService {
       );
     }
 
-    // Transformar agency_type de número a string como lo espera Autocore
+    //Transformar agency_type de número a string como lo espera Autocore
     const agencyTypeString =
       agenciaInfo.category === 1
         ? tiposAgencia.mayorista
         : tiposAgencia.minorista;
 
-    // Preparar datos para crear la reserva
-    // IMPORTANTE: Convertir documento de Mongoose a objeto plano usando JSON parse/stringify
-    // Esto elimina toda la metadata interna de Mongoose ($__, $isNew, etc.)
+    //Preparar datos para crear la reserva
+    //IMPORTANTE: Convertir documento de Mongoose a objeto plano usando JSON parse/stringify
+    //Esto elimina toda la metadata interna de Mongoose ($__, $isNew, etc.)
     const reservationData = JSON.parse(JSON.stringify(cotizacion.reservation));
 
     const reservaInfo = {
       agency: {
         is_agency: true,
-        agency_type: agencyTypeString, // 'wholesale' o 'retailer'
-        // En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
+        agency_type: agencyTypeString, //'wholesale' o 'retailer'
+        //En reservas exitosas se usa el bolsillo de Cobre como referencia externa.
         external_ref_id:
           externalRefId || String(agenciaInfo.autocoreInfo?.id || ''),
       },
@@ -715,10 +715,10 @@ export class CotizacionesService {
       },
     };
 
-    // Determinar si es reserva de grupo
+    //Determinar si es reserva de grupo
     const isReservaGrupo = cotizacion.cantidadHabitaciones >= 10;
 
-    // Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
+    //Calcular fechas límite (regla especial por agencia en calcularFechaLimitePago)
     if (!cotizacionAgenciaId || !Types.ObjectId.isValid(cotizacionAgenciaId)) {
       throw new BadRequestException('ID de agencia inválido en la cotización');
     }
@@ -730,12 +730,12 @@ export class CotizacionesService {
       cotizacionAgenciaObjectId,
     );
 
-    // Log para debugging - Mostrar TODOS los datos
+    //Log para debugging - Mostrar TODOS los datos
     this.logger.log(' Datos COMPLETOS que se enviarán a Autocore:');
     this.logger.log('hotelId:', hotelId);
     this.logger.log('reservaInfo:', JSON.stringify(reservaInfo, null, 2));
 
-    // Crear reserva en Autocore
+    //Crear reserva en Autocore
     const reservaAutocoreInfo =
       await this.httpCustomService.createReservaAutocore(hotelId, reservaInfo);
 
@@ -751,7 +751,7 @@ export class CotizacionesService {
       );
     }
 
-    // Crear reserva en la base de datos
+    //Crear reserva en la base de datos
     const retenciones: any = {};
     if (cotizacion.reteFuente) {
       retenciones.reteFuente = cotizacion.reteFuente;
@@ -763,11 +763,11 @@ export class CotizacionesService {
       retenciones.reteIva = cotizacion.reteIva;
     }
 
-    // Asegurar que userId y agenciaId sean ObjectId válidos
+    //Asegurar que userId y agenciaId sean ObjectId válidos
     const userIdObjectId = new Types.ObjectId(ownerUserId);
     const agenciaIdObjectId = cotizacionAgenciaObjectId;
 
-    // Usar transacción para asegurar consistencia
+    //Usar transacción para asegurar consistencia
     const session = await this.connection.startSession();
     session.startTransaction();
 
@@ -802,11 +802,11 @@ export class CotizacionesService {
         { session },
       );
 
-      // Actualizar usuario con la nueva reserva
+      //Actualizar usuario con la nueva reserva
       user.reservas.push(reserva._id as Types.ObjectId);
       await user.save({ session });
 
-      // Actualizar cotización con el ID de la reserva
+      //Actualizar cotización con el ID de la reserva
       cotizacion.status = CotizacionStatus.CONVERTIDA_RESERVA;
       cotizacion.reservaId = reserva._id as Types.ObjectId;
       await cotizacion.save({ session });
@@ -831,7 +831,7 @@ export class CotizacionesService {
     }
   }
 
-  // #region Convertir a reserva (manual)
+  //#region Convertir a reserva (manual)
   async convertirAReserva(
     cotizacionId: string,
     actorUser?: User,
@@ -860,7 +860,7 @@ export class CotizacionesService {
     }));
   }
 
-  // #region Encontrar hotel ID por nombre
+  //#region Encontrar hotel ID por nombre
   private encontrarHotelIdPorNombre(nombreHotel: string): string | null {
     const hoteles = Object.entries(hotelesAutocore);
     const hotelEncontrado = hoteles.find(
@@ -869,7 +869,7 @@ export class CotizacionesService {
     return hotelEncontrado ? hotelEncontrado[0] : null;
   }
 
-  // #region Actualizar
+  //#region Actualizar
   async update(
     id: string,
     updateCotizacionDto: UpdateCotizacionDto,
@@ -893,7 +893,7 @@ export class CotizacionesService {
     return cotizacion;
   }
 
-  // #region Eliminar
+  //#region Eliminar
   async remove(id: string): Promise<void> {
     const result = await this.cotizacionModel.findByIdAndDelete(id);
 
@@ -902,7 +902,7 @@ export class CotizacionesService {
     }
   }
 
-  // #region Estadísticas
+  //#region Estadísticas
   async getEstadisticas(agenciaId: string): Promise<any> {
     const estadisticas = await this.cotizacionModel.aggregate([
       { $match: { agenciaId: new Types.ObjectId(agenciaId) } },
@@ -918,7 +918,7 @@ export class CotizacionesService {
     return estadisticas;
   }
 
-  // #region Subir PDF a Cloudinary
+  //#region Subir PDF a Cloudinary
   private async uploadPdfToCloudinary(
     pdfBuffer: Buffer,
     folder: string,
@@ -948,7 +948,7 @@ export class CotizacionesService {
     throw new Error('Error al subir PDF a Cloudinary');
   }
 
-  // #region Método de prueba
+  //#region Método de prueba
   async testDisponibilidadDirecta(agenciaId: string) {
     this.logger.log(' TEST: Llamada a disponibilidad usando ReservasService');
 
@@ -957,7 +957,7 @@ export class CotizacionesService {
       throw new NotFoundException('Agencia no encontrada');
     }
 
-    // Layout exacto como el que funciona en reservas
+    //Layout exacto como el que funciona en reservas
     const layout = [
       {
         adults: 2,

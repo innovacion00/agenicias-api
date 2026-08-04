@@ -44,6 +44,8 @@ import {
   ReactivarReservaDto,
   UpdateFechasPagoDto,
   UpdateReservaDto,
+  ActualizarAbonoDto,
+  ReprocessWebhookPagoDto,
 } from './dto';
 import { Reserva } from './entities';
 import {
@@ -51,10 +53,20 @@ import {
   obtenerCiudadPorNombre,
   obtenerHotelIdPorNombre,
   debeBloquearCancelacionPorPrimeraMitadPagada,
+  decidirMontoReactivacion,
+  sumarPagosEstadoCuenta,
+  DecisionMontoReactivacion,
+  validarCheckinNoEsMismoDia,
 } from './utils';
 import { LinksHistory, ValidPaymentStatus } from './interfaces';
+import {
+  AutocoreWebhookPayload,
+  AutocoreWebhookProcessOutcome,
+  AutocoreWebhookSource,
+} from './interfaces/autocore-webhook-payload.interface';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
 import { MyToolBookingService } from './services/my-tool-booking.service';
+import { AutocoreWebhookEventService } from './services/autocore-webhook-event.service';
 import { ValidRoles } from 'src/auth/interfaces';
 import {
   CancelReservaMyToolDto,
@@ -84,6 +96,7 @@ export class ReservasService {
     private readonly httpCustomService: HttpCustomService,
     private readonly cancellationTasksQueueService: CancellationTasksQueueService,
     private readonly myToolBookingService: MyToolBookingService,
+    private readonly webhookEventService: AutocoreWebhookEventService,
     @InjectConnection()
     private readonly connection: Connection,
   ) {
@@ -233,6 +246,10 @@ export class ReservasService {
     const cantidadHabitacion =
       createReservaDto.reservaInfo.reservation.roomsData.length;
     try {
+      validarCheckinNoEsMismoDia(
+        createReservaDto.reservaInfo.reservation.checkin,
+      );
+
       createReservaDto.reservaInfo.agency.agency_type =
         createReservaDto.reservaInfo.agency.agency_type === 1
           ? tiposAgencia.mayorista
@@ -525,6 +542,7 @@ export class ReservasService {
     reservaInfo: Reserva,
     agenciaInfo: Agencia,
     pagoTotal: boolean,
+    montoOverride?: number,
   ) {
     const hotel = reservaInfo.hotel;
     const external_id = `${reservaInfo._id}${pagoTotal ? ' pagoTotal' : ''}`;
@@ -532,7 +550,9 @@ export class ReservasService {
     const linkAutocore = await this.httpCustomService.createLinkPagoAutocore({
       currency: reservaInfo.reservation.currency,
       agency_id: agenciaInfo.autocoreInfo.id,
-      amount: pagoTotal ? reservaInfo.total : reservaInfo.totalMitad,
+      amount:
+        montoOverride ??
+        (pagoTotal ? reservaInfo.total : reservaInfo.totalMitad),
       available_hours: 0.1666,
       booking_dates: `${reservaInfo.reservation.checkin} - ${reservaInfo.reservation.checkout}`,
       description: `Pago para reserva ${reservaInfo.reservaChatbotId} de ${reservaInfo.reservation.nights} noches en ${hotel}`,
@@ -562,6 +582,7 @@ export class ReservasService {
       link: linkAutocore.url,
       expirationDate: addMinute(new Date(), 5),
       idLinkPago: linkAutocore.code,
+      pagoTotal,
     };
   }
 
@@ -594,15 +615,9 @@ export class ReservasService {
         pagoTotal,
       );
 
-      if (pagoTotal) {
-        await reservaInfo.updateOne({
-          $set: { linkInfo, pagadoPrimeraMitad: pagoTotal },
-        });
-      } else {
-        await reservaInfo.updateOne({
-          $set: { linkInfo },
-        });
-      }
+      await reservaInfo.updateOne({
+        $set: { linkInfo },
+      });
 
       reservaInfo.status = 1;
       await reservaInfo.save();
@@ -622,11 +637,53 @@ export class ReservasService {
       const data = await this.httpCustomService.pagoBalanceAutocore(
         pagoReservaBilleteraDto.code,
       );
+
+      if (data) {
+        await this.aplicarEstadoPagoTrasBilletera(pagoReservaBilleteraDto.code);
+      }
+
       return data;
     } catch (error) {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  /** Tras cobro con billetera Autocore, aplica el mismo efecto que el webhook. */
+  private async aplicarEstadoPagoTrasBilletera(code: string): Promise<void> {
+    const reserva = await this.reservasModel
+      .findOne({ 'linkInfo.idLinkPago': code })
+      .select('_id linkInfo reservaChatbotId pagadoPrimeraMitad')
+      .lean();
+
+    if (!reserva) {
+      this.logger.warn(
+        `[webhook-pago][billetera] reserva no encontrada para code=${code}`,
+      );
+      return;
+    }
+
+    const reservaId = String(reserva._id);
+    const pagoTotalLink = reserva.linkInfo?.pagoTotal === true;
+    const segundaMitad =
+      reserva.pagadoPrimeraMitad === true && !pagoTotalLink;
+    const external_ref_id =
+      pagoTotalLink || segundaMitad
+        ? `${reservaId} pagoTotal`
+        : reservaId;
+
+    await this.cambiarEstadoPagoAutocore(
+      {
+        external_ref_id,
+        transaction_id: `billetera-${code}`,
+        payment_status: 'aplicado',
+        details: {
+          id: `billetera-${code}`,
+          pay_platform: 'billetera_autocore',
+        },
+      },
+      { source: 'billetera' },
+    );
   }
 
   async pagarAutocoreBalanceReserva(
@@ -636,9 +693,14 @@ export class ReservasService {
     try {
       const linkDoc = await this.generarLinkPago(generateLinkDto, agencia);
 
-      const pagoBalanceInfo = await this.realizarPagoBilletera({
-        code: linkDoc.linkInfo.idLinkPago,
-      });
+      const code = linkDoc.linkInfo.idLinkPago;
+      const pagoBalanceInfo = await this.httpCustomService.pagoBalanceAutocore(
+        code,
+      );
+
+      if (pagoBalanceInfo) {
+        await this.aplicarEstadoPagoTrasBilletera(code);
+      }
 
       return pagoBalanceInfo;
     } catch (error) {
@@ -951,146 +1013,508 @@ export class ReservasService {
   }
 
   // #region Cambiar estado de la reserva autocore
-  async cambiarEstadoPagoAutocore(payload: {
-    external_ref_id: string;
-    transaction_id?: string;
-    payment_status: string;
-    details: {
-      id: string;
-      pay_platform?: string;
-    };
-  }) {
-    if (!payload.external_ref_id) {
-      this.logger.error('external_ref_id no proporcionado en payload');
-      return true;
-    }
+  // #region Webhook de cambio de estado de pago (Autocore)
 
-    const valores = payload.external_ref_id.split(' ') as string[];
-    const problemas = [
-      '67ab755cedb19b9bad39f22d',
-      '67ab7863edb19b9bad3a4471',
-      '67cefa09a0c53ce8c5e1fb9b',
-      '67bf4b1a7b358f891dce8926',
-      '67c084a87b358f891dd07448',
-      '67c761d2be7b7404574c2513',
-    ];
+  /**
+   * IDs de reservas legadas excluidas del webhook (residuo de incidentes
+   * previos). Antes se descartaban en silencio; ahora se registran.
+   */
+  private static readonly RESERVAS_EXCLUIDAS_WEBHOOK = new Set<string>([
+    '67ab755cedb19b9bad39f22d',
+    '67ab7863edb19b9bad3a4471',
+    '67cefa09a0c53ce8c5e1fb9b',
+    '67bf4b1a7b358f891dce8926',
+    '67c084a87b358f891dd07448',
+    '67c761d2be7b7404574c2513',
+  ]);
 
-    const firstValue = valores[0]?.trim();
-    if (!firstValue) {
-      this.logger.error(
-        `${format(new Date(), '[MM/DD/YY - h:mm:ss a]', 'es')} - Error ${JSON.stringify(payload)}`,
-      );
-      return true;
-    }
+  /**
+   * Sinónimos tolerados de `payment_status` (normalizados: minúsculas, sin
+   * acentos, espacios colapsados). Evitan perder pagos si Autocore cambia el
+   * texto exacto del estado. Ver MANUAL_INTEGRACION_PAGOS_AUTOCORE.md §3.
+   */
+  private static readonly STATUS_PENDIENTE = new Set<string>([
+    'en proceso',
+    'en_proceso',
+    'proceso',
+    'pendiente',
+    'pending',
+    'processing',
+    'in process',
+    'in_process',
+  ]);
+  private static readonly STATUS_RECHAZADO = new Set<string>([
+    'rechazado',
+    'rechazada',
+    'cancelado',
+    'cancelada',
+    'tarjeta no valida',
+    'rejected',
+    'declined',
+    'failed',
+    'error',
+    'canceled',
+    'cancelled',
+    'denegado',
+    'denegada',
+  ]);
+  private static readonly STATUS_APLICADO = new Set<string>([
+    'aplicado',
+    'aplicada',
+    'aprobado',
+    'aprobada',
+    'approved',
+    'paid',
+    'payment_success',
+    'success',
+    'successful',
+    'completed',
+    'complete',
+    'confirmed',
+    'ok',
+  ]);
 
-    if (problemas.includes(firstValue)) {
-      return true;
-    }
-
-    const autocoreId = payload.transaction_id?.trim();
-    this.logger.log(payload);
-
-    const id = firstValue;
-
-    let pagoValidator: string | null = null;
-    if (valores[1]) {
-      pagoValidator = valores[1].trim();
-    }
-
-    const reserva = await this.reservasModel.findById(id);
-
-    if (!reserva) {
-      throw new NotFoundException(`Reserva con id: ${id}`);
-    }
-
-    if (!reserva.paymenIds) {
-      reserva.paymenIds = [];
-    }
-
-    if (
-      reserva.status === ValidPaymentStatus.total ||
-      reserva.status === ValidPaymentStatus.cancelado
-    ) {
-      return true;
-    }
-
-    const status = String(payload.payment_status || '')
+  private normalizarStatusPago(raw: string): string {
+    return String(raw || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // elimina acentos (válida === valida)
+      .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
-    if (!status) {
+  }
+
+  private clasificarStatusPago(
+    normalized: string,
+  ): 'PENDIENTE' | 'RECHAZADO' | 'APLICADO' | 'VACIO' | 'DESCONOCIDO' {
+    if (!normalized) return 'VACIO';
+    if (ReservasService.STATUS_APLICADO.has(normalized)) return 'APLICADO';
+    if (ReservasService.STATUS_RECHAZADO.has(normalized)) return 'RECHAZADO';
+    if (ReservasService.STATUS_PENDIENTE.has(normalized)) return 'PENDIENTE';
+    return 'DESCONOCIDO';
+  }
+
+  /**
+   * Webhook Autocore → API. Endurecido para tolerar reintentos, eventos
+   * duplicados y entregas fuera de orden:
+   * - Idempotencia por `transaction_id`/`details.id` + estado (clave en `paymenIds`).
+   * - Actualizaciones atómicas (`findOneAndUpdate`) con guardias de transición:
+   *   nunca se degrada `total`/`mitad` a `espera`/`rejected` por un evento tardío.
+   * - Estados de texto desconocidos generan ALERTA en lugar de ignorarse en silencio.
+   */
+  async cambiarEstadoPagoAutocore(
+    payload: AutocoreWebhookPayload,
+    options?: { source?: AutocoreWebhookSource },
+  ) {
+    const source = options?.source ?? 'autocore';
+    try {
+      const outcome = await this.procesarWebhookPagoAutocore(payload, source);
+      await this.webhookEventService.record(payload, outcome, source);
       return true;
-    }
-    const paymentEventKey = autocoreId ? `${autocoreId}:${status}` : null;
-    if (paymentEventKey && reserva.paymenIds.includes(paymentEventKey)) {
-      return true;
-    } else if (paymentEventKey) {
-      reserva.paymenIds.push(paymentEventKey);
-    }
-    const linkDetails: LinksHistory = {
-      id: payload.details.id,
-      typeOfPayment: payload.details.pay_platform
-        ? payload.details.pay_platform
-        : 'No identificado',
-      state: undefined,
-      fecha: new Date(),
-    };
-    switch (status) {
-      case 'en proceso':
-        reserva.status = ValidPaymentStatus.espera;
-        await reserva.save();
-        return true;
-
-      case 'rechazado':
-      case 'cancelado':
-      case 'tarjeta no válida':
-        linkDetails.state = ValidPaymentStatus.rejected;
-        reserva.linksHistory.push(linkDetails);
-        if (pagoValidator) {
-          reserva.pagadoPrimeraMitad = false;
-
-          reserva.status = ValidPaymentStatus.rejected;
-          await reserva.save();
-          if (reserva.esReactivacion) {
-            await this.handleReactivacionPagoFallido(reserva);
-          }
-          return true;
-        }
-
-        reserva.status = ValidPaymentStatus.rejected;
-        await reserva.save();
-        if (reserva.esReactivacion) {
-          await this.handleReactivacionPagoFallido(reserva);
-        }
-        return true;
-
-      case 'aplicado':
-        if (!reserva.pagadoPrimeraMitad) {
-          linkDetails.state = ValidPaymentStatus.mitad;
-          reserva.linksHistory.push(linkDetails);
-          reserva.status = ValidPaymentStatus.mitad;
-          reserva.pagadoPrimeraMitad = true;
-          await reserva.save();
-          return true;
-        }
-        linkDetails.state = pagoValidator
-          ? ValidPaymentStatus.total
-          : ValidPaymentStatus.mitad;
-
-        reserva.linksHistory.push(linkDetails);
-        reserva.status = ValidPaymentStatus.total;
-        await reserva.save();
-        if (
-          reserva.esReactivacion &&
-          reserva.status === ValidPaymentStatus.total
-        ) {
-          await this.handleReactivacionPagoExitoso(reserva);
-        }
-        return true;
-
-      default:
-        return true;
+    } catch (error) {
+      await this.webhookEventService.recordError(payload, error, source);
+      this.logger.error(
+        `[webhook-pago] error procesando webhook: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
   }
+
+  async reprocesarWebhookPago(
+    reservaId: Types.ObjectId,
+    dto: ReprocessWebhookPagoDto,
+  ) {
+    const reserva = await this.reservasModel
+      .findById(reservaId)
+      .select('reservaChatbotId')
+      .lean();
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    const pagoTotal = dto.pagoTotal ?? false;
+    const payload: AutocoreWebhookPayload = {
+      external_ref_id: pagoTotal
+        ? `${String(reservaId)} pagoTotal`
+        : String(reservaId),
+      payment_status: dto.payment_status ?? 'aplicado',
+      transaction_id:
+        dto.transaction_id ??
+        `reprocess-${String(reservaId)}-${Date.now()}`,
+      details: {
+        id: dto.details?.id ?? `reprocess-${Date.now()}`,
+        pay_platform: dto.details?.pay_platform ?? 'reprocess_admin',
+      },
+    };
+
+    await this.cambiarEstadoPagoAutocore(payload, { source: 'reprocess' });
+
+    const actualizada = await this.reservasModel.findById(reservaId).lean();
+    return {
+      reservaChatbotId: reserva.reservaChatbotId,
+      status: actualizada?.status,
+      pagadoPrimeraMitad: actualizada?.pagadoPrimeraMitad,
+      linksHistory: actualizada?.linksHistory,
+    };
+  }
+
+  private async procesarWebhookPagoAutocore(
+    payload: AutocoreWebhookPayload,
+    _source: AutocoreWebhookSource,
+  ): Promise<AutocoreWebhookProcessOutcome> {
+    if (!payload?.external_ref_id) {
+      this.logger.error(
+        `[webhook-pago] external_ref_id ausente: ${JSON.stringify(payload)}`,
+      );
+      return {
+        result: 'skipped',
+        reason: 'external_ref_id ausente',
+        shouldAlert: true,
+      };
+    }
+
+    const valores = payload.external_ref_id.split(' ');
+    const reservaId = valores[0]?.trim();
+    const pagoValidator = valores[1]?.trim() || null;
+
+    if (!reservaId) {
+      this.logger.error(
+        `[webhook-pago] reservaId vacío en external_ref_id: ${JSON.stringify(payload)}`,
+      );
+      return {
+        result: 'skipped',
+        reason: 'reservaId vacío en external_ref_id',
+        shouldAlert: true,
+      };
+    }
+
+    if (!Types.ObjectId.isValid(reservaId)) {
+      this.logger.error(
+        `[webhook-pago] reservaId inválido "${reservaId}"; evento descartado`,
+      );
+      return {
+        result: 'skipped',
+        reservaId,
+        reason: `reservaId inválido: ${reservaId}`,
+        shouldAlert: true,
+      };
+    }
+
+    if (ReservasService.RESERVAS_EXCLUIDAS_WEBHOOK.has(reservaId)) {
+      this.logger.warn(
+        `[webhook-pago] reserva ${reservaId} excluida (lista legada); evento ignorado`,
+      );
+      return {
+        result: 'skipped',
+        reservaId,
+        reason: 'reserva en lista legada excluida',
+      };
+    }
+
+    const rawStatus = payload.payment_status;
+    const statusNorm = this.normalizarStatusPago(rawStatus);
+    const clase = this.clasificarStatusPago(statusNorm);
+
+    const eventId =
+      payload.transaction_id?.trim() || payload.details?.id?.trim() || '';
+    const dedupKey = eventId ? `${eventId}:${statusNorm}` : null;
+
+    const reservaBefore = await this.reservasModel
+      .findById(reservaId)
+      .select('status reservaChatbotId')
+      .lean();
+    const statusBefore = reservaBefore?.status ?? null;
+    const reservaChatbotId = reservaBefore?.reservaChatbotId ?? '';
+
+    this.logger.log(
+      `[webhook-pago] reserva=${reservaId} status="${rawStatus}" clase=${clase} ` +
+        `eventId=${eventId || 'N/A'} pagoTotal=${pagoValidator ? 'si' : 'no'}`,
+    );
+
+    const baseOutcome: AutocoreWebhookProcessOutcome = {
+      result: 'skipped',
+      reservaId,
+      reservaChatbotId,
+      paymentStatusClass: clase,
+      statusBefore,
+    };
+
+    if (clase === 'VACIO') {
+      this.logger.warn(
+        `[webhook-pago] payment_status vacío para reserva=${reservaId}; evento ignorado`,
+      );
+      return {
+        ...baseOutcome,
+        result: 'skipped',
+        reason: 'payment_status vacío',
+      };
+    }
+
+    if (clase === 'DESCONOCIDO') {
+      this.logger.error(
+        `[webhook-pago][ALERTA] payment_status NO reconocido "${rawStatus}" ` +
+          `(norm="${statusNorm}") reserva=${reservaId}. Payload: ${JSON.stringify(payload)}`,
+      );
+      return {
+        ...baseOutcome,
+        result: 'alert',
+        reason: `payment_status no reconocido: ${rawStatus}`,
+        shouldAlert: true,
+      };
+    }
+
+    if (!reservaBefore) {
+      this.logger.error(
+        `[webhook-pago] reserva ${reservaId} no encontrada; evento descartado`,
+      );
+      return {
+        ...baseOutcome,
+        result: 'alert',
+        reason: 'reserva no encontrada en MongoDB',
+        shouldAlert: true,
+      };
+    }
+
+    const T = ValidPaymentStatus;
+    const linkBase = {
+      id: payload.details?.id,
+      typeOfPayment: payload.details?.pay_platform || 'No identificado',
+      fecha: new Date(),
+    };
+    const dedupFilter = dedupKey ? { paymenIds: { $ne: dedupKey } } : {};
+    const dedupUpdate = dedupKey
+      ? { $addToSet: { paymenIds: dedupKey } }
+      : {};
+
+    if (!dedupKey) {
+      this.logger.warn(
+        `[webhook-pago] sin transaction_id/details.id: idempotencia no disponible reserva=${reservaId}`,
+      );
+    }
+
+    if (clase === 'PENDIENTE') {
+      const actualizada = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: reservaId,
+          status: { $in: [T.espera, T.proceso] },
+          ...dedupFilter,
+        },
+        { $set: { status: T.espera }, ...dedupUpdate },
+        { new: true },
+      );
+      if (actualizada) {
+        this.logger.log(
+          `[webhook-pago] reserva=${reservaId} -> espera (en proceso)`,
+        );
+        return {
+          ...baseOutcome,
+          result: 'applied',
+          statusAfter: T.espera,
+          reason: 'PENDIENTE -> espera',
+        };
+      }
+      return this.buildNoOpOutcome(
+        reservaId,
+        'PENDIENTE',
+        dedupKey,
+        baseOutcome,
+      );
+    }
+
+    if (clase === 'RECHAZADO') {
+      const set: Record<string, unknown> = { status: T.rejected };
+      if (pagoValidator) {
+        set.pagadoPrimeraMitad = false;
+      }
+      const actualizada = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: reservaId,
+          status: { $nin: [T.total, T.cancelado, T.mitad] },
+          ...dedupFilter,
+        },
+        {
+          $set: set,
+          $push: { linksHistory: { ...linkBase, state: T.rejected } },
+          ...dedupUpdate,
+        },
+        { new: true },
+      );
+      if (!actualizada) {
+        return this.buildNoOpOutcome(
+          reservaId,
+          'RECHAZADO',
+          dedupKey,
+          baseOutcome,
+        );
+      }
+      this.logger.log(`[webhook-pago] reserva=${reservaId} -> rejected`);
+      if (actualizada.esReactivacion) {
+        await this.ejecutarEfectoReactivacion(
+          () => this.handleReactivacionPagoFallido(actualizada),
+          reservaId,
+          'fallido',
+        );
+      }
+      return {
+        ...baseOutcome,
+        result: 'applied',
+        statusAfter: T.rejected,
+        reason: 'RECHAZADO',
+      };
+    }
+
+    // ---- APLICADO ----
+    if (pagoValidator) {
+      const pagoTotalUnico = await this.reservasModel.findOneAndUpdate(
+        {
+          _id: reservaId,
+          status: { $nin: [T.total, T.cancelado] },
+          pagadoPrimeraMitad: false,
+          ...dedupFilter,
+        },
+        {
+          $set: { status: T.total, pagadoPrimeraMitad: true },
+          $push: { linksHistory: { ...linkBase, state: T.total } },
+          ...dedupUpdate,
+        },
+        { new: true },
+      );
+      if (pagoTotalUnico) {
+        this.logger.log(
+          `[webhook-pago] reserva=${reservaId} -> total (pago único pagoTotal)`,
+        );
+        if (pagoTotalUnico.esReactivacion) {
+          await this.ejecutarEfectoReactivacion(
+            () => this.handleReactivacionPagoExitoso(pagoTotalUnico),
+            reservaId,
+            'exitoso',
+          );
+        }
+        return {
+          ...baseOutcome,
+          result: 'applied',
+          statusAfter: T.total,
+          reason: 'APLICADO pagoTotal único',
+        };
+      }
+    }
+
+    const primeraMitad = await this.reservasModel.findOneAndUpdate(
+      {
+        _id: reservaId,
+        status: { $nin: [T.total, T.cancelado] },
+        pagadoPrimeraMitad: false,
+        ...dedupFilter,
+      },
+      {
+        $set: { status: T.mitad, pagadoPrimeraMitad: true },
+        $push: { linksHistory: { ...linkBase, state: T.mitad } },
+        ...dedupUpdate,
+      },
+      { new: true },
+    );
+    if (primeraMitad) {
+      this.logger.log(
+        `[webhook-pago] reserva=${reservaId} -> mitad (primera mitad)`,
+      );
+      return {
+        ...baseOutcome,
+        result: 'applied',
+        statusAfter: T.mitad,
+        reason: 'APLICADO primera mitad',
+      };
+    }
+
+    const totalReserva = await this.reservasModel.findOneAndUpdate(
+      {
+        _id: reservaId,
+        status: { $nin: [T.total, T.cancelado] },
+        pagadoPrimeraMitad: true,
+        ...dedupFilter,
+      },
+      {
+        $set: { status: T.total },
+        $push: {
+          linksHistory: {
+            ...linkBase,
+            state: pagoValidator ? T.total : T.mitad,
+          },
+        },
+        ...dedupUpdate,
+      },
+      { new: true },
+    );
+    if (totalReserva) {
+      this.logger.log(`[webhook-pago] reserva=${reservaId} -> total`);
+      if (totalReserva.esReactivacion) {
+        await this.ejecutarEfectoReactivacion(
+          () => this.handleReactivacionPagoExitoso(totalReserva),
+          reservaId,
+          'exitoso',
+        );
+      }
+      return {
+        ...baseOutcome,
+        result: 'applied',
+        statusAfter: T.total,
+        reason: 'APLICADO segunda mitad / total',
+      };
+    }
+
+    return this.buildNoOpOutcome(reservaId, 'APLICADO', dedupKey, baseOutcome);
+  }
+
+  private async buildNoOpOutcome(
+    reservaId: string,
+    clase: string,
+    dedupKey: string | null,
+    base: AutocoreWebhookProcessOutcome,
+  ): Promise<AutocoreWebhookProcessOutcome> {
+    const reserva = await this.reservasModel
+      .findById(reservaId)
+      .select('status paymenIds')
+      .lean();
+    const yaProcesado = !!dedupKey && !!reserva?.paymenIds?.includes(dedupKey);
+    const reason = yaProcesado
+      ? 'evento duplicado (idempotencia)'
+      : 'transición no permitida / evento tardío';
+
+    this.logger.log(
+      `[webhook-pago] evento ${clase} sin efecto para reserva=${reservaId} ` +
+        `(status actual=${reserva?.status ?? 'N/A'}, ${reason})`,
+    );
+
+    const shouldAlert = clase === 'APLICADO' && !yaProcesado;
+
+    return {
+      ...base,
+      result: 'noop',
+      statusAfter: reserva?.status ?? base.statusBefore,
+      reason: `${clase}: ${reason}`,
+      shouldAlert,
+    };
+  }
+
+  /** Ejecuta efectos secundarios de reactivación sin romper el ack del webhook. */
+  private async ejecutarEfectoReactivacion(
+    fn: () => Promise<void>,
+    reservaId: string,
+    tipo: 'exitoso' | 'fallido',
+  ): Promise<void> {
+    try {
+      await fn();
+    } catch (error) {
+      this.logger.error(
+        `[webhook-pago] error en efecto reactivación (${tipo}) reserva=${reservaId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+  // #endregion Webhook de cambio de estado de pago (Autocore)
 
   // #region Obtener reservas por usuario
   async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
@@ -2234,6 +2658,21 @@ export class ReservasService {
         enviadoEn: new Date(),
       };
       reserva.status = ValidPaymentStatus.proceso;
+  async actualizarAbonoReserva(
+    reservaChatbotId: string,
+    actualizarAbonoDto: ActualizarAbonoDto,
+  ) {
+    try {
+      const reserva = await this.reservasModel
+        .findOne({ reservaChatbotId })
+        .exec();
+      if (!reserva) {
+        throw new NotFoundException(
+          `Reserva con chatbotId "${reservaChatbotId}" no encontrada`,
+        );
+      }
+
+      reserva.abono = actualizarAbonoDto.abono;
       await reserva.save();
 
       return {
@@ -2241,6 +2680,8 @@ export class ReservasService {
         reservaChatbotId: reserva.reservaChatbotId,
         status: reserva.status,
         comprobantePago: reserva.comprobantePago,
+        abono: reserva.abono,
+        total: reserva.total,
       };
     } catch (error) {
       this.logger.error(error);
@@ -2288,6 +2729,8 @@ export class ReservasService {
     userId: string,
   ) {
     try {
+      validarCheckinNoEsMismoDia(dto.checkIn);
+
       const hotelConfig = hotelMyToolConfig[hotelSlug];
       if (!hotelConfig) {
         throw new BadRequestException(`Hotel '${hotelSlug}' no configurado`);
@@ -2910,21 +3353,37 @@ export class ReservasService {
         throw new NotFoundException('Agencia no encontrada');
       }
 
-      if (reservaOrigen.reactivacionNuevaReservaId) {
-        const reutilizada = await this.reutilizarReactivacionPendiente(
-          reservaOrigen,
-          agenciaInfo,
-        );
-        if (reutilizada) {
-          return reutilizada;
-        }
-      }
-
       const hotelId = obtenerHotelIdPorNombre(reservaOrigen.hotel);
       if (!hotelId) {
         throw new BadRequestException(
           `No se pudo mapear el hotel "${reservaOrigen.hotel}" a un hotelId de Autocore`,
         );
+      }
+
+      const decisionMonto = await this.resolverMontoReactivacion(
+        reservaOrigen,
+        hotelId,
+      );
+
+      if (decisionMonto.accion === 'cancelar') {
+        throw new ConflictException({
+          code: 'REACTIVACION_YA_PAGADA',
+          message:
+            'La reserva ya registra el pago total; no requiere reactivación',
+        });
+      }
+
+      const montoReactivacion = decisionMonto.monto;
+
+      if (reservaOrigen.reactivacionNuevaReservaId) {
+        const reutilizada = await this.reutilizarReactivacionPendiente(
+          reservaOrigen,
+          agenciaInfo,
+          montoReactivacion,
+        );
+        if (reutilizada) {
+          return reutilizada;
+        }
       }
 
       const reservaInfoAutocore = this.buildReservaInfoAutocoreFromReserva(
@@ -3039,12 +3498,12 @@ export class ReservasService {
         nuevaReserva,
         agenciaInfo,
         true,
+        montoReactivacion,
       );
 
       await nuevaReserva.updateOne({
         $set: {
           linkInfo,
-          pagadoPrimeraMitad: true,
           status: ValidPaymentStatus.proceso,
         },
       });
@@ -3072,6 +3531,7 @@ export class ReservasService {
   private async reutilizarReactivacionPendiente(
     reservaOrigen: Reserva,
     agenciaInfo: Agencia,
+    montoReactivacion: number,
   ): Promise<{
     linkInfo: { link: string; expirationDate: Date; idLinkPago: string };
   } | null> {
@@ -3099,12 +3559,12 @@ export class ReservasService {
       nuevaPendiente,
       agenciaInfo,
       true,
+      montoReactivacion,
     );
 
     await nuevaPendiente.updateOne({
       $set: {
         linkInfo,
-        pagadoPrimeraMitad: true,
         status: ValidPaymentStatus.proceso,
       },
     });
@@ -3114,6 +3574,18 @@ export class ReservasService {
     );
 
     return { linkInfo };
+  }
+
+  private async resolverMontoReactivacion(
+    reservaOrigen: Reserva,
+    hotelId: string,
+  ): Promise<DecisionMontoReactivacion> {
+    return decidirMontoReactivacion({
+      pagadoPrimeraMitad: reservaOrigen.pagadoPrimeraMitad,
+      total: reservaOrigen.total,
+      totalMitad: reservaOrigen.totalMitad,
+      abono: reservaOrigen.abono || 0,
+    });
   }
 
   private buildReservaInfoAutocoreFromReserva(
