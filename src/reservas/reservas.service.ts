@@ -490,6 +490,8 @@ export class ReservasService {
               `${createReservaDto.reservaInfo.reservation.firstName} ${createReservaDto.reservaInfo.reservation.lastName}`,
               Number(createReservaDto.reservaInfo.reservation.adults) +
                 Number(createReservaDto.reservaInfo.reservation.children) || 0,
+              createReservaDto.reservaInfo.reservation.checkin,
+              createReservaDto.reservaInfo.reservation.checkout,
               createReservaDto.infoToures.secondContacNumber,
             ),
           )
@@ -2658,6 +2660,7 @@ export class ReservasService {
         enviadoEn: new Date(),
       };
       reserva.status = ValidPaymentStatus.proceso;
+      
       await reserva.save();
 
       return {
@@ -3260,6 +3263,7 @@ export class ReservasService {
     hotelConfig: { name: string; city: string },
     userInfo: any,
     checkin: string,
+    checkout: string,
   ) {
     if (
       !dto.infoToures ||
@@ -3291,6 +3295,8 @@ export class ReservasService {
         dto.infoToures.firstContactNumber,
         dto.bookData.solicitante.titular,
         totalPax,
+        checkin,
+        checkout,
         dto.infoToures.secondContacNumber,
       ),
     );

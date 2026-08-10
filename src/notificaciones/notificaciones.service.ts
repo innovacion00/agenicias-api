@@ -82,21 +82,6 @@ export class NotificacionesService {
         .select('_id reservaChatbotId')
         .lean();
 
-      // Caso 2: vencio segunda fecha y no esta en pago completo
-      const segundoPagoVencido = await this.reservaModel
-        .find({
-          status: {
-            $nin: [ValidPaymentStatus.total, ValidPaymentStatus.cancelado],
-          },
-          pagadoPrimeraMitad: true,
-          fechaLimitePago2: { $lte: today, $exists: true, $ne: null },
-          linksHistory: {
-            $not: { $elemMatch: { state: ValidPaymentStatus.total } },
-          },
-        })
-        .select('_id reservaChatbotId')
-        .lean();
-
       // Evitar duplicados en caso de datos inconsistentes
       const unique = new Map<
         string,
@@ -111,13 +96,6 @@ export class NotificacionesService {
           _id: r._id as Types.ObjectId,
           reservaChatbotId: r.reservaChatbotId,
           motivo: 'primer-pago-vencido',
-        }),
-      );
-      segundoPagoVencido.forEach((r) =>
-        unique.set(r._id.toString(), {
-          _id: r._id as Types.ObjectId,
-          reservaChatbotId: r.reservaChatbotId,
-          motivo: 'segundo-pago-vencido',
         }),
       );
 
@@ -231,6 +209,13 @@ export class NotificacionesService {
 
         if (!notiFields.noValid) {
           if (notiFields.vencida) {
+            if (reserva.pagadoPrimeraMitad) {
+              this.logger.log(
+                `Reserva ${reserva.reservaChatbotId} vencida en su segundo pago. Se omite cancelación automática (pagadoPrimeraMitad=true).`,
+              );
+              continue;
+            }
+
             await this.httpCustomService.cancelarReservas(
               reserva.reservaChatbotId,
             );

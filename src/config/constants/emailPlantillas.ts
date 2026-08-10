@@ -1300,6 +1300,8 @@ export const notificacionToures = (
   firstContactNumber: string,
   titular: string,
   cantidadPersonas: number,
+  fechaCheckin: string,
+  fechaCheckout: string,
   secondContacNumber?: string,
 ) => {
   return `
@@ -1364,6 +1366,8 @@ export const notificacionToures = (
         <li><strong>Toures solicitados:</strong> ${nombresToures.join(', ')}</li>
         <li><strong>Cantidad de personas:</strong> ${cantidadPersonas}</li>
         <li><strong>Hotel:</strong> ${nombreHotel}</li>
+        <li><strong>Fecha de Check-in:</strong> ${fechaCheckin}</li>
+        <li><strong>Fecha de Check-out:</strong> ${fechaCheckout}</li>
         <li><strong>Número de contacto principal:</strong> ${firstContactNumber}</li>
         <li><strong>Segundo número de contacto:</strong> ${secondContacNumber || 'no incluyó'}</li>
       </ul>
