@@ -2658,6 +2658,24 @@ export class ReservasService {
         enviadoEn: new Date(),
       };
       reserva.status = ValidPaymentStatus.proceso;
+      await reserva.save();
+
+      return {
+        reservaId: reserva._id,
+        reservaChatbotId: reserva.reservaChatbotId,
+        status: reserva.status,
+        comprobantePago: reserva.comprobantePago,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      this.errorManager.handle(error);
+    }
+  }
+
+  /**
+   * Actualiza el abono registrado por fuera de la plataforma para una reserva
+   * identificada por su reservaChatbotId.
+   */
   async actualizarAbonoReserva(
     reservaChatbotId: string,
     actualizarAbonoDto: ActualizarAbonoDto,
