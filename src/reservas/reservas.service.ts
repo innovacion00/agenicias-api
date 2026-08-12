@@ -2847,21 +2847,29 @@ export class ReservasService {
         this.logger.log(
           `Reserva creada via MyTool: ${reservaChatbotId} para hotel ${hotelSlug}`,
         );
-      } catch (myToolError) {
+      } catch (myToolError: unknown) {
+        const myToolErrorInfo = myToolError as {
+          message?: string;
+          response?: {
+            data?: unknown;
+            status?: number;
+          };
+        };
+
         if (!hotelConfig.autocoreId) {
           this.logger.error(
-            `MyTool falló para ${hotelSlug} y este hotel no tiene fallback a Autocore: ${myToolError.message}`,
+            `MyTool falló para ${hotelSlug} y este hotel no tiene fallback a Autocore: ${myToolErrorInfo.message ?? 'Error desconocido'}`,
           );
           throw new InternalServerErrorException(
             `No se pudo crear la reserva en MyTool para ${hotelConfig.name}. Este hotel no tiene sistema alternativo de reservas.`,
           );
         }
 
-        const myToolDetail = myToolError?.response?.data
-          ? JSON.stringify(myToolError.response.data)
-          : myToolError.message;
+        const myToolDetail = myToolErrorInfo.response?.data
+          ? JSON.stringify(myToolErrorInfo.response.data)
+          : myToolErrorInfo.message ?? 'Error desconocido';
         this.logger.warn(
-          `MyTool falló para ${hotelSlug} (status ${myToolError?.response?.status || 'N/A'}), intentando fallback a Autocore. Detalle: ${myToolDetail}`,
+          `MyTool falló para ${hotelSlug} (status ${myToolErrorInfo.response?.status ?? 'N/A'}), intentando fallback a Autocore. Detalle: ${myToolDetail}`,
         );
 
         // Fallback a Autocore
@@ -2941,12 +2949,17 @@ export class ReservasService {
           this.logger.log(
             `Reserva creada via Autocore (fallback): ${reservaChatbotId}`,
           );
-        } catch (autocoreError) {
+        } catch (autocoreError: unknown) {
+          const autocoreErrorMessage =
+            autocoreError instanceof Error
+              ? autocoreError.message
+              : 'Error desconocido';
+
           this.logger.error(
-            `Fallback a Autocore también falló: ${autocoreError.message}`,
+            `Fallback a Autocore también falló: ${autocoreErrorMessage}`,
           );
           throw new InternalServerErrorException(
-            `No se pudo crear la reserva ni en MyTool ni en Autocore. MyTool (${myToolError?.response?.status || 'N/A'}): ${myToolDetail}. Autocore: ${autocoreError.message}`,
+            `No se pudo crear la reserva ni en MyTool ni en Autocore. MyTool (${myToolErrorInfo?.response?.status ?? 'N/A'}): ${myToolDetail}. Autocore: ${autocoreErrorMessage}`,
           );
         }
       }
@@ -3048,7 +3061,7 @@ export class ReservasService {
         }
 
         if (dto.infoToures) {
-          this.sendToursNotification(dto, hotelConfig, userInfo, checkin).catch(
+          this.sendToursNotification(dto, hotelConfig, userInfo, checkin, checkout).catch(
             (err) =>
               this.logger.error('Error enviando notificación tours:', err),
           );
