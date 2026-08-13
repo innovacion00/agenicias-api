@@ -22,6 +22,7 @@ import { VuelosModule } from './vuelos/vuelos.module';
 import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
+import { BackupsModule } from './backups/backups.module';
 
 @Module({
   imports: [
@@ -119,6 +120,7 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
     CotizacionesModule,
     BookingPersonasModule,
     ReferenciaAeropuertosModule,
+    BackupsModule,
   ],
   controllers: [],
   providers: [

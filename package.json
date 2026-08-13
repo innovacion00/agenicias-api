@@ -25,7 +25,9 @@
     "script:list-agencias-sin-maarlab": "ts-node -r tsconfig-paths/register scripts/diagnose-maarlab-links.ts",
     "seed:airports": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts",
     "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only",
-    "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts"
+    "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts",
+    "backup:db": "ts-node -r tsconfig-paths/register scripts/backup-db.ts",
+    "backup:full": "ts-node -r tsconfig-paths/register scripts/backup-full.ts"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.2",
@@ -42,6 +44,7 @@
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^6.5.0",
     "@sendgrid/mail": "^8.1.5",
+    "archiver": "^8.0.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "buffer-to-stream": "^1.0.0",
@@ -51,6 +54,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
+    "googleapis": "^174.0.1",
     "joi": "^17.13.3",
     "libphonenumber-js": "^1.11.19",
     "mongoose": "^8.6.2",

@@ -82,6 +82,10 @@ interface EnvVars {
 
   //? Bridge Chat
   HOST_BRIDGE: string;
+
+  //? Backups Automáticos
+  GOOGLE_DRIVE_FOLDER_ID: string;
+  BACKUP_NOTIFICATION_EMAIL: string;
 }
 
 // API_1525: joi.string().required(),
@@ -166,6 +170,10 @@ const envSchema = joi
 
     //? Bridge Chat
     HOST_BRIDGE: joi.string().required(),
+
+    //? Backups Automáticos
+    GOOGLE_DRIVE_FOLDER_ID: joi.string().required(),
+    BACKUP_NOTIFICATION_EMAIL: joi.string().required(),
   })
   .unknown(true);
 
@@ -257,4 +265,8 @@ export const envs = {
 
   //? Bridge Chat
   hostBridge: envVars.HOST_BRIDGE,
+
+  //? Backups Automáticos
+  googleDriveFolderId: envVars.GOOGLE_DRIVE_FOLDER_ID,
+  backupNotificationEmail: envVars.BACKUP_NOTIFICATION_EMAIL,
 };
