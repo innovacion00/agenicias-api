@@ -1,0 +1,21 @@
+services:
+  api:
+    image: agencias-api:production
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:${API_PORT:-3000}:3000"
+    security_opt:
+      - no-new-privileges:true
+    shm_size: "256mb"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/agencias/v1/api-docs-json', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
