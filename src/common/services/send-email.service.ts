@@ -31,6 +31,10 @@ export class SendEmailCustomService {
       .replace(/=+$/, '');
   }
 
+  private rfc2047Encode(text: string): string {
+    return `=?UTF-8?B?${Buffer.from(text, 'utf8').toString('base64')}?=`;
+  }
+
   /**
    * Construye el mensaje en formato RFC 2822 con mejores prácticas anti-spam
    */
@@ -48,7 +52,7 @@ export class SendEmailCustomService {
     // Construir headers básicos con mejores prácticas anti-spam
     let message = `From: "Geh Suites" <${from}>\r\n`;
     message += `To: ${toEmails}\r\n`;
-    message += `Subject: ${subject}\r\n`;
+    message += `Subject: ${this.rfc2047Encode(subject)}\r\n`;
     message += `Date: ${date}\r\n`;
     message += `Message-ID: ${messageId}\r\n`;
     message += `MIME-Version: 1.0\r\n`;

@@ -5,7 +5,7 @@ import { SendEmailCustomService } from '../common/services/send-email.service';
 import mongoose from 'mongoose';
 import * as fs from 'fs';
 import * as path from 'path';
-import archiver from 'archiver';
+import archiver = require('archiver');
 import { exec } from 'child_process';
 import { google } from 'googleapis';
 
@@ -30,6 +30,7 @@ export class BackupsService {
     
     let isSuccess = false;
     let errorMessage = '';
+    let errorToThrow: any = null;
     let backupStats = { collections: 0, docs: 0, size: '0 MB' };
     let backupDir = '';
 
@@ -67,6 +68,7 @@ export class BackupsService {
       const stack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`Error durante el backup: ${msg}`, stack);
       errorMessage = msg;
+      errorToThrow = error;
     } finally {
       // 5. Limpiar archivos locales (JSONs y ZIP)
       this.logger.log('Limpiando archivos temporales locales...');
@@ -76,6 +78,8 @@ export class BackupsService {
       // 6. Enviar notificación por correo
       await this.enviarNotificacion(isSuccess, timestamp, errorMessage, backupStats);
     }
+
+    if (errorToThrow) throw errorToThrow;
   }
 
   private getTimestamp(): string {
