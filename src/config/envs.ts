@@ -83,6 +83,9 @@ interface EnvVars {
   //? Bridge Chat
   HOST_BRIDGE: string;
 
+  //? Bitrix
+  BITRIX_WEBHOOK_URL?: string;
+
   //? Backups Automáticos
   GOOGLE_DRIVE_FOLDER_ID: string;
   BACKUP_NOTIFICATION_EMAIL: string;
@@ -170,6 +173,9 @@ const envSchema = joi
 
     //? Bridge Chat
     HOST_BRIDGE: joi.string().required(),
+
+    //? Bitrix
+    BITRIX_WEBHOOK_URL: joi.string().allow('').optional().default(''),
 
     //? Backups Automáticos
     GOOGLE_DRIVE_FOLDER_ID: joi.string().required(),
@@ -265,6 +271,9 @@ export const envs = {
 
   //? Bridge Chat
   hostBridge: envVars.HOST_BRIDGE,
+
+  //? Bitrix
+  bitrixWebhookUrl: envVars.BITRIX_WEBHOOK_URL ?? '',
 
   //? Backups Automáticos
   googleDriveFolderId: envVars.GOOGLE_DRIVE_FOLDER_ID,

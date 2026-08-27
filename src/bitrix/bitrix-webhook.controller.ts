@@ -15,6 +15,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { Agencia } from 'src/agencias/entities';
 import { CreateAgenciaDto } from 'src/agencias/dto/create-agencia.dto';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
+import { BitrixWebhookService } from './bitrix-webhook.service';
 
 function normalizarTelefono(raw?: string): string | null {
   if (!raw) return null;
@@ -81,6 +82,7 @@ export class BitrixWebhookController {
   constructor(
     private readonly agenciasService: AgenciasService,
     private readonly authService: AuthService,
+    private readonly bitrixWebhookService: BitrixWebhookService,
     @InjectModel(Agencia.name) private readonly agenciaModel: Model<Agencia>,
   ) {}
 
@@ -187,6 +189,13 @@ export class BitrixWebhookController {
     this.logger.log(
       `[bitrix] ✅ create-agencia completado: dealId=${dealId}, agencia=${resultado?.agencia?._id}`,
     );
+
+    if (dealId && resultado?.agencia?._id) {
+      await this.bitrixWebhookService.updateDeal(String(dealId), {
+        UF_CRM_1732716065: String(resultado.agencia._id),
+      });
+    }
+
     return {
       success: true,
       message: 'Agencia creada exitosamente',
@@ -298,6 +307,14 @@ export class BitrixWebhookController {
     this.logger.log(
       `[bitrix] ✅ create-user completado: email=${email}, dealId=${dealId}, agencia=${agenciaMongoId}`,
     );
+
+    if (dealId) {
+      await this.bitrixWebhookService.updateDeal(String(dealId), {
+        UF_CRM_1736264053129: email,
+        UF_CRM_1736264068948: passwordTemporal,
+      });
+    }
+
     return {
       success: true,
       message: 'Usuario creado exitosamente',
