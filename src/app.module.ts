@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import { envs } from './config';
@@ -24,6 +24,7 @@ import { BookingPersonasModule } from './booking-personas/booking-personas.modul
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
 import { BackupsModule } from './backups/backups.module';
 import { BitrixModule } from './bitrix/bitrix-webhook.module';
+import { ApiResponseLogInterceptor } from './common/interceptors/api-response-log.interceptor';
 
 @Module({
   imports: [
@@ -53,13 +54,6 @@ import { BitrixModule } from './bitrix/bitrix-webhook.module';
             id: req.id,
             method: req.method,
             url: req.url,
-            query: req.query,
-            params: req.params,
-            headers: {
-              host: req.headers.host,
-              'user-agent': req.headers['user-agent'],
-              'content-type': req.headers['content-type'],
-            },
           }),
           res: (res: any) => ({
             statusCode: res.statusCode,
@@ -130,6 +124,11 @@ import { BitrixModule } from './bitrix/bitrix-webhook.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // Registrar la respuesta (éxito/error) de todos los endpoints
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ApiResponseLogInterceptor,
     },
   ],
 })

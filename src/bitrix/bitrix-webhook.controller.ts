@@ -121,6 +121,19 @@ export class BitrixWebhookController {
   }
 
   private async handleCreateAgencia(@Query() query: any) {
+    try {
+      return await this.ejecutarCreateAgencia(query);
+    } catch (err: any) {
+      this.logger.error(
+        `[bitrix] ❌ create-agencia falló (dealId=${query?.dealId}): ${
+          err?.message || err
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  private async ejecutarCreateAgencia(query: any) {
     this.logger.log(
       `[bitrix] create-agencia recibido: ${JSON.stringify(query)}`,
     );
@@ -216,6 +229,19 @@ export class BitrixWebhookController {
   }
 
   private async handleCreateUser(@Query() query: any) {
+    try {
+      return await this.ejecutarCreateUser(query);
+    } catch (err: any) {
+      this.logger.error(
+        `[bitrix] ❌ create-user falló (dealId=${query?.dealId}): ${
+          err?.message || err
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  private async ejecutarCreateUser(query: any) {
     this.logger.log(
       `[bitrix] create-user recibido: ${JSON.stringify(query)}`,
     );
