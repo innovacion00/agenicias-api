@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { envs } from './config';
@@ -14,7 +14,14 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   const logger = app.get(Logger);
 
-  app.setGlobalPrefix('agencias/v1/');
+  app.setGlobalPrefix('agencias/v1/', {
+    exclude: [
+      { path: 'agencias/create-agencia', method: RequestMethod.GET },
+      { path: 'agencias/create-agencia', method: RequestMethod.POST },
+      { path: 'agencias/create-user', method: RequestMethod.GET },
+      { path: 'agencias/create-user', method: RequestMethod.POST },
+    ],
+  });
 
   app.enableCors({
     origin: true,

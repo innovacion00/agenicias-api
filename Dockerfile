@@ -2,8 +2,13 @@ FROM node:20-bookworm-slim AS build
 
 WORKDIR /usr/src/app
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# npm ci usa package-lock.json (rápido y determinista).
+# El mount de caché evita re-descargar los paquetes en cada build.
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps
 
 COPY tsconfig*.json nest-cli.json ./
 COPY src ./src
@@ -18,7 +23,10 @@ WORKDIR /usr/src/app
 
 # Puppeteer downloads Chrome during dependency installation. These libraries
 # are required by Chrome when PDFs are generated in the production container.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# El mount de caché apt reutiliza los .deb descargados entre builds.
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     dumb-init \
     fonts-liberation \

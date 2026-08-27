@@ -310,6 +310,9 @@ td {
   // #region Sign Up
   async createUser(createUserDto: CreateUserDto, id: string) {
     createUserDto.fullName = createUserDto.fullName.toLowerCase();
+    this.logger.log(
+      `[user-crear] Inicio: email=${createUserDto.email}, nombre="${createUserDto.fullName}", agenciaId=${id}, omitirOtp=${createUserDto.omitirOtp ?? false}`,
+    );
     try {
       const { password, ...userData } = createUserDto;
 
@@ -331,10 +334,16 @@ td {
           'No se pueden crear más usuarios en esta agencia.',
         );
       }
+      this.logger.log(
+        `[user-crear] Agencia validada: "${agenciaDoc.fullName}", usuariosActivos=${usuariosActivos}/${agenciaDoc.userLimit}`,
+      );
+
+      const role = agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'];
+      this.logger.log(`[user-crear] Rol asignado: ${role[0]}`);
 
       const user = await this.userModel.create({
         ...userData,
-        role: agenciaDoc.usuarios.length >= 1 ? ['user'] : ['admin'],
+        role,
         agencia: new Types.ObjectId(id),
         encuesta: this.getInitialEncuestaValue(
           agenciaDoc._id as Types.ObjectId,
@@ -356,7 +365,12 @@ td {
 
       user.otpRef = verification._id as Types.ObjectId;
       await user.save();
+      this.logger.log(
+        `[user-crear] Usuario creado: id=${user._id}, email=${user.email}, role=${role[0]}`,
+      );
+
       if (createUserDto.omitirOtp) {
+        this.logger.log(`[user-crear] ✅ Usuario creado sin OTP: ${user.email}`);
         return {
           status: 'Ok',
           msg: 'Usuario creado con exito',
@@ -364,13 +378,17 @@ td {
       }
 
       await this.sendValidationEmail(user.email, verification.otp);
+      this.logger.log(
+        `[user-crear] ✅ Usuario creado, OTP enviado a: ${user.email}`,
+      );
 
       return {
         status: 'Pending',
         msg: 'Validar Otp code correo',
       };
     } catch (error) {
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[user-crear] ❌ Error: ${msg}`);
       this.errorManager.handle(error);
     }
   }
@@ -378,6 +396,9 @@ td {
   // #region Registrar usuario
   async registerUserToAgency(registerUserDto: RegisterUserDto, id: string) {
     registerUserDto.fullName = registerUserDto.fullName.toLowerCase().trim();
+    this.logger.log(
+      `[user-registrar] Inicio: email=${registerUserDto.email}, nombre="${registerUserDto.fullName}", agenciaId=${id}, adminRole=${registerUserDto.adminRole ?? false}`,
+    );
     try {
       const { password, adminRole, ...userData } = registerUserDto;
 
@@ -397,10 +418,16 @@ td {
           'No se pueden crear más usuarios en esta agencia.',
         );
       }
+      this.logger.log(
+        `[user-registrar] Agencia validada: "${agenciaDoc.fullName}", usuariosActivos=${usuariosActivos}/${agenciaDoc.userLimit}`,
+      );
+
+      const role = adminRole ? ['admin'] : ['user'];
+      this.logger.log(`[user-registrar] Rol asignado: ${role[0]}`);
 
       const user = await this.userModel.create({
         ...userData,
-        role: adminRole ? ['admin'] : ['user'],
+        role,
         agencia: new Types.ObjectId(id),
         encuesta: this.getInitialEncuestaValue(
           agenciaDoc._id as Types.ObjectId,
@@ -423,13 +450,19 @@ td {
       user.otpRef = verification._id as Types.ObjectId;
       await user.save();
 
+      const cuposRestantes = agenciaDoc.userLimit - agenciaDoc.usuarios.length;
+      this.logger.log(
+        `[user-registrar] ✅ Usuario registrado: id=${user._id}, email=${user.email}, role=${role[0]}, cuposRestantes=${cuposRestantes}`,
+      );
+
       return {
         status: 'Ok',
         msg: 'Usuario creado con exito',
-        cuposAgencia: agenciaDoc.userLimit - agenciaDoc.usuarios.length,
+        cuposAgencia: cuposRestantes,
       };
     } catch (error) {
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[user-registrar] ❌ Error: ${msg}`);
       this.errorManager.handle(error);
     }
   }

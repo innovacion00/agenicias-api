@@ -117,6 +117,7 @@ export class HttpCustomService {
 
   //? Crear bolcillo en cobre
   public async createBolcillo(nombre: string) {
+    this.logger.log(`[cobre] Creando bolcillo: nombre="${nombre}"`);
     try {
       const tokenInfo = await this.generateAuthToken();
       if (!tokenInfo) {
@@ -136,8 +137,10 @@ export class HttpCustomService {
         },
       );
 
+      this.logger.log(`[cobre] ✅ Bolcillo creado: id=${data.id}`);
       return data;
     } catch (error) {
+      this.logger.error(`[cobre] ❌ Error creando bolcillo "${nombre}"`);
       this.axiosError(error, this.createBolcillo.name);
     }
   }
@@ -521,6 +524,9 @@ export class HttpCustomService {
 
   //? Crear agencia autocore
   public async crearAgenciaAutocore(createAgenciaBody: ICreateAgenciaBody) {
+    this.logger.log(
+      `[autocore] Creando agencia: name="${createAgenciaBody.name}", email=${createAgenciaBody.email_for_notifications}`,
+    );
     try {
       const { data } = await axios.post<ICreateAgenciaResponce>(
         envs.autocoreUrl.concat('/v2/agencies'),
@@ -528,8 +534,12 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
+      this.logger.log(`[autocore] ✅ Agencia creada: id=${data.id}`);
       return data;
     } catch (error) {
+      this.logger.error(
+        `[autocore] ❌ Error creando agencia "${createAgenciaBody.name}"`,
+      );
       this.axiosError(error, this.crearAgenciaAutocore.name);
     }
   }
@@ -540,6 +550,9 @@ export class HttpCustomService {
     min_recharge_amount: number,
     max_recharge_amount: number,
   ) {
+    this.logger.log(
+      `[autocore] Seteando límites de recarga: agencyId=${id}, min=${min_recharge_amount}, max=${max_recharge_amount}`,
+    );
     try {
       const { data } = await axios.put<{ msg: string }>(
         envs.autocoreUrl.concat(`/v2/preloaded-balance/agencies/${id}/limits`),
@@ -547,8 +560,12 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
+      this.logger.log(`[autocore] ✅ Límites seteados para agencyId=${id}`);
       return data;
     } catch (error) {
+      this.logger.error(
+        `[autocore] ❌ Error seteando límites para agencyId=${id}`,
+      );
       this.axiosError(error, this.setLimiteRecargaAgencia.name);
     }
   }
@@ -557,6 +574,9 @@ export class HttpCustomService {
   public async createLinkPagoAutocore(
     createPaymentLinkBody: ICreatePaymentLinkBody,
   ) {
+    this.logger.log(
+      `[autocore] Creando link de pago: hotelId=${createPaymentLinkBody.hotel_id}, amount=${createPaymentLinkBody.amount}, agency=${createPaymentLinkBody.agency_id}`,
+    );
     try {
       const { data } = await axios.post<ICreatePaymentLinkResponse>(
         envs.autocoreUrl.concat('/v2/links/schedule/'),
@@ -564,8 +584,12 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
+      this.logger.log(
+        `[autocore] ✅ Link de pago creado: code=${data.code}`,
+      );
       return data;
     } catch (error) {
+      this.logger.error(`[autocore] ❌ Error creando link de pago`);
       this.axiosError(error, this.createLinkPagoAutocore.name);
     }
   }
@@ -643,6 +667,7 @@ export class HttpCustomService {
 
   //? Reliazar pago con balance de agencia
   public async pagoBalanceAutocore(code: string) {
+    this.logger.log(`[autocore] Procesando pago con balance: code=${code}`);
     try {
       const { data } = await axios.post<IPagoBilletera>(
         envs.autocoreUrl.concat('/v2/links/preloaded-balance'),
@@ -650,8 +675,14 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
+      this.logger.log(
+        `[autocore] ✅ Pago con balance procesado: code=${code}`,
+      );
       return data;
     } catch (error) {
+      this.logger.error(
+        `[autocore] ❌ Error en pago con balance: code=${code}`,
+      );
       this.axiosError(error, this.pagoBalanceAutocore.name);
     }
   }
@@ -681,6 +712,9 @@ export class HttpCustomService {
     currency: string,
     agency_id: number,
   ) {
+    this.logger.log(
+      `[autocore] Recargando billetera: agencyId=${agency_id}, amount=${amount}, currency=${currency}`,
+    );
     try {
       const { data } = await axios.post<ICreateLinkRecarga>(
         envs.autocoreUrl.concat(`/v2/preloaded-balance/agencies/${agency_id}`),
@@ -688,8 +722,14 @@ export class HttpCustomService {
         autocoreHeaders,
       );
 
+      this.logger.log(
+        `[autocore] ✅ Link de recarga creado: agencyId=${agency_id}`,
+      );
       return data;
     } catch (error) {
+      this.logger.error(
+        `[autocore] ❌ Error recargando billetera: agencyId=${agency_id}`,
+      );
       this.axiosError(error, this.recargarCarteraAutocore.name);
     }
   }

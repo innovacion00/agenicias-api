@@ -592,6 +592,9 @@ export class ReservasService {
     generateLinkDto: GenerateLinkDto,
     agencia: Types.ObjectId,
   ) {
+    this.logger.log(
+      `[pago-link] Inicio: reservaId=${generateLinkDto.reservaId}, agenciaId=${agencia}, pagoTotal=${generateLinkDto.pagoTotal ?? false}`,
+    );
     try {
       const agenciaInfo = await this.agenciaModel.findById(agencia).exec();
       const reservaInfo = await this.reservasModel.findById(
@@ -624,9 +627,13 @@ export class ReservasService {
       reservaInfo.status = 1;
       await reservaInfo.save();
 
+      this.logger.log(
+        `[pago-link] ✅ Link de pago creado: code=${linkInfo.idLinkPago}, reservaId=${reservaInfo._id}`,
+      );
       return { linkInfo };
     } catch (error) {
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[pago-link] ❌ Error: ${msg}`);
       this.errorManager.handle(error);
     }
   }
@@ -635,18 +642,30 @@ export class ReservasService {
   async realizarPagoBilletera(
     pagoReservaBilleteraDto: PagoReservaBilleteraDto,
   ) {
+    this.logger.log(
+      `[pago-billetera] Inicio: code=${pagoReservaBilleteraDto.code}`,
+    );
     try {
       const data = await this.httpCustomService.pagoBalanceAutocore(
         pagoReservaBilleteraDto.code,
       );
 
       if (data) {
+        this.logger.log(
+          `[pago-billetera] Pago exitoso, aplicando estado: code=${pagoReservaBilleteraDto.code}`,
+        );
         await this.aplicarEstadoPagoTrasBilletera(pagoReservaBilleteraDto.code);
       }
 
+      this.logger.log(
+        `[pago-billetera] ✅ Pago con billetera completado: code=${pagoReservaBilleteraDto.code}`,
+      );
       return data;
     } catch (error) {
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `[pago-billetera] ❌ Error: code=${pagoReservaBilleteraDto.code}, ${msg}`,
+      );
       this.errorManager.handle(error);
     }
   }
@@ -2194,9 +2213,9 @@ export class ReservasService {
     disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
   ) {
     try {
-      console.log('=== SERVICIO DISPONIBILIDAD ===');
-      console.log('Agencia ID recibido:', agenciaId);
-      console.log('DTO recibido:', disponibilidadAutoCoreDto);
+      this.logger.log(
+        `[disponibilidad] Inicio: agenciaId=${agenciaId}, ciudad=${disponibilidadAutoCoreDto.ciudad}, checkin=${disponibilidadAutoCoreDto.checkingDate}, nights=${disponibilidadAutoCoreDto.nights}`,
+      );
 
       const { layout, checkingDate, ciudad, nights } =
         disponibilidadAutoCoreDto;
@@ -2205,9 +2224,8 @@ export class ReservasService {
         disponibilidadAutoCoreDto.category === 0 ||
         disponibilidadAutoCoreDto.category === 1
       ) {
-        console.log(
-          'Usando category del DTO:',
-          disponibilidadAutoCoreDto.category,
+        this.logger.log(
+          `[disponibilidad] Usando category del DTO: ${disponibilidadAutoCoreDto.category}`,
         );
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
@@ -2220,19 +2238,16 @@ export class ReservasService {
 
         return data;
       } else {
-        console.log('Obteniendo info de agencia...');
+        this.logger.log('[disponibilidad] Obteniendo info de agencia...');
         const agenciaInfo = await this.agenciaModel.findById(agenciaId);
 
         if (!agenciaInfo) {
           throw new NotFoundException('Agencia no encontrada');
         }
 
-        console.log('Agencia encontrada:', {
-          id: agenciaInfo._id,
-          fullName: agenciaInfo.fullName,
-          category: agenciaInfo.category,
-          isActive: agenciaInfo.isActive,
-        });
+        this.logger.log(
+          `[disponibilidad] Agencia encontrada: "${agenciaInfo.fullName}", category=${agenciaInfo.category}`,
+        );
 
         const data = await this.httpCustomService.getDisponibilidadAutocore(
           layout,
@@ -2246,8 +2261,8 @@ export class ReservasService {
         return data;
       }
     } catch (error) {
-      console.log('ERROR en getDisponibilidad:', error);
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[disponibilidad] ❌ Error: ${msg}`);
       this.errorManager.handle(error);
     }
   }

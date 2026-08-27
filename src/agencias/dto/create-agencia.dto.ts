@@ -95,7 +95,7 @@ export class CreateAgenciaDto {
   @IsBoolean()
   @IsOptional()
   @IsNotEmpty()
-  empresa: boolean;
+  empresa?: boolean;
 
   @ApiProperty({
     description: 'Información del documento de la agencia',

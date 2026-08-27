@@ -23,6 +23,7 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
 import { BackupsModule } from './backups/backups.module';
+import { BitrixModule } from './bitrix/bitrix-webhook.module';
 
 @Module({
   imports: [
@@ -121,6 +122,7 @@ import { BackupsModule } from './backups/backups.module';
     BookingPersonasModule,
     ReferenciaAeropuertosModule,
     BackupsModule,
+    BitrixModule,
   ],
   controllers: [],
   providers: [

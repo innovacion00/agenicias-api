@@ -5,7 +5,8 @@ import { SendEmailCustomService } from '../common/services/send-email.service';
 import mongoose from 'mongoose';
 import * as fs from 'fs';
 import * as path from 'path';
-const archiver = require('archiver');
+import archiver from 'archiver';
+import { exec } from 'child_process';
 import { google } from 'googleapis';
 
 @Injectable()
@@ -85,7 +86,6 @@ export class BackupsService {
 
   private runBackupScript(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const exec = require('child_process').exec;
       exec('npm run backup:db', (error: any, stdout: string, stderr: string) => {
         if (error) {
           this.logger.error(`Error en script de backup: ${stderr}`);

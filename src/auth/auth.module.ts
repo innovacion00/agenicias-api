@@ -55,6 +55,6 @@ import { IntegrationsModule } from 'src/integrations/integrations.module';
       },
     }),
   ],
-  exports: [JwtStrategy, PassportModule, JwtModule, MongooseModule],
+  exports: [AuthService, JwtStrategy, PassportModule, JwtModule, MongooseModule],
 })
 export class AuthModule {}

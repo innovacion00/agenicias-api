@@ -42,6 +42,9 @@ export class AgenciasService {
   // #region Crear una agencia
   async create(createAgenciaDto: CreateAgenciaDto) {
     createAgenciaDto.fullName = createAgenciaDto.fullName.toLowerCase();
+    this.logger.log(
+      `[agencia-crear] Inicio: nombre="${createAgenciaDto.fullName}", email=${createAgenciaDto.emailContacto}, telefono=${createAgenciaDto.telefonoContacto}, category=${createAgenciaDto.category}`,
+    );
     try {
       let slug = slugify(createAgenciaDto.fullName);
       let counter = 1;
@@ -56,7 +59,10 @@ export class AgenciasService {
           .select('slug');
         counter++;
       }
+      this.logger.log(`[agencia-crear] Slug generado: "${slug}"`);
+
       //? Cobre
+      this.logger.log('[agencia-crear] Creando bolcillo en Cobre...');
       const bolsilloInfo = await this.httpCustomService.createBolcillo(
         createAgenciaDto.fullName,
       );
@@ -74,7 +80,12 @@ export class AgenciasService {
           'Error al crear bolsillo en Cobre',
         );
       }
+      this.logger.log(
+        `[agencia-crear] Bolcillo Cobre creado: id=${bolsilloInfo.id}`,
+      );
 
+      //? Autocore
+      this.logger.log('[agencia-crear] Creando agencia en Autocore...');
       const autocoreAgenciaInfo =
         await this.httpCustomService.crearAgenciaAutocore({
           cobre_account_id: bolsilloInfo.id,
@@ -95,32 +106,47 @@ export class AgenciasService {
           'Error al crear agencia en Autocore',
         );
       }
+      this.logger.log(
+        `[agencia-crear] Agencia Autocore creada: id=${autocoreAgenciaInfo.id}`,
+      );
 
       //? Set limites de recarga en autocore
+      this.logger.log(
+        `[agencia-crear] Seteando límites de recarga: min=${agenciaRecargaLimit.minLimitValue}, max=${agenciaRecargaLimit.maxLimitValue}`,
+      );
       await this.httpCustomService.setLimiteRecargaAgencia(
         autocoreAgenciaInfo.id,
         agenciaRecargaLimit.minLimitValue,
         agenciaRecargaLimit.maxLimitValue,
       );
+      this.logger.log('[agencia-crear] Límites de recarga seteados');
 
       const cobreInfo = {
         bolcilloId: bolsilloInfo.id,
       };
 
+      const userLimit = createAgenciaDto.category === 0 ? 10 : 20;
       const agencia = await this.agenciaModel.create({
         slug,
         cobreInfo,
         autocoreInfo: {
           id: autocoreAgenciaInfo.id,
         },
-        userLimit: createAgenciaDto.category === 0 ? 10 : 20,
+        userLimit,
         ...createAgenciaDto,
       });
+      this.logger.log(
+        `[agencia-crear] Agencia guardada en MongoDB: id=${agencia._id}, slug="${slug}", userLimit=${userLimit}`,
+      );
+      this.logger.log(
+        `[agencia-crear] ✅ Agencia creada exitosamente: "${createAgenciaDto.fullName}" (id=${agencia._id})`,
+      );
       return {
         agencia,
       };
     } catch (error) {
-      this.logger.error(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[agencia-crear] ❌ Error: ${msg}`);
       this.errorManager.handle(error);
     }
   }

@@ -244,18 +244,6 @@ export class ReservasController {
     @GetUser('agencia') agencia: Types.ObjectId,
     @Body() disponibilidadAutoCoreDto: DisponibilidadAutocoreDto,
   ) {
-    console.log('=== DEBUG DISPONIBILIDAD ===');
-    console.log('User:', {
-      id: user._id,
-      email: user.email,
-      fullName: user.fullName,
-      isActive: user.isActive,
-      agencia: user.agencia,
-    });
-    console.log('Agencia ID:', agencia);
-    console.log('Disponibilidad DTO:', disponibilidadAutoCoreDto);
-    console.log('========================');
-
     return this.reservasService.getDisponibilidad(
       agencia,
       disponibilidadAutoCoreDto,
