@@ -74,10 +74,17 @@ COPY nest-cli.json ./nest-cli.json
 
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 --ingroup nodejs nestjs \
-    && mkdir -p backups \
-    && chown -R nestjs:nodejs /usr/src/app
+    && mkdir -p backups /home/nestjs \
+    && chown -R nestjs:nodejs /usr/src/app /home/nestjs
 
 USER nestjs
+
+# Chrome (crashpad) escribe su base de datos en $HOME/.config; sin un HOME
+# escribible para el usuario nestjs Chrome aborta con "chrome_crashpad_handler:
+# --database is required" al generar PDFs.
+ENV HOME=/home/nestjs
+ENV XDG_CONFIG_HOME=/home/nestjs/.config
+ENV XDG_CACHE_HOME=/home/nestjs/.cache
 
 EXPOSE 3000
 
