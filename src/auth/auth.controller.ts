@@ -34,6 +34,7 @@ import {
 
 import { AuthService } from './auth.service';
 import { ValidRoles } from './interfaces';
+import { User } from './entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import { Types } from 'mongoose';
 
@@ -220,5 +221,29 @@ export class AuthController {
   @Auth()
   actualizarEncuesta(@GetUser('_id') userId: string) {
     return this.authService.actualizarEncuesta(userId);
+  }
+
+  @ApiOperation({
+    summary: 'Obtener permisos de gestión del usuario autenticado',
+    description:
+      'Indica si el usuario puede modificar fechas de pago y/o cambiar el estado de una reserva. ' +
+      'Los correos autorizados viven en el servidor (variables de entorno), no en el bundle del frontend.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({
+    status: 200,
+    description: 'Permisos calculados',
+    schema: {
+      type: 'object',
+      properties: {
+        puedeGestionarFechasPago: { type: 'boolean' },
+        puedeCambiarEstadoReserva: { type: 'boolean' },
+      },
+    },
+  })
+  @Auth(ValidRoles.admin, ValidRoles.superAdmin)
+  @Get('permisos-gestion')
+  getPermisosGestion(@GetUser() user: User) {
+    return this.authService.getPermisosGestion(user);
   }
 }

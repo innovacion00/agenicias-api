@@ -502,6 +502,20 @@ export class ReservasController {
     );
   }
 
+  @Get('cuentas-bancarias')
+  @Auth()
+  @ApiOperation({
+    summary: 'Cuentas bancarias para el modal de comprobante de pago',
+    description:
+      'Devuelve las razones sociales, bancos, números de cuenta y NIT por grupo de hoteles. ' +
+      'Requiere JWT; se sirve desde el backend para no exponer los datos en el bundle público.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({ status: 200, description: 'Grupos de cuentas bancarias' })
+  obtenerCuentasBancarias() {
+    return this.reservasService.getCuentasBancarias();
+  }
+
   @Put('fechas-pago/:reservaId')
   @Auth(ValidRoles.admin, ValidRoles.superAdmin)
   actualizarFechasPagoReserva(

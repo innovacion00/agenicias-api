@@ -89,6 +89,12 @@ interface EnvVars {
   //? Backups Automáticos
   GOOGLE_DRIVE_FOLDER_ID: string;
   BACKUP_NOTIFICATION_EMAIL: string;
+
+  //? Super admin por correo (lista separada por comas)
+  /** Correos que pueden modificar fechas de pago de reservas (solo superAdmin). */
+  CORREOS_SUPER_ADMIN_FECHAS_PAGO?: string;
+  /** Correos que pueden cambiar el estado manual de una reserva (solo superAdmin). */
+  CORREOS_SUPER_ADMIN_CAMBIAR_ESTADO?: string;
 }
 
 // API_1525: joi.string().required(),
@@ -180,6 +186,14 @@ const envSchema = joi
     //? Backups Automáticos
     GOOGLE_DRIVE_FOLDER_ID: joi.string().required(),
     BACKUP_NOTIFICATION_EMAIL: joi.string().required(),
+
+    //? Super admin por correo
+    CORREOS_SUPER_ADMIN_FECHAS_PAGO: joi.string().allow('').optional().default(''),
+    CORREOS_SUPER_ADMIN_CAMBIAR_ESTADO: joi
+      .string()
+      .allow('')
+      .optional()
+      .default(''),
   })
   .unknown(true);
 
@@ -278,4 +292,18 @@ export const envs = {
   //? Backups Automáticos
   googleDriveFolderId: envVars.GOOGLE_DRIVE_FOLDER_ID,
   backupNotificationEmail: envVars.BACKUP_NOTIFICATION_EMAIL,
+
+  //? Super admin por correo (lista separada por comas; vacío = nadie autorizado)
+  correosSuperAdminFechasPago: (
+    envVars.CORREOS_SUPER_ADMIN_FECHAS_PAGO ?? ''
+  )
+    .split(',')
+    .map((correo) => correo.trim().toLowerCase())
+    .filter(Boolean),
+  correosSuperAdminCambiarEstado: (
+    envVars.CORREOS_SUPER_ADMIN_CAMBIAR_ESTADO ?? ''
+  )
+    .split(',')
+    .map((correo) => correo.trim().toLowerCase())
+    .filter(Boolean),
 };

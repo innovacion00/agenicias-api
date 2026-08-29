@@ -31,6 +31,7 @@ import {
 import { OtpVerification, RefreshToken } from './entities';
 import { randomBytes } from 'crypto';
 import { SendEmailCustomService } from 'src/common/services';
+import { envs } from 'src/config';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -968,5 +969,23 @@ td {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  // #region Permisos de gestión (super-admin por correo)
+  /**
+   * Permisos calculados en el servidor (los correos autorizados viven en el
+   * backend, no en el bundle del frontend). El frontend usa la respuesta para
+   * decidir qué controles de la gestión de reservas muestra.
+   */
+  getPermisosGestion(user: User) {
+    const esSuperAdmin = (user.role ?? []).includes('super-admin');
+    const email = (user.email ?? '').toLowerCase().trim();
+
+    return {
+      puedeGestionarFechasPago:
+        esSuperAdmin && envs.correosSuperAdminFechasPago.includes(email),
+      puedeCambiarEstadoReserva:
+        esSuperAdmin && envs.correosSuperAdminCambiarEstado.includes(email),
+    };
   }
 }

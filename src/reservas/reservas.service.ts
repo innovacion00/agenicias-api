@@ -73,6 +73,7 @@ import {
   CreateReservaMyToolDto,
 } from './dto/create-reserva-mytool.dto';
 import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
+import { CUENTAS_BANCARIAS } from './constants/cuentas-bancarias';
 
 @Injectable()
 export class ReservasService {
@@ -2688,6 +2689,15 @@ export class ReservasService {
       this.logger.error(error);
       this.errorManager.handle(error);
     }
+  }
+
+  /**
+   * Cuentas bancarias por grupo de hoteles (razón social, banco, número y NIT)
+   * para el modal de "Subir comprobante". Se sirven solo con JWT para no
+   * exponer los datos en el bundle público del frontend.
+   */
+  getCuentasBancarias() {
+    return { grupos: CUENTAS_BANCARIAS };
   }
 
   /**
