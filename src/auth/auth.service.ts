@@ -512,6 +512,9 @@ td {
       user._id as Types.ObjectId,
     );
 
+    user.otpRef = verification._id as Types.ObjectId;
+    await user.save();
+
     await this.sendValidationEmail(user.email, verification.otp);
 
     return {
@@ -811,6 +814,7 @@ td {
       user._id as Types.ObjectId,
     );
 
+    user.otpRef = verification._id as Types.ObjectId;
     // user.changePassword = true;
     await user.save();
 
