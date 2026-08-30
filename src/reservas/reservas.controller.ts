@@ -67,6 +67,42 @@ import { RoomsDataResponseInterceptor } from './interceptors/rooms-data-response
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
+  private validarFiltrosAvanzados(
+    q?: string,
+    qType?: string,
+    status?: string,
+    fechaDesde?: string,
+    fechaHasta?: string,
+  ) {
+    const qTypesValidos = ['codigo', 'huesped', 'agente', 'hotel', 'agencia'];
+    if (qType && !qTypesValidos.includes(qType)) {
+      throw new BadRequestException(
+        `qType debe ser uno de: ${qTypesValidos.join(', ')}`,
+      );
+    }
+    if (q && !qType) {
+      throw new BadRequestException('Se requiere qType cuando se envía q');
+    }
+    if (status !== undefined && status !== null && status !== '') {
+      const statusNumber = Number(status);
+      if (isNaN(statusNumber) || statusNumber < 0 || statusNumber > 6) {
+        throw new BadRequestException('status debe ser un número entre 0 y 6');
+      }
+    }
+    const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (fechaDesde && !fechaRegex.test(fechaDesde)) {
+      throw new BadRequestException('fechaDesde debe tener formato YYYY-MM-DD');
+    }
+    if (fechaHasta && !fechaRegex.test(fechaHasta)) {
+      throw new BadRequestException('fechaHasta debe tener formato YYYY-MM-DD');
+    }
+  }
+
+  private parseStatus(status?: string): number | undefined {
+    if (status === undefined || status === null || status === '') return undefined;
+    return Number(status);
+  }
+
   // TODO: Volver esto a el auth de reservas despues
   // ValidRoles.admin,
   // ValidRoles.eventosSuperAdmin,
@@ -149,9 +185,29 @@ export class ReservasController {
   @Auth()
   getReservasByUser(
     @GetUser('_id') _id: Types.ObjectId,
+    @GetUser('agencia') agenciaId: Types.ObjectId,
+    @GetUser() user: User,
     @Query('page') page = 1,
+    @Query('q') q?: string,
+    @Query('qType') qType?: string,
+    @Query('status') status?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.reservasService.getReservasByUser(_id, page);
+    this.validarFiltrosAvanzados(q, qType, status, fechaDesde, fechaHasta);
+    return this.reservasService.getReservasByUser(
+      _id,
+      page,
+      {
+        q,
+        qType: qType as 'codigo' | 'huesped' | 'agente' | 'hotel' | 'agencia',
+        status: this.parseStatus(status),
+        fechaDesde,
+        fechaHasta,
+        roles: user.role,
+        agenciaId,
+      },
+    );
   }
 
   @ApiOperation({ summary: 'Obtener reservas de la agencia (solo admin)' })
@@ -162,9 +218,28 @@ export class ReservasController {
   @Auth(ValidRoles.admin)
   getReservasByAgencia(
     @GetUser('agencia') agencia: Types.ObjectId,
+    @GetUser() user: User,
     @Query('page') page = 1,
+    @Query('q') q?: string,
+    @Query('qType') qType?: string,
+    @Query('status') status?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
   ) {
-    return this.reservasService.getReservasByAgencia(agencia, page);
+    this.validarFiltrosAvanzados(q, qType, status, fechaDesde, fechaHasta);
+    return this.reservasService.getReservasByAgencia(
+      agencia,
+      page,
+      {
+        q,
+        qType: qType as 'codigo' | 'huesped' | 'agente' | 'hotel' | 'agencia',
+        status: this.parseStatus(status),
+        fechaDesde,
+        fechaHasta,
+        roles: user.role,
+        agenciaId: agencia,
+      },
+    );
   }
 
   @Post('generate-link')
@@ -419,31 +494,34 @@ export class ReservasController {
   @Get()
   @Auth(ValidRoles.superAdmin)
   getAllReservas(
+    @GetUser() user: User,
     @Query('page') page = 1,
     @Query('all') all: string,
     @Query('hotel') hotel?: string,
     @Query('nombreAgencia') nombreAgencia?: string,
+    @Query('q') q?: string,
+    @Query('qType') qType?: string,
+    @Query('status') status?: string,
     @Query('fechaDesde') fechaDesde?: string,
     @Query('fechaHasta') fechaHasta?: string,
   ) {
     const getAll = all === 'true' || all === '1';
 
-    // Validar formato de fechas si se proporcionan
-    const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (fechaDesde && !fechaRegex.test(fechaDesde)) {
-      throw new BadRequestException('fechaDesde debe tener formato YYYY-MM-DD');
-    }
-    if (fechaHasta && !fechaRegex.test(fechaHasta)) {
-      throw new BadRequestException('fechaHasta debe tener formato YYYY-MM-DD');
-    }
+    this.validarFiltrosAvanzados(q, qType, status, fechaDesde, fechaHasta);
 
     return this.reservasService.getAllReservas(
       page,
       getAll,
       hotel,
       nombreAgencia,
-      fechaDesde,
-      fechaHasta,
+      {
+        q,
+        qType: qType as 'codigo' | 'huesped' | 'agente' | 'hotel' | 'agencia',
+        status: this.parseStatus(status),
+        fechaDesde,
+        fechaHasta,
+        roles: user.role,
+      },
     );
   }
 

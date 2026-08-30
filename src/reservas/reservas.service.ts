@@ -75,6 +75,16 @@ import {
 import { hotelMyToolConfig } from 'src/config/constants/myToolBookingConstants';
 import { CUENTAS_BANCARIAS } from './constants/cuentas-bancarias';
 
+export interface FiltrosBusquedaReservas {
+  q?: string;
+  qType?: 'codigo' | 'huesped' | 'agente' | 'hotel' | 'agencia';
+  status?: number;
+  fechaDesde?: string;
+  fechaHasta?: string;
+  roles?: string[];
+  agenciaId?: Types.ObjectId;
+}
+
 @Injectable()
 export class ReservasService {
   private readonly errorManager: ErrorManager;
@@ -1539,7 +1549,11 @@ export class ReservasService {
   // #endregion Webhook de cambio de estado de pago (Autocore)
 
   // #region Obtener reservas por usuario
-  async getReservasByUser(userId: Types.ObjectId | string, page = 1) {
+  async getReservasByUser(
+    userId: Types.ObjectId | string,
+    page = 1,
+    filtros?: FiltrosBusquedaReservas,
+  ) {
     try {
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
@@ -1565,6 +1579,17 @@ export class ReservasService {
       }
 
       const filter = this.buildIdFilter('userId', userIdObjectId);
+
+      // Filtros combinados (q/qType + status + rango de fechas)
+      if (filtros) {
+        const extra = await this.construirFiltrosBusqueda(
+          userIdObjectId,
+          filtros.agenciaId,
+          filtros.roles ?? ['user'],
+          filtros,
+        );
+        Object.assign(filter, extra);
+      }
 
       // OPTIMIZACIÓN: Usar caché para el total y optimizar query con índices
       const [reservas, total] = await Promise.all([
@@ -1637,6 +1662,102 @@ export class ReservasService {
       // User: solo sus propias reservas
       return this.buildIdFilter('userId', userId);
     }
+  }
+
+  /**
+   * Condiciones de búsqueda combinadas (q/qType + status + rango de fechas).
+   * No incluye el scope por rol; ese filtro base lo define el llamador.
+   */
+  private async construirFiltrosBusqueda(
+    userId: Types.ObjectId | undefined,
+    agenciaId: Types.ObjectId | undefined,
+    roles: string[],
+    filtros: FiltrosBusquedaReservas,
+  ): Promise<Record<string, any>> {
+    const condicion: Record<string, any> = {};
+    const texto = filtros.q?.trim();
+
+    if (texto && filtros.qType) {
+      if (filtros.qType === 'codigo') {
+        // Búsqueda exacta (reservaChatbotId es único)
+        condicion.reservaChatbotId = texto;
+      } else if (filtros.qType === 'hotel') {
+        condicion.hotel = { $regex: texto, $options: 'i' };
+      } else if (filtros.qType === 'huesped') {
+        const escapar = (p: string) =>
+          p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const partes = texto.split(/\s+/).filter(Boolean);
+        const ors: any[] = [
+          {
+            'reservation.firstName': { $regex: escapar(texto), $options: 'i' },
+          },
+          {
+            'reservation.lastName': { $regex: escapar(texto), $options: 'i' },
+          },
+        ];
+        if (partes.length > 1) {
+          ors.push({
+            $expr: {
+              $regexMatch: {
+                input: {
+                  $concat: [
+                    { $ifNull: ['$reservation.firstName', ''] },
+                    ' ',
+                    { $ifNull: ['$reservation.lastName', ''] },
+                  ],
+                },
+                regex: partes.map(escapar).join('.*'),
+                options: 'i',
+              },
+            },
+          });
+        }
+        condicion.$or = ors;
+      } else if (filtros.qType === 'agente') {
+        const esSuperAdmin = roles.includes('super-admin');
+        const esAdmin = roles.includes('admin');
+        const filtroUsuario: any = {
+          fullName: { $regex: texto, $options: 'i' },
+        };
+        if (esAdmin && !esSuperAdmin) filtroUsuario.agencia = agenciaId;
+        if (!esAdmin && !esSuperAdmin) filtroUsuario._id = userId;
+        const usuarios = await this.userModel
+          .find(filtroUsuario)
+          .select('_id')
+          .lean();
+        const userIds = usuarios.map((user) => user._id);
+        condicion.userId =
+          userIds.length > 0 ? { $in: userIds } : { $in: [] };
+      } else if (filtros.qType === 'agencia') {
+        const agencias = await this.agenciaModel
+          .find({ fullName: { $regex: texto, $options: 'i' } })
+          .select('_id')
+          .lean();
+        const agenciaIds = agencias.map((agencia) => agencia._id);
+        condicion.agenciaId =
+          agenciaIds.length > 0 ? { $in: agenciaIds } : { $in: [] };
+      }
+    }
+
+    if (typeof filtros.status === 'number' && !isNaN(filtros.status)) {
+      condicion.status = filtros.status;
+    }
+
+    // Rango de fechas de checkin (YYYY-MM-DD, comparación de strings)
+    if (filtros.fechaDesde || filtros.fechaHasta) {
+      if (filtros.fechaDesde && filtros.fechaHasta) {
+        condicion['reservation.checkin'] = {
+          $gte: filtros.fechaDesde.trim(),
+          $lte: filtros.fechaHasta.trim(),
+        };
+      } else if (filtros.fechaDesde) {
+        condicion['reservation.checkin'] = { $gte: filtros.fechaDesde.trim() };
+      } else {
+        condicion['reservation.checkin'] = { $lte: filtros.fechaHasta!.trim() };
+      }
+    }
+
+    return condicion;
   }
 
   //? Buscar reserva por reservaChatbotId
@@ -2169,7 +2290,11 @@ export class ReservasService {
   }
 
   // #region Obtener reservas por agencia
-  async getReservasByAgencia(agenciaId: Types.ObjectId, page = 1) {
+  async getReservasByAgencia(
+    agenciaId: Types.ObjectId,
+    page = 1,
+    filtros?: FiltrosBusquedaReservas,
+  ) {
     try {
       const PAGE_SIZE = 15;
       const currentPage = Number(page) > 0 ? Number(page) : 1;
@@ -2179,6 +2304,17 @@ export class ReservasService {
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
       const filter = this.buildIdFilter('agenciaId', agenciaId);
+
+      // Filtros combinados (q/qType + status + rango de fechas)
+      if (filtros) {
+        const extra = await this.construirFiltrosBusqueda(
+          undefined,
+          agenciaId,
+          filtros.roles ?? ['admin'],
+          filtros,
+        );
+        Object.assign(filter, extra);
+      }
 
       // OPTIMIZACIÓN: Agregar select y lean() para mejor rendimiento
       const [reservas, total] = await Promise.all([
@@ -2275,8 +2411,7 @@ export class ReservasService {
     all = false,
     hotel?: string,
     nombreAgencia?: string,
-    fechaDesde?: string,
-    fechaHasta?: string,
+    filtros?: FiltrosBusquedaReservas,
   ) {
     try {
       // Construir el filtro
@@ -2319,25 +2454,15 @@ export class ReservasService {
         filter.agenciaId = { $in: agenciaIds };
       }
 
-      // Filtro por fecha de checkin (fechaDesde y/o fechaHasta)
-      if (fechaDesde || fechaHasta) {
-        // El checkin está almacenado como string en formato YYYY-MM-DD
-        // Usamos comparación de strings ya que el formato es ISO (YYYY-MM-DD)
-        if (fechaDesde && fechaHasta) {
-          // Rango completo: desde fechaDesde hasta fechaHasta
-          filter['reservation.checkin'] = {
-            $gte: fechaDesde.trim(),
-            $lte: fechaHasta.trim(),
-          };
-        } else if (fechaDesde) {
-          // Solo fechaDesde: filtrar solo ese día específico
-          filter['reservation.checkin'] = fechaDesde.trim();
-        } else if (fechaHasta) {
-          // Solo fechaHasta: checkin <= fechaHasta
-          filter['reservation.checkin'] = {
-            $lte: fechaHasta.trim(),
-          };
-        }
+      // Filtros combinados (q/qType + status + rango de fechas)
+      if (filtros) {
+        const extra = await this.construirFiltrosBusqueda(
+          undefined,
+          undefined,
+          filtros.roles ?? ['super-admin'],
+          filtros,
+        );
+        Object.assign(filter, extra);
       }
 
       // Obtener la suma de totales de reservas no canceladas (con caché)
@@ -2362,8 +2487,8 @@ export class ReservasService {
             sumaTotalesNoCanceladas: totalSuma,
             ...(hotel && { hotelFiltrado: hotel }),
             ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
-            ...(fechaDesde && { fechaDesde }),
-            ...(fechaHasta && { fechaHasta }),
+            ...(filtros?.fechaDesde && { fechaDesde: filtros.fechaDesde }),
+            ...(filtros?.fechaHasta && { fechaHasta: filtros.fechaHasta }),
           },
         };
       }
@@ -2399,8 +2524,8 @@ export class ReservasService {
           sumaTotalesNoCanceladas: totalSuma,
           ...(hotel && { hotelFiltrado: hotel }),
           ...(nombreAgencia && { nombreAgenciaFiltrado: nombreAgencia }),
-          ...(fechaDesde && { fechaDesde }),
-          ...(fechaHasta && { fechaHasta }),
+          ...(filtros?.fechaDesde && { fechaDesde: filtros.fechaDesde }),
+          ...(filtros?.fechaHasta && { fechaHasta: filtros.fechaHasta }),
         },
       };
     } catch (error) {
