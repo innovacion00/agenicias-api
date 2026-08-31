@@ -45,6 +45,10 @@ interface EnvVars {
   AUTOCORE_ACCESS_KEY_DEV?: string;
   AUTOCORE_SECRET_KEY_DEV?: string;
 
+  /** Base pública de la API a la que Autocore debe notificar los pagos
+   * (ej. https://dev.gehsuitesapps.com). Se concatenan los paths de cada webhook. */
+  PAYMENT_WEBHOOK_URL?: string;
+
   //? My Tool
   MY_TOOL_EMAIL: string;
   MY_TOOL_CLAVE: string;
@@ -141,6 +145,13 @@ const envSchema = joi
     AUTOCORE_URL_DEV: joi.string().optional(),
     AUTOCORE_ACCESS_KEY_DEV: joi.string().optional(),
     AUTOCORE_SECRET_KEY_DEV: joi.string().optional(),
+
+    //? Webhook de pagos
+    PAYMENT_WEBHOOK_URL: joi
+      .string()
+      .allow('')
+      .optional()
+      .default('https://gehsuitesapps.com'),
 
     //? My Tool
     MY_TOOL_EMAIL: joi.string().required(),
@@ -248,6 +259,12 @@ export const envs = {
   autocoreUrlDev: envVars.AUTOCORE_URL_DEV,
   autocoreAccessKeyDev: envVars.AUTOCORE_ACCESS_KEY_DEV,
   autocoreSecretKeyDev: envVars.AUTOCORE_SECRET_KEY_DEV,
+
+  //? Webhook de pagos (base pública; Autocore notifica aquí)
+  paymentWebhookUrl: (envVars.PAYMENT_WEBHOOK_URL ?? 'https://gehsuitesapps.com')
+    .toString()
+    .trim()
+    .replace(/\/+$/, ''),
 
   //? My Tool
   myToolEmail: envVars.MY_TOOL_EMAIL,

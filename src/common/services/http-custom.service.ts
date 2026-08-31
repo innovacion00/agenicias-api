@@ -626,8 +626,7 @@ export class HttpCustomService {
         external_ref_id:
           externalRefId ||
           `personas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        temp_webhook_url:
-          'https://gehsuitesapps.com/agencias/v1/booking-personas/change-status',
+        temp_webhook_url: `${envs.paymentWebhookUrl}/agencias/v1/booking-personas/change-status`,
         redirect: {
           success_url: 'https://personas.gehsuites.com/reserva-exitosa',
           failure_url: 'https://personas.gehsuites.com/reserva-error',

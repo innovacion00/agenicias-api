@@ -22,6 +22,7 @@ import { Agencia } from 'src/agencias/entities';
 import { User } from 'src/auth/entities';
 
 import {
+  envs,
   hotelesAutocore,
   hotelesAutocorePaymenLink,
   notificacionCancelacionToures,
@@ -582,8 +583,7 @@ export class ReservasService {
         success_url: 'https://agencia.gehsuites.com/misreservas',
       },
       source: 'Booking Connect',
-      temp_webhook_url:
-        'https://gehsuitesapps.com/agencias/v1/reservas/change-status',
+      temp_webhook_url: `${envs.paymentWebhookUrl}/agencias/v1/reservas/change-status`,
       reservation_id: reservaInfo.reservaChatbotId,
     });
 
