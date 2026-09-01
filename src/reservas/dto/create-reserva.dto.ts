@@ -334,6 +334,52 @@ export class InfoTouresDto {
   secondContacNumber?: string;
 }
 
+/**
+ * Item de desglose de precios de la reserva (snapshot).
+ * Representa un concepto (hospedaje, transporte, tour, mascotas, alimentación,
+ * impuestos, retenciones, vuelo) con su valor. La suma de los ítems debe
+ * cuadrar con el `total` de la reserva en la moneda de `reservation.currency`.
+ */
+export class DesglosePrecioDto {
+  @ApiPropertyOptional({
+    description:
+      'Categoría del ítem: hospedaje, transporte, tour, mascotas, alimentacion, impuestos, retencion, vuelo.',
+  })
+  @IsString()
+  @IsNotEmpty()
+  concepto: string;
+
+  @ApiPropertyOptional({
+    description: 'Descripción o nombre específico (ej. nombre del tour).',
+  })
+  @IsOptional()
+  @IsString()
+  detalle?: string;
+
+  @ApiPropertyOptional({
+    description: 'Cantidad (personas, vehículos, mascotas, unidades).',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  cantidad?: number;
+
+  @ApiPropertyOptional({
+    description: 'Valor unitario en la moneda de la reserva.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioUnitario?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Valor total del ítem en la moneda de la reserva. Puede ser negativo para conceptos que descuentan (ej. retenciones).',
+  })
+  @IsNumber()
+  total: number;
+}
+
 export class CreateReservaDto {
   @IsBoolean()
   @IsOptional()
@@ -428,4 +474,15 @@ export class CreateReservaDto {
   @Type(() => ReservaInfoDto)
   @IsNotEmpty()
   reservaInfo: IreservaInfo;
+
+  @ApiPropertyOptional({
+    description:
+      'Desglose de precios (snapshot): cuanto corresponde a hospedaje y a cada extra (transporte, tours, mascotas, alimentación, impuestos/retenciones).',
+    type: [DesglosePrecioDto],
+  })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => DesglosePrecioDto)
+  @IsArray()
+  desglosePrecios?: DesglosePrecioDto[];
 }

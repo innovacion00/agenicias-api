@@ -20,7 +20,7 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { IAsistente, ITitularInfo } from '../interfaces';
-import { InfoTransporteDto, InfoTouresDto } from './create-reserva.dto';
+import { InfoTransporteDto, InfoTouresDto, DesglosePrecioDto } from './create-reserva.dto';
 import { IsNotSameDayCheckin } from '../decorators';
 
 // ────────────────── Clases auxiliares internas ──────────────────
@@ -458,6 +458,12 @@ export class CreateReservaMyToolDto {
   @IsArray()
   @IsOptional()
   asistentes?: IAsistente[];
+
+  @ValidateNested({ each: true })
+  @Type(() => DesglosePrecioDto)
+  @IsArray()
+  @IsOptional()
+  desglosePrecios?: DesglosePrecioDto[];
 }
 
 // ────────────────── DTOs de cancelación y búsqueda ──────────────────

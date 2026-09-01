@@ -104,6 +104,32 @@ export class Reserva extends Document {
   })
   planAlimentario: string;
 
+  /**
+   * Desglose de precios de la reserva (snapshot en la moneda de
+   * `reservation.currency`). Cada ítem corresponde a un concepto
+   * (hospedaje, transporte, tours, mascotas, alimentación, impuestos,
+   * retenciones, vuelo). La suma de los ítems cuadra con `total`.
+   */
+  @Prop({
+    type: [
+      {
+        concepto: { type: String, default: '' },
+        detalle: { type: String, default: '' },
+        cantidad: { type: Number, default: 1 },
+        precioUnitario: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
+      },
+    ],
+    default: [],
+  })
+  desglosePrecios: Array<{
+    concepto: string;
+    detalle?: string;
+    cantidad?: number;
+    precioUnitario?: number;
+    total: number;
+  }>;
+
   @Prop({
     type: {
       numeroVuelo: { type: String, require: true },
