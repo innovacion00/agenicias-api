@@ -484,6 +484,24 @@ export class Reserva extends Document {
   })
   reactivacionCorreoFalloEnviado: boolean;
 
+  /**
+   * Soft-delete: la reserva se oculta de los listados de usuarios pero se
+   * conserva en BD para auditoría (p.ej. original cancelada tras reactivación
+   * exitosa, o reactivación expirada). Nunca se borra físicamente.
+   */
+  @Prop({
+    type: Boolean,
+    default: false,
+    index: true,
+  })
+  eliminada: boolean;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  eliminadaEn?: Date;
+
   @Prop({
     type: Number,
     default: 0,

@@ -288,7 +288,10 @@ export class CancellationTasksQueueService
       );
     }
 
-    await this.reservasModel.findByIdAndDelete(nueva._id);
+    await this.reservasModel.updateOne(
+      { _id: nueva._id },
+      { $set: { eliminada: true, eliminadaEn: new Date() } },
+    );
     await this.liberarReactivacionEnOrigen(payload.reservaOrigenId);
 
     this.logger.log(

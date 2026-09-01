@@ -1579,6 +1579,7 @@ export class ReservasService {
       }
 
       const filter = this.buildIdFilter('userId', userIdObjectId);
+      Object.assign(filter, { eliminada: { $ne: true } });
 
       // Filtros combinados (q/qType + status + rango de fechas)
       if (filtros) {
@@ -1652,15 +1653,25 @@ export class ReservasService {
     const esSuperAdmin = roles.includes('super-admin');
     const esAdmin = roles.includes('admin');
 
+    // Oculta las reservas marcadas como eliminadas (soft-delete) de todos los
+    // roles; solo son accesibles a nivel de BD para auditoría.
+    const filtroEliminadas = { eliminada: { $ne: true } };
+
     if (esSuperAdmin) {
-      // SuperAdmin: sin filtros, puede ver todas las reservas
-      return {};
+      // SuperAdmin: sin filtros de scope, pero sin reservas eliminadas
+      return filtroEliminadas;
     } else if (esAdmin) {
       // Admin: solo reservas de su agencia
-      return this.buildIdFilter('agenciaId', agenciaId);
+      return {
+        ...this.buildIdFilter('agenciaId', agenciaId),
+        ...filtroEliminadas,
+      };
     } else {
       // User: solo sus propias reservas
-      return this.buildIdFilter('userId', userId);
+      return {
+        ...this.buildIdFilter('userId', userId),
+        ...filtroEliminadas,
+      };
     }
   }
 
@@ -2304,6 +2315,7 @@ export class ReservasService {
       const skip = Math.min((currentPage - 1) * PAGE_SIZE, MAX_SKIP);
 
       const filter = this.buildIdFilter('agenciaId', agenciaId);
+      Object.assign(filter, { eliminada: { $ne: true } });
 
       // Filtros combinados (q/qType + status + rango de fechas)
       if (filtros) {
@@ -2415,7 +2427,7 @@ export class ReservasService {
   ) {
     try {
       // Construir el filtro
-      const filter: any = {};
+      const filter: any = { eliminada: { $ne: true } };
 
       // Si se proporciona el parámetro hotel, agregarlo al filtro
       if (hotel && hotel.trim()) {
@@ -3722,9 +3734,10 @@ export class ReservasService {
   ): Promise<{
     linkInfo: { link: string; expirationDate: Date; idLinkPago: string };
   } | null> {
-    const nuevaPendiente = await this.reservasModel.findById(
-      reservaOrigen.reactivacionNuevaReservaId,
-    );
+    const nuevaPendiente = await this.reservasModel.findOne({
+      _id: reservaOrigen.reactivacionNuevaReservaId,
+      eliminada: { $ne: true },
+    });
 
     if (!nuevaPendiente) {
       return null;
@@ -3830,7 +3843,17 @@ export class ReservasService {
         );
       }
 
-      await this.reservasModel.findByIdAndDelete(reservaOrigen._id);
+      await this.reservasModel.updateOne(
+        { _id: reservaOrigen._id },
+        {
+          $set: {
+            eliminada: true,
+            eliminadaEn: new Date(),
+            reactivacionEstado: 'completada',
+            reactivacionNuevaReservaId: reservaNueva._id,
+          },
+        },
+      );
     }
 
     await this.reservasModel.updateOne(
@@ -3838,14 +3861,16 @@ export class ReservasService {
       {
         $unset: {
           reactivacionExpiraEn: '',
-          reactivacionDeReservaId: '',
         },
-        $set: { esReactivacion: false },
+        $set: {
+          esReactivacion: false,
+          reactivacionEstado: 'completada',
+        },
       },
     );
 
     this.logger.log(
-      `Reactivacion completada: nueva=${reservaNueva.reservaChatbotId} origen eliminada`,
+      `Reactivacion completada: nueva=${reservaNueva.reservaChatbotId} origen oculta (soft-delete)`,
     );
   }
 
