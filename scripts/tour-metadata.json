@@ -1,0 +1,532 @@
+[
+  {
+    "detalle": "Tour 1: Isla playa blanca barú por bus",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 130000,
+    "precioUSD": 30.13,
+    "informacion": {
+      "description": "Viaja por Tierra a Nuestra Isla Playa Blanca Barú y Disfruta de una experiencia inolvidable ¡Prepárate para vivir un día lleno de sol, mar y arena! Súbete a nuestro cómodo bus turístico rumbo a la paradisíaca Isla Barú, ubicada en el hermoso departamento de Bolívar, Colombia. Este tour está diseñado para grupos de 25 a 30 personas, lo que garantiza un ambiente ameno, divertido y seguro.",
+      "schedule": "Horario: 7:45 a.m a 3:00 p.m",
+      "duration": "8 horas",
+      "meetingPoint": "Muelle Todomar, San Martín 1-5, Cartagena",
+      "images": {
+        "main": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/c5/a3/03/img-20170630-151526512.jpg?w=900&h=-1&s=1",
+        "side1": "https://cdn5.travelconline.com/images/fit-in/0x450/filters:quality(75):strip_metadata():format(webp)/https%3A%2F%2Ftr2storage.blob.core.windows.net%2Fimagenes%2Fbaru1-36bb4308-e8a8-4b99-92bb-bcdea25a2202.jpg",
+        "side2": "https://space-img.sfo3.digitaloceanspaces.com/Agencias/Huevos%201.png"
+      },
+      "includes": [
+        "Transporte recogida y regreso",
+        "Llegada a playa blanca barú",
+        "Almuerzo tipico",
+        "Estancia en bohio de paja con sillas y mesas a 2 metros de la playa totalmente gratis."
+      ],
+      "toBring": [
+        "ropa cómoda",
+        "calzado cómodo",
+        "sandalias",
+        "traje de baño",
+        "toalla",
+        "gafas de sol",
+        "bloqueador solar",
+        "gorro para el sol",
+        "agua",
+        "snack"
+      ],
+      "notIncludes": [
+        "No están incluido Sillas, Carpas, sombrillas o hamacas",
+        "No están incluidas bebidas",
+        "Entrada al Oceanario (COP$ 40.000 por persona)"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Si anula la reserva hasta 48 horas antes del inicio de la actividad, le devolveremos el 100% del pago realizado para reservar. Si anula con una anticipación menor a la indicada, no aplicará devolución."
+    }
+  },
+  {
+    "detalle": "Tour 2: Isla playa blanca barú por lancha",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 150000,
+    "precioUSD": 37,
+    "informacion": {
+      "description": "Disfruta de un día completo en Playa Blanca, una de las playas más hermosas de Cartagena conocida por su arena blanca y aguas cristalinas. Saldrás desde el muelle de Cartagena y navegarás aproximadamente 45 minutos hasta llegar a esta maravillosa playa ubicada en la Isla de Barú. Tendrás tiempo libre para nadar, tomar el sol y disfrutar de actividades acuáticas opcionales. Incluye almuerzo típico y bebidas refrescantes.",
+      "schedule": "Horario: 7:45 a.m a 3:00 p.m",
+      "duration": "8 horas",
+      "meetingPoint": "Muelle de la Bodeguita, Centro Histórico, Cartagena",
+      "images": {
+        "main": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/c5/a3/03/img-20170630-151526512.jpg?w=900&h=-1&s=1",
+        "side1": "https://cdn5.travelconline.com/images/fit-in/0x450/filters:quality(75):strip_metadata():format(webp)/https%3A%2F%2Ftr2storage.blob.core.windows.net%2Fimagenes%2Fbaru1-36bb4308-e8a8-4b99-92bb-bcdea25a2202.jpg",
+        "side2": "https://space-img.sfo3.digitaloceanspaces.com/Agencias/Huevos%201.png"
+      },
+      "includes": [
+        "Transporte recogida al muelle",
+        "transporte en lancha ida y regreso al muelle",
+        "almuerzo típico",
+        "Recorrido panoramico por las islas del rosario",
+        "Explicacion del guia sobre el fuerte de bocachica",
+        "Parada en el acuario (Opcional)"
+      ],
+      "toBring": [
+        "ropa de playa",
+        "traje de baño",
+        "toalla",
+        "protector solar",
+        "gafas de sol",
+        "sombrero o gorra",
+        "dinero extra",
+        "cámara (opcional)"
+      ],
+      "notIncludes": [
+        "En el muelle el viajero debe pagar un impuesto de $20.500",
+        "El transporte del muelle al hotel NO está incluido.",
+        "No están incluido Sillas, Carpas o hamacas."
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Cancelación gratuita hasta 24 horas antes. Después no hay reembolso."
+    }
+  },
+  {
+    "detalle": "Tour 3: City tour en chiva",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 100000,
+    "precioUSD": 27.38,
+    "informacion": {
+      "description": "¡Vive la magia de Cartagena en un increíble City Tour lleno de historia, cultura y tradición! Súbete a una auténtica Chiva rumbera y déjate llevar por los encantos de la city heroica. Te recogemos directamente en tu hotel y comenzamos una ruta inolvidable por los lugares más emblemáticos de Cartagena.",
+      "schedule": "Horario: Mañana 09:00 AM - 01:00 PM / Tarde 02:00 PM - 06:00 PM",
+      "duration": "4 horas",
+      "meetingPoint": "Te recogemos a tu Hotel en Chiva",
+      "images": {
+        "main": "https://www.baytours.com.co/wp-content/uploads/2021/11/chiva_3997139_20201216111803.jpg",
+        "side1": "https://vehitours.com/wp-content/uploads/2022/02/CITY-TOURS-CARTAGENA-tour-en-chiva-city-tour-en-cartagena-guia-cartagena-min.jpg",
+        "side2": "https://media.tacdn.com/media/attractions-splice-spp-674x446/07/8b/1d/30.jpg"
+      },
+      "includes": [
+        "Te recogemos a tu Hotel en Chiva",
+        "Te Regresamos al hotel",
+        "Recorrido por los grandes monumentos: Las Botas , Castillo San Felipe de Barajas , Las Bóvedas , Recorrido panorámico por la city amurallada.",
+        "bebidas (agua, jugos naturales, gaseosas Explicación del guía sobre toda nuestra historia y monumentos.)",
+        "Incluye entradas a los monumentos."
+      ],
+      "toBring": [
+        "Agua",
+        "Snack",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Bebidas alcohólicas"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia.",
+      "cancellationPolicy": "Reembolso del 80% con cancelación 72 horas antes. 50% con cancelación 48 horas antes. Sin reembolso con menos de 48 horas."
+    }
+  },
+  {
+    "detalle": "Tour 4: Rumba en chiva",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 55000,
+    "precioUSD": 15.27,
+    "informacion": {
+      "description": "🎉 ¡Vive la fiesta cartagenera sobre ruedas con nuestro Tour de Rumba en Chiva! Si buscas diversión, música y buena vibra, este tour es perfecto para ti. Súbete a una tradicional Chiva rumbera y disfruta de una noche inolvidable recorriendo Cartagena al ritmo de la música y los tambores.",
+      "schedule": "Horario: 8:00 p.m a 11:00 p.m",
+      "duration": "3 horas",
+      "meetingPoint": "Te recogemos a tu Hotel en Chiva",
+      "images": {
+        "main": "https://media.tacdn.com/media/attractions-splice-spp-674x446/07/36/54/34.jpg",
+        "side1": "https://chivarumbera.com/wp-content/uploads/2023/08/Planes-2.jpg",
+        "side2": "https://cloudfront-us-east-1.images.arcpublishing.com/infobae/MEZEURPSNNCGHB7KYSGHMYNZ2I.jpg"
+      },
+      "includes": [
+        "Te recogemos a tu Hotel en Chiva",
+        "Te Regresamos al hotel",
+        "Recorrido por los grandes monumentos: Las Botas , Castillo San Felipe de Barajas , Las Bóvedas , Recorrido panorámico por la city amurallada.",
+        "bebidas (agua, jugos naturales, gaseosas, Explicación del guía sobre toda nuestra historia y monumentos.)",
+        "Incluye entradas a los monumentos."
+      ],
+      "toBring": [
+        "Agua",
+        "Snack",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Bebidas alcohólicas"
+      ],
+      "restrictions": "No hay restricciones específicas de edad pero se recomienda una edad minima de 15 años",
+      "cancellationPolicy": "Reembolso del 80% con cancelación 72 horas antes. 50% con cancelación 48 horas antes. Sin reembolso con menos de 48 horas."
+    }
+  },
+  {
+    "detalle": "Tour 5: Palmarito Beach",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 250000,
+    "precioUSD": 63.88,
+    "informacion": {
+      "description": "Disfruta de un día inolvidable en Palmarito Beach, un exclusivo club de playa ubicado en Cartagena, ideal para familias, parejas o grupos de amigos que buscan relajarse frente al mar. El tour incluye transporte en lancha ida y regreso con salida desde la Playa del Nuevo Hospital de Bocagrande, un coctel de bienvenida al llegar, un almuerzo tipo buffet con diversas opciones, y el uso completo de las instalaciones del club. Podrás disfrutar de camas, sillas asoleadoras o kioskos de palma (asignados según disponibilidad), acceso a la piscina, parque infantil para los más pequeños, y una zona de hamacas para descansar cómodamente. Palmarito Beach ofrece un ambiente tranquilo y natural, perfecto para desconectarse de la rutina y disfrutar de un día de sol, playa y descanso en el Caribe colombiano.",
+      "schedule": "Horario: 8:00 a.m a 3:30 p.m",
+      "duration": "7 horas",
+      "meetingPoint": "A Playa del Nuevo Hospital de Bocagrande",
+      "images": {
+        "main": "https://space-img.sfo3.digitaloceanspaces.com/Agencias/Palmarito-Beach-2.jpg",
+        "side1": "https://www.cartagenaexplorer.com/wp-content/uploads/2022/01/DSCF0803-1024x683.jpg",
+        "side2": "https://images.trvl-media.com/lodging/11000000/10490000/10483000/10482985/8136841a.jpg?impolicy=resizecrop&rw=575&rh=575&ra=fill"
+      },
+      "includes": [
+        "Transporte en lancha ida y regreso con salida desde la Playa del Nuevo Hospital de Bocagrande.",
+        "Coctel de Bienvenida.",
+        "Almuerzo Tipo Buffet.",
+        "Uso de las instalaciones.",
+        "Camas, sillas asoleadoras o Kioskos de Palma (Ubicación es según disponibilidad).",
+        "Piscina.",
+        "Parque infantil.",
+        "Zona de Hamacas."
+      ],
+      "toBring": [
+        "Ropa de playa",
+        "Traje de baño",
+        "Toalla",
+        "Protector solar biodegradable",
+        "Gafas de sol",
+        "Sombrero",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Trasporte terrestre ida al hospital y regreso al hotel.",
+        "Bebidas alcoholicas."
+      ],
+      "restrictions": "No se puede llevar alimentos y bebidas. No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Reembolso del 80% con cancelación 72 horas antes. 50% con cancelación 48 horas antes. Sin reembolso con menos de 48 horas."
+    }
+  },
+  {
+    "detalle": "Tour 6: Tour de las 4 islas",
+    "ciudad": "CARTAGENA",
+    "precioCOP": 210000,
+    "precioUSD": 57.55,
+    "informacion": {
+      "description": "Vive una experiencia inolvidable con el Tour 4 Islas, una aventura única por el Caribe colombiano. El recorrido comienza con transporte terrestre desde tu hotel hasta Playa Blanca, en Barú, donde abordarás una lancha que te llevará a conocer cuatro islas paradisíacas. Durante el tour disfrutarás de un almuerzo típico con opción de pescado o pollo, en un entorno natural y relajado. La experiencia incluye los impuestos de zarpe requeridos y, al finalizar el recorrido, contarás con transporte terrestre desde Barú de regreso a tu hotel. Es una excelente opción para quienes desean explorar varias islas en un solo día, con comodidad y organización.",
+      "schedule": "Horario: 7:45 a.m a 3:00 p.m",
+      "duration": "7 horas",
+      "meetingPoint": "Muelle de la Bodeguita, Centro Histórico, Cartagena",
+      "images": {
+        "main": "https://colombiaexperience.co/wp-content/uploads/2021/09/4-Islas.jpg",
+        "side1": "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-674x446/13/e7/b9/0e.jpg",
+        "side2": "https://media.tacdn.com/media/attractions-splice-spp-674x446/06/7b/27/2d.jpg"
+      },
+      "includes": [
+        "Transporte terrestre hasta playa blanca Barú",
+        "transporte en lancha a las 4 islas desde Barú",
+        "Almuerzo tipico (Pescado o pollo)",
+        "Incluye impuestos de Zarpe",
+        "Transporte terrestre desde barú hasta el hotel"
+      ],
+      "toBring": [
+        "Ropa de playa",
+        "Traje de baño",
+        "Toalla",
+        "Protector solar biodegradable",
+        "Gafas de sol",
+        "Sombrero",
+        "Cámara acuática (Opcional)",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "El viajero una vez llegue al acuario decide si quiere o no entrar, la entrada tiene un valor de $40.000. ( Opcional )",
+        "bebidas alcohólicas",
+        "No incluye carpas , sillas, hamacas"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Reembolso del 80% con cancelación 72 horas antes. 50% con cancelación 48 horas antes. Sin reembolso con menos de 48 horas."
+    }
+  },
+  {
+    "detalle": "Tour 7: City Tour Histórico",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 125000,
+    "precioUSD": 35,
+    "informacion": {
+      "description": "En un interesante recorrido por la ciudad más antigua de Suramé-rica visitarás las principales calles, avenidas y atractivos turísticos de la ciudad como por ejemplo: La Catedral Basílica, La Quinta de San Pedro Alejandrino, El Museo del Oro (Banco de la República), El Monumento al Pibe Valderrama y Taganga donde podrás tener una vista panorámica de pescadores.",
+      "schedule": "Horario: 8:30 a.m. o 2:30 p.m. a 12:00 a.m. y 6:00 p.m.",
+      "duration": "4 Horas",
+      "meetingPoint": "",
+      "images": {
+        "main": "https://www.museobolivariano.org.co/wp-content/uploads/2020/01/quinta-de-san-pedro-aleandrino-008.jpg",
+        "side1": "https://space-img.sfo3.digitaloceanspaces.com/Agencias/city%20tour%20santa%20marta.jpeg",
+        "side2": "https://tse1.mm.bing.net/th/id/OIP.Icp5Wxcsdo03y5y0ehb01AHaF7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
+      },
+      "includes": [
+        "Transporte terrestre",
+        "Conductor guía",
+        "Seguro de viaje",
+        "Entradas a la Quinta de San Pedro Alejandrino",
+        "Hidratación"
+      ],
+      "toBring": [
+        "Gafas de sol",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "Está prohibido fumar o consumir alcohol dentro de los vehículos,El pasajero será responsable por cualquier daño ocasionado al vehículo durante el traslado.",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 8: Playa blanca o inka inka",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 70000,
+    "precioUSD": 22,
+    "informacion": {
+      "description": "A tan solo 45 min de Santa Marta se encuentra Playa Blanca un destino ideal para tomar el sol, caminar entre arena blanca, bañar- se en el mar colorido, disfrutar de deportes acuáticos, entre otras actividades significativas allí.",
+      "schedule": "Horario: 9:00 am a 4:00 pm",
+      "duration": "8 Horas",
+      "meetingPoint": "Muelle del rodadero",
+      "images": {
+        "main": "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-674x446/0f/e3/e5/b9.jpg",
+        "side1": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq3qmiehzmyiKfVtKklc2nThkyFzP5ZTEacg&s",
+        "side2": "https://media.tacdn.com/media/attractions-splice-spp-674x446/15/6f/ef/2d.jpg"
+      },
+      "includes": [
+        "Transporte maritimo",
+        "Seguro de viaje"
+      ],
+      "toBring": [
+        "Llevar ropa cómoda, traje de baño, toallas, bloqueador solar, gafas solares."
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "Está prohibido fumar o consumir alcohol dentro de los vehículos,El pasajero será responsable por cualquier daño ocasionado al vehículo durante el traslado.",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 9: Centro De Vida Marina + Playa Blanca",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 210000,
+    "precioUSD": 57,
+    "informacion": {
+      "description": "Tu visita a El Acuario y Playa Blanca será inolvidable, son lugares donde podrás apreciar más de cerca el mundo marino y relajarte con hermosos paisajes. En El Acuario podrás apreciar distintas especies de tiburones, rayas, delfines, tortugas, peces exóticos, entro otros animales. Además, podrás aprender más sobre especies marinas extintas y en extinción. Playa Blanca es uno de los lugares más visitados de Santa Marta por sus playas de arena blanca y aguas cristalinas, se encuentra a 20 minutos partiendo desde El Rodadero.",
+      "schedule": "Horario: 9:00 am a 4:00 pm",
+      "duration": "7 Horas",
+      "meetingPoint": "Muelle sur del Rodadero",
+      "images": {
+        "main": "https://th.bing.com/th/id/R.b2af1bae33f41bc6690a8cabd5826ea9?rik=rd28gZUfFDZ%2fRw&riu=http%3a%2f%2fsantamarta.travel%2fuploads%2f0000%2f2%2f2022%2f05%2f24%2finka-inka-2.jpg&ehk=TeGkqa4bhQWIwKJaN%2f0O%2feMab9PzKqosoZB4%2fO0KWhI%3d&risl=&pid=ImgRaw&r=0",
+        "side1": "https://www.planessantamarta.com.co/wp-content/uploads/2024/04/playa-inca-inca-santa-marta2-1-870x555.jpg",
+        "side2": "https://caribbeanecotours.com/wp-content/uploads/2022/02/Playa-blanca-en-santa-marta-800x600-1-870x555-1-600x383.png"
+      },
+      "includes": [
+        "Transporte marítimo",
+        "Seguro de viaje",
+        "Entradas al Centro de Vida Marina"
+      ],
+      "toBring": [
+        "Ropa de playa",
+        "Traje de baño",
+        "Toalla",
+        "Protector solar biodegradable",
+        "Gafas de sol",
+        "Sombrero",
+        "Cámara acuática (opcional)",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados",
+        "No incluye carpas , sillas, hamacas",
+        "No incluye almuerzo (valor adicional con almuerzo: 160.000 )"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 10: Parque Tayrona cabo San Juan",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 238000,
+    "precioUSD": 77,
+    "informacion": {
+      "description": "Disfruta una espectacular caminata a 34 km de la ciudad de Santa Marta a través de senderos de bosques y hermosas playas paradisiacas donde el paisaje del mar y la naturaleza se entrelazan para formar una perfecta armonía. Llegando a Cañaveral en transporte terrestre, tendre- mos una caminata inicial de 2 horas por senderos de bosque, donde se podrá apreciar la rica variedad de flora y fauna del sector, al término de la cual nos encontraremos del bello paisaje de Arrecifes. Continuaremos nuestro recorrido hasta la Piscina Natural, en caminata a lo largo de la playa. En esta playa podremos disfrutar del mar, si desea seguir cono- ciendo a veinte minutos más está el Cabo San Juan de Guía",
+      "schedule": "Horario: 6:00 am a 6:00 pm",
+      "duration": "12 Horas",
+      "meetingPoint": "En el Hotel de su estadía",
+      "images": {
+        "main": "https://spacesbucketmagictours.sfo3.digitaloceanspaces.com/blog/featured/01KCJJXMJXECXKY6F290QV19HW.jpg",
+        "side1": "https://denomades.imgix.net/destinos/santa-marta/978/neguanje-y-playa-cristal-id978-4ef1.jpg",
+        "side2": "https://www.planessantamarta.com.co/wp-content/uploads/2015/01/Paisaje-playa-cabo-san-juan-parque-tayrona.jpg"
+      },
+      "includes": [
+        "Transporte terrestre",
+        "Entradas al Parque Tayrona",
+        "Seguro de viaje",
+        "Acompañamiento de un guia turistico"
+      ],
+      "toBring": [
+        "Llevar ropa cómodal",
+        "Traje de baño",
+        "Sombrero",
+        "Dinero extra para consumos adicionales",
+        "Documento de identidad"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 11: Parque Tayrona - Bahía Concha",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 154000,
+    "precioUSD": 43,
+    "informacion": {
+      "description": "Bahía Concha es un lugar tranquilo que te invita al descanso y a disfrutar de una maravillosa playa de arenas blancas, aguas cáli- das y transparentes, con un incomparable paisaje del mar, las playas y las montañas que rodean la Bahía. Además, conoce un atractivo natural, que es conocido como La Piedra del Sapo.",
+      "schedule": "Horario: 8:00 am a 4:00 pm",
+      "duration": "8 Horas",
+      "meetingPoint": "En el Hotel de su estadía",
+      "images": {
+        "main": "https://magictourcolombia.com/wp-content/uploads/2019/06/BANNER_PARA_BLOG_2.jpg",
+        "side1": "https://denomades.imgix.net/destinos/santa-marta/977/full-day-bahia-concha-id977-6f41.jpg",
+        "side2": "https://magictourcolombia.com/wp-content/uploads/2017/06/LISTADO-BAHIA-CONCHA.jpg"
+      },
+      "includes": [
+        "Transporte terrestre",
+        "Entradas al Parque Tayrona",
+        "Seguro de viaje",
+        "Acompañamiento de un guia turistico"
+      ],
+      "toBring": [
+        "Gafas de sol",
+        "Sombrero",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados",
+        "No incluye almuerzo"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 12: Minca + Taganga + Playa Grande",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 182000,
+    "precioUSD": 50,
+    "informacion": {
+      "description": "Vive una experiencia que combina montaña y mar en un solo recorrido, visitando dos de los destinos más representativos de Santa Marta. Iniciaremos en Minca, un encantador pueblo ecológico ubicado en las estribaciones de la Sierra Nevada, rodeado de naturaleza, cascadas y cultura cafetera. Posteriormente, continuaremos hacia Taganga, tradicional pueblo de pescadores con hermosas vistas panorámicas del Caribe colombiano, finalizando en Playa Grande, un lugar ideal para disfrutar del mar, el descanso y el ambiente tropical de la región.",
+      "schedule": "Horario: 7:00 am a 4:00 pm",
+      "duration": "8 Horas",
+      "meetingPoint": "En el Hotel de su estadía",
+      "images": {
+        "main": "https://cdn.baquianos.com/img/blog/2021/4/minca-q2tx640.jpg",
+        "side1": "https://cloudfront-us-east-1.images.arcpublishing.com/infobae/Z7IFKFU6KFC4HBNHLEDD3CGX5E.jpg",
+        "side2": "https://laperlaapp.s3.us-east-2.amazonaws.com/gallery/679/conversions/text-thumb.webp"
+      },
+      "includes": [
+        "Transporte terrestre",
+        "Seguro de viaje",
+        "Acompañamiento de un guia turistico",
+        "Almuerzo (tipico)",
+        "Vestido de baño,"
+      ],
+      "toBring": [
+        "Gafas de sol",
+        "Sombrero",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "No hay restricciones específicas de edad, apto para toda la familia",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 13: Fiesta Blanca",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 143000,
+    "precioUSD": 69.18,
+    "informacion": {
+      "description": "Disfruta de una inolvidable experiencia nocturna a bordo de un espectacular catamarán navegando por la hermosa Bahía de Santa Marta. La Fiesta Blanca combina música, ambiente exclusivo y una vista mágica del mar Caribe bajo las estrellas, creando el escenario perfecto para compartir, celebrar y vivir una noche diferente mientras recorres las costas de la ciudad.",
+      "schedule": "Horario: 5:00 pm a 9:00 pm",
+      "duration": "4 Horas",
+      "meetingPoint": "En el Muelle Norte del Rodero",
+      "images": {
+        "main": "https://www.planessantamarta.com.co/wp-content/uploads/2021/06/6-870x555.png",
+        "side1": "https://www.planessantamarta.com.co/wp-content/uploads/2021/06/diversion-fiesta-blanca-santa-marta-870x555.jpeg",
+        "side2": "https://www.planessantamarta.com.co/wp-content/uploads/2021/06/fiesta-blanca-tours-santa-marta-870x555.jpeg"
+      },
+      "includes": [
+        "Transporte marítimo",
+        "Acompañamiento de tripulación",
+        "Seguro de viaje"
+      ],
+      "toBring": [
+        "Ropa blanca",
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "No hay restricciones específicas de edad pero se recomienda una edad minima de 15 años",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 14: Chiva Rumbera",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 42000,
+    "precioUSD": 12,
+    "informacion": {
+      "description": "Disfruta de una noche llena de música, alegría y cultura caribeña a bordo de una tradicional chiva rumbera recorriendo las principales avenidas y sectores turísticos de Santa Marta. Durante el recorrido podrás apreciar la ciudad iluminada, vivir el ambiente festivo con música crossover y disfrutar de una experiencia típica colombiana mientras conoces la esencia nocturna de la ciudad.",
+      "schedule": "Horario: 2:30 pm a 4:30 pm",
+      "duration": "2 Horas",
+      "meetingPoint": "",
+      "images": {
+        "main": "https://abordak.com/wp-content/uploads/2022/10/Chiva-rumbera-Santa-Marta-420x315.jpg",
+        "side1": "https://www.planessantamarta.com.co/wp-content/uploads/2023/12/photo-de-chiva-25-pax-santa-marta.jpg",
+        "side2": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/5b/09/97/caption.jpg?w=1200&h=-1&s=1"
+      },
+      "includes": [
+        "Transporte en chiva",
+        "Seguro de viaje",
+        "Conductor guía"
+      ],
+      "toBring": [
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "No hay restricciones específicas de edad pero se recomienda una edad minima de 15 años",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  },
+  {
+    "detalle": "Tour 15: Parque Tayrona - Playa Cristal",
+    "ciudad": "SANTA_MARTA",
+    "precioCOP": 238000,
+    "precioUSD": 65.33,
+    "informacion": {
+      "description": "En el Parque Tayrona, te sorprenderás con lugares inigualables. Como primera parada encontrarás la Playa de las 7 Olas, donde podrás apreciar una de las vistas panorámicas más espectaculares del parque, continúa hasta Playa Neguaje donde abordarás una lancha que al cabo de 15 minutos te llevará hasta la maravillo- sa Playa Cristal, llena de arena blanca y agua cristalina en donde disfrutarás las formaciones coralinas y de un mundo submarino. Un excelente tour para realizar en familia y amigos.",
+      "schedule": "Horario: 8:30 am a 5:00 pm",
+      "duration": "8 Horas",
+      "meetingPoint": "",
+      "images": {
+        "main": "https://www.visitsantamarta.com/storage/blogs/Playa%20Cristal%20carpas-zojsp0.jpg",
+        "side1": "https://hotelparquetayrona.com/wp-content/uploads/2025/06/como-llegar-al-parque-tayrona.jpg",
+        "side2": "https://expotur-eco.com/wp-content/uploads/2019/10/parque-tayrona-santa-marta-colombia-expotur.jpg"
+      },
+      "includes": [
+        "Transporte en chiva",
+        "Seguro de viaje",
+        "Conductor guía"
+      ],
+      "toBring": [
+        "Dinero extra para consumos adicionales"
+      ],
+      "notIncludes": [
+        "Gastos no especificados"
+      ],
+      "restrictions": "No hay restricciones específicas de edad pero se recomienda una edad minima de 15 años",
+      "cancellationPolicy": "Las cancelaciones notificadas con al menos 4 horas de antelación no generarán cargos.Las cancelaciones dentro de las 12 horas previas al servicio o la no presentación del pasajero (no show) implicarán el cobro completo del servicio."
+    }
+  }
+]

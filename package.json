@@ -27,7 +27,8 @@
     "seed:airports:indexes": "ts-node -r tsconfig-paths/register scripts/seed-airports.ts --indexes-only",
     "sync:maarlab-keys": "ts-node -r tsconfig-paths/register scripts/sync-maarlab-partner-keys.ts",
     "backup:db": "ts-node -r tsconfig-paths/register scripts/backup-db.ts",
-    "backup:full": "ts-node -r tsconfig-paths/register scripts/backup-full.ts"
+    "backup:full": "ts-node -r tsconfig-paths/register scripts/backup-full.ts",
+    "seed:precios-extras": "ts-node -r tsconfig-paths/register scripts/seed-precios-extras.ts"
   },
   "dependencies": {
     "@formkit/tempo": "^0.1.2",

@@ -22,6 +22,7 @@ import { VuelosModule } from './vuelos/vuelos.module';
 import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { BookingPersonasModule } from './booking-personas/booking-personas.module';
 import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia-aeropuertos.module';
+import { PreciosExtrasModule } from './precios-extras/precios-extras.module';
 import { BackupsModule } from './backups/backups.module';
 import { BitrixModule } from './bitrix/bitrix-webhook.module';
 import { ApiResponseLogInterceptor } from './common/interceptors/api-response-log.interceptor';
@@ -115,6 +116,7 @@ import { ApiResponseLogInterceptor } from './common/interceptors/api-response-lo
     CotizacionesModule,
     BookingPersonasModule,
     ReferenciaAeropuertosModule,
+    PreciosExtrasModule,
     BackupsModule,
     BitrixModule,
   ],

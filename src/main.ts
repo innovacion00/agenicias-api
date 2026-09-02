@@ -49,6 +49,7 @@ async function bootstrap() {
         '**Rutas destacadas**',
         '- `GET /agencias/v1/referencia-aeropuertos/sugerencias` — Autocomplete de aeropuertos (JWT).',
         '- `GET /agencias/v1/referencia-aeropuertos/estado` — Conteo del catálogo cargado (JWT).',
+        '- `GET /agencias/v1/precios-extras/public` — Catálogo público de precios de extras (tours, traslados, mascotas, alimentación, descuentos) filtrable por `hotelId`, `ciudad` y `concepto`. CRUD en `/agencias/v1/precios-extras` (super-admin).',
         '- `POST /agencias/v1/reservas/mytool/:hotelSlug` — `bookData.acuerdos` va a My Tool; `notes`, `infoTransporte`, `infoToures`, `mascotasNumber` (solo BD; 0 = sin mascotas) y `rooms[].nombreHabitacion` / `room_id` en `roomsData`.',
         '- Vuelos MaarLab: Bearer por agencia vía credenciales sincronizadas o `maarlabApiKey`.',
       ].join('\n'),
@@ -86,6 +87,14 @@ async function bootstrap() {
     .addTag(
       'referencia-aeropuertos',
       'Catálogo local de aeropuertos (búsqueda predictiva)',
+    )
+    .addTag(
+      'precios-extras',
+      'Catálogo de precios de extras (admin, super-admin)',
+    )
+    .addTag(
+      'precios-extras-public',
+      'Catálogo público de precios de extras',
     )
     .addServer('http://localhost:3000', 'Servidor de desarrollo')
     .build();
