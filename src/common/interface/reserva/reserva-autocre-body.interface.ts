@@ -45,4 +45,16 @@ export interface RoomsDatum {
   unitaryPrice: number;
   /** Identificador de habitación (p. ej. MyTool). */
   room_id?: string;
+  /** Precio total de hospedaje de la habitación (toda la estancia). */
+  precioHabitacion?: number;
+  /** Precio de hospedaje por noche de la habitación. */
+  precioNocheHabitacion?: number;
+  /** Total de tours (una sola vez por reserva). */
+  precioToursHabitacion?: number;
+  /** Total de traslado (una sola vez por reserva). */
+  precioTrasladoHabitacion?: number;
+  /** Total de mascotas (una sola vez por reserva). */
+  precioMascotasHabitacion?: number;
+  /** Número de noches de la habitación. */
+  noches?: number;
 }

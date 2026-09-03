@@ -216,6 +216,26 @@ export class Cotizacion extends Document {
   asistentes: IAsistente[];
 
   @Prop({
+    type: [
+      {
+        concepto: { type: String, default: '' },
+        detalle: { type: String, default: '' },
+        cantidad: { type: Number, default: 1 },
+        precioUnitario: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
+      },
+    ],
+    default: [],
+  })
+  desglosePrecios: Array<{
+    concepto: string;
+    detalle?: string;
+    cantidad?: number;
+    precioUnitario?: number;
+    total: number;
+  }>;
+
+  @Prop({
     type: {
       firstName: { type: String, require: true },
       lastName: { type: String, require: true },
@@ -259,6 +279,12 @@ export class Cotizacion extends Document {
             quantity: { type: String, require: true },
             rateId: { type: String, require: true },
             unitaryPrice: { type: Number, require: true },
+            precioHabitacion: { type: Number, default: 0 },
+            precioNocheHabitacion: { type: Number, default: 0 },
+            precioToursHabitacion: { type: Number, default: 0 },
+            precioTrasladoHabitacion: { type: Number, default: 0 },
+            precioMascotasHabitacion: { type: Number, default: 0 },
+            noches: { type: Number, default: 1 },
           },
         },
       ],

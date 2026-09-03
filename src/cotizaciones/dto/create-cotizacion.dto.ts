@@ -30,6 +30,7 @@ import {
 } from 'src/common/interface';
 import { ITitularInfo, ValidTipoRecogida } from 'src/reservas/interfaces';
 import { IsNotFutureDate } from 'src/reservas/decorators';
+import { DesglosePrecioDto } from 'src/reservas/dto';
 
 class AgencyDto {
   @IsBoolean()
@@ -95,6 +96,30 @@ class RoomsDatumDto {
   @IsNumber()
   @IsNotEmpty()
   unitaryPrice: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioHabitacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioNocheHabitacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioToursHabitacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioTrasladoHabitacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioMascotasHabitacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  noches?: number;
 }
 
 class ReservaInfoDbDto {
@@ -399,6 +424,17 @@ export class CreateCotizacionDto {
   @Type(() => ReservaInfoDto)
   @IsNotEmpty()
   reservaInfo: IreservaInfo;
+
+  @ApiPropertyOptional({
+    description:
+      'Desglose de precios (snapshot): cuanto corresponde a hospedaje y a cada extra (transporte, tours, mascotas, impuestos/retenciones). Se copia a la reserva al convertir la cotización.',
+    type: [DesglosePrecioDto],
+  })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => DesglosePrecioDto)
+  @IsArray()
+  desglosePrecios?: DesglosePrecioDto[];
 
   @ApiPropertyOptional({
     type: [CotizacionVueloItemDto],

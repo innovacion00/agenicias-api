@@ -98,6 +98,14 @@ class RoomsDatumDto {
   @IsNumber()
   @IsNotEmpty()
   unitaryPrice: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioBase?: number;
+
+  @IsOptional()
+  @IsNumber()
+  precioNoche?: number;
 }
 
 class ReservaInfoDbDto {

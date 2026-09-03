@@ -782,6 +782,7 @@ export class CotizacionesService {
             total: cotizacion.total,
             totalMitad: cotizacion.total / 2,
             reservation: cotizacion.reservation,
+            desglosePrecios: cotizacion.desglosePrecios || [],
             reservaChatbotId: reservaAutocoreInfo.chatbot_id,
             titularInfo: cotizacion.titularInfo,
             fechaLimitePago: fechasLimite.fechaLimitePago,
