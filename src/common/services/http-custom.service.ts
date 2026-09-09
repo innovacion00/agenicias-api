@@ -682,6 +682,15 @@ export class HttpCustomService {
       this.logger.error(
         `[autocore] ❌ Error en pago con balance: code=${code}`,
       );
+      if (axios.isAxiosError(error) && error.response) {
+        const data = error.response.data as Partial<IPagoBilletera>;
+        const realMsg =
+          data?.msg ||
+          data?.message ||
+          data?.detail ||
+          'La API pagoBalanceAutocore retornó un error, revisar logs';
+        throw new BadRequestException(realMsg);
+      }
       this.axiosError(error, this.pagoBalanceAutocore.name);
     }
   }

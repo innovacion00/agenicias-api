@@ -666,7 +666,10 @@ export class ReservasService {
         this.logger.log(
           `[pago-billetera] Pago exitoso, aplicando estado: code=${pagoReservaBilleteraDto.code}`,
         );
-        await this.aplicarEstadoPagoTrasBilletera(pagoReservaBilleteraDto.code);
+        await this.aplicarEstadoPagoTrasBilletera(
+          pagoReservaBilleteraDto.code,
+          data.details?.transaction_id,
+        );
       }
 
       this.logger.log(
@@ -683,7 +686,10 @@ export class ReservasService {
   }
 
   /** Tras cobro con billetera Autocore, aplica el mismo efecto que el webhook. */
-  private async aplicarEstadoPagoTrasBilletera(code: string): Promise<void> {
+  private async aplicarEstadoPagoTrasBilletera(
+    code: string,
+    transactionId?: string,
+  ): Promise<void> {
     const reserva = await this.reservasModel
       .findOne({ 'linkInfo.idLinkPago': code })
       .select('_id linkInfo reservaChatbotId pagadoPrimeraMitad')
@@ -705,13 +711,17 @@ export class ReservasService {
         ? `${reservaId} pagoTotal`
         : reservaId;
 
+    // Usa el transaction_id real del cargo (details.transaction_id) para que el
+    // webhook change-status posterior de Autocore, con el MISMO id, sea no-op.
+    const txId = transactionId?.trim() || `billetera-${code}`;
+
     await this.cambiarEstadoPagoAutocore(
       {
         external_ref_id,
-        transaction_id: `billetera-${code}`,
+        transaction_id: txId,
         payment_status: 'aplicado',
         details: {
-          id: `billetera-${code}`,
+          id: txId,
           pay_platform: 'billetera_autocore',
         },
       },
@@ -732,7 +742,10 @@ export class ReservasService {
       );
 
       if (pagoBalanceInfo) {
-        await this.aplicarEstadoPagoTrasBilletera(code);
+        await this.aplicarEstadoPagoTrasBilletera(
+          code,
+          pagoBalanceInfo.details?.transaction_id,
+        );
       }
 
       return pagoBalanceInfo;
