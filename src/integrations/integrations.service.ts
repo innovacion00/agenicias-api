@@ -30,12 +30,13 @@ export class IntegrationsService {
 
   async create(createIntegrationDto: CreateIntegrationDto) {
     try {
-      const { name } = createIntegrationDto;
+      const { name, roles } = createIntegrationDto;
       const apiKey = crypto.randomBytes(10).toString('base64').slice(0, 7);
       const secretKey = crypto.randomBytes(10).toString('base64');
 
       const integracion = await this.integrationModel.create({
         name,
+        roles: roles ?? [],
         apiKey,
         secretKey: bcrypt.hashSync(secretKey, 10),
       });

@@ -5,6 +5,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { ReservasController } from './reservas.controller';
 import { ReservasService } from './reservas.service';
 import { Reserva, ReservaSchema } from './entities/reserva.entity';
+import { Integration, IntegrationSchema } from 'src/integrations/entities';
 import { CommonModule } from 'src/common/common.module';
 import { AgenciasModule } from 'src/agencias/agencias.module';
 import { CancellationTasksQueueService } from './cancellation-tasks-queue.service';
@@ -39,6 +40,10 @@ import {
       {
         name: AutocoreWebhookEvent.name,
         schema: AutocoreWebhookEventSchema,
+      },
+      {
+        name: Integration.name,
+        schema: IntegrationSchema,
       },
     ]),
   ],

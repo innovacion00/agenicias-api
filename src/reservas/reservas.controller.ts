@@ -38,7 +38,7 @@ import {
   ActualizarAbonoDto,
   ReprocessWebhookPagoDto,
 } from './dto';
-import { Auth, GetUser } from 'src/auth/decorators';
+import { ApiKeyProtected, Auth, GetUser } from 'src/auth/decorators';
 import { User } from 'src/auth/entities';
 import { ParseMongoIdPipe } from 'src/common/pipes';
 import {
@@ -46,7 +46,7 @@ import {
   ParseHotelIdPipe,
   ParseHotelSlugPipe,
 } from './pipes';
-import { ValidRoles } from 'src/auth/interfaces';
+import { ValidIntegrationsRoles, ValidRoles } from 'src/auth/interfaces';
 import { ValidPaymentStatus } from './interfaces';
 import {
   CreateReservaMyToolDto,
@@ -521,6 +521,44 @@ export class ReservasController {
         fechaDesde,
         fechaHasta,
         roles: user.role,
+      },
+    );
+  }
+
+  @Get('externo')
+  @ApiOperation({
+    summary: 'Obtener todas las reservas (integración externa)',
+    description:
+      'Mismo contrato de GET /agencias/v1/reservas (superAdmin) pero autenticado con integración externa vía headers api-key + secret-key (rol reservas-read).',
+  })
+  @ApiKeyProtected(ValidIntegrationsRoles.reservasRead)
+  getAllReservasExterno(
+    @Query('page') page = 1,
+    @Query('all') all: string,
+    @Query('hotel') hotel?: string,
+    @Query('nombreAgencia') nombreAgencia?: string,
+    @Query('q') q?: string,
+    @Query('qType') qType?: string,
+    @Query('status') status?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
+  ) {
+    const getAll = all === 'true' || all === '1';
+
+    this.validarFiltrosAvanzados(q, qType, status, fechaDesde, fechaHasta);
+
+    return this.reservasService.getAllReservas(
+      page,
+      getAll,
+      hotel,
+      nombreAgencia,
+      {
+        q,
+        qType: qType as 'codigo' | 'huesped' | 'agente' | 'hotel' | 'agencia',
+        status: this.parseStatus(status),
+        fechaDesde,
+        fechaHasta,
+        roles: ['super-admin'],
       },
     );
   }
