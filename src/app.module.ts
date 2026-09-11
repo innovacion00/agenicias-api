@@ -25,6 +25,7 @@ import { ReferenciaAeropuertosModule } from './referencia-aeropuertos/referencia
 import { PreciosExtrasModule } from './precios-extras/precios-extras.module';
 import { BackupsModule } from './backups/backups.module';
 import { BitrixModule } from './bitrix/bitrix-webhook.module';
+import { AppConfigModule } from './app-config/app-config.module';
 import { ApiResponseLogInterceptor } from './common/interceptors/api-response-log.interceptor';
 
 @Module({
@@ -119,6 +120,7 @@ import { ApiResponseLogInterceptor } from './common/interceptors/api-response-lo
     PreciosExtrasModule,
     BackupsModule,
     BitrixModule,
+    AppConfigModule,
   ],
   controllers: [],
   providers: [
