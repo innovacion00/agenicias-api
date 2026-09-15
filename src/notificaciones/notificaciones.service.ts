@@ -115,6 +115,10 @@ export class NotificacionesService {
     }
   }
 
+  @Cron('0 9 * * *', {
+    name: 'notificaciones_recordatorio_pago',
+    timeZone: 'America/Bogota',
+  })
   async notificacionPago() {
     try {
       // Optimización: Usar lean() para mejor rendimiento
